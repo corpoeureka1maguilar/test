@@ -437,6 +437,27 @@ export function ProductCatalog() {
         </div>
       </div>
 
+      {/* Mobile Sticky Checkout Bar */}
+      {items.length > 0 && (!showKeyboard || !isManualMode) && (
+        <div className={styles.mobileCheckoutBar}>
+          <div className={styles.mobileCheckoutInfo}>
+            <span className={styles.mobileCheckoutCount}>
+              {count} {count === 1 ? 'ítem' : 'ítems'}
+            </span>
+            <span className={styles.mobileCheckoutTotal}>
+              Total: Bs. {total.toFixed(2)}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-accent"
+            onClick={handleCheckout}
+          >
+            PAGAR AHORA
+          </button>
+        </div>
+      )}
+
       {/* Teclado en pantalla */}
       {showKeyboard && isManualMode && (
         <AppVirtualKeyboard
@@ -449,3 +470,4 @@ export function ProductCatalog() {
     </div>
   )
 }
+
