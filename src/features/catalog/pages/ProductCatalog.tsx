@@ -5,6 +5,7 @@ import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
 import { useCartStore, useCartTotal, useCartCount } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
+import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phosphor-icons/react'
 
 import styles from './ProductCatalog.module.css'
 
@@ -124,7 +125,15 @@ export function ProductCatalog() {
               }
             }}
           >
-            {isManualMode ? '🖨️ Escanear Productos' : '🔍 Buscar Manualmente'}
+            {isManualMode ? (
+              <>
+                <Barcode size={20} /> Escanear Productos
+              </>
+            ) : (
+              <>
+                <MagnifyingGlass size={20} /> Buscar Manualmente
+              </>
+            )}
           </button>
         </div>
 
@@ -162,7 +171,9 @@ export function ProductCatalog() {
           <div className={styles.scannerContainer}>
             {/* Zona del Lector de Código de Barras */}
             <div className={`${styles.scannerZone} ${lastScannedProduct ? styles.scannerZoneActive : ''}`}>
-              <div className={styles.barcodeIcon}>📊</div>
+              <div className={styles.barcodeIcon}>
+                <Barcode size={80} weight="thin" />
+              </div>
               <div className={styles.scanInstruction}>
                 Listo para escanear
               </div>
@@ -175,7 +186,8 @@ export function ProductCatalog() {
             {lastScannedProduct && (
               <div className={styles.lastScannedSection}>
                 <div className={styles.lastScannedTitle}>
-                  ✨ Último Producto Escaneado
+                  <Sparkle size={18} weight="fill" style={{ color: 'var(--color-accent)', marginRight: '4px' }} />
+                  Último Producto Escaneado
                 </div>
                 <div className={styles.lastScannedCard}>
                   <div className={styles.lastScannedHeader}>
@@ -380,7 +392,7 @@ export function ProductCatalog() {
                     }}
                     title="Eliminar"
                   >
-                    ✕
+                    <Trash size={18} />
                   </button>
                 </div>
               </div>
@@ -388,7 +400,7 @@ export function ProductCatalog() {
 
             {items.length === 0 && (
               <div className={styles.cartEmpty}>
-                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🛒</div>
+                <ShoppingCart size={48} weight="light" style={{ marginBottom: '0.5rem', opacity: 0.7 }} />
                 <p>Tu carrito está vacío</p>
                 <span style={{ fontSize: '0.9rem', opacity: 0.6 }}>
                   Escanéa códigos para agregar
