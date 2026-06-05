@@ -1,0 +1,81 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+  max-width: 540px; /* Perfect width for kiosk keyboard */
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.key {
+  height: 110px;
+  width: 110px;
+  margin: 0 auto;
+  font-size: 2.75rem;
+  font-family: var(--app-font-family);
+  font-weight: 500;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+
+  &:active {
+    background: var(--color-surface-heavy);
+    transform: scale(0.9);
+    box-shadow: none;
+  }
+}
+
+.delete {
+  font-size: 2rem;
+  color: var(--color-text-muted);
+}
+
+.confirm {
+  font-size: 2rem;
+  color: var(--color-accent);
+}
+
+/* Hide internal display as it clashes with page layouts */
+.display {
+  display: none;
+}
+
+@media (max-aspect-ratio: 1.35), (max-height: 800px) {
+  .wrapper {
+    gap: 1rem;
+    max-width: 420px;
+  }
+
+  .grid {
+    gap: 0.8rem;
+  }
+
+  .key {
+    height: 76px;
+    width: 76px;
+    font-size: 1.8rem;
+  }
+
+  .delete {
+    font-size: 1.4rem;
+  }
+
+  .confirm {
+    font-size: 1.4rem;
+  }
+}

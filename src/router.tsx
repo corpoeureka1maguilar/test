@@ -1,0 +1,40 @@
+import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { useConfigStore } from '@/shared/stores/config'
+import { RootLayout } from '@/shared/layouts/RootLayout'
+import { Welcome } from '@/features/welcome/pages/Welcome'
+import { Setup } from '@/features/setup/pages/Setup'
+import { CustomerIdentity } from '@/features/customer/pages/CustomerIdentity'
+import { CustomerRegister } from '@/features/customer/pages/CustomerRegister'
+import { ProductCatalog } from '@/features/catalog/pages/ProductCatalog'
+import { CartReview } from '@/features/cart/pages/CartReview'
+import { PaymentSelect } from '@/features/payment/pages/PaymentSelect'
+import { PaymentForm } from '@/features/payment/pages/PaymentForm'
+import { PaymentResult } from '@/features/payment/pages/PaymentResult'
+import { Devolucion } from '@/features/refund/pages/Devolucion'
+
+function RequireConfig({ children }: { children: React.ReactNode }) {
+  const isConfigured = useConfigStore(s => s.isConfigured)
+  return isConfigured ? <>{children}</> : <Navigate to="/setup" replace />
+}
+
+export const router = createBrowserRouter([
+  {
+    path: '/setup',
+    element: <Setup />
+  },
+  {
+    element: <RootLayout />,
+    children: [
+      { path: '/', element: <RequireConfig><Welcome /></RequireConfig> },
+      { path: '/cedula', element: <RequireConfig><CustomerIdentity /></RequireConfig> },
+      { path: '/registro', element: <RequireConfig><CustomerRegister /></RequireConfig> },
+      { path: '/productos', element: <RequireConfig><ProductCatalog /></RequireConfig> },
+      { path: '/carrito', element: <RequireConfig><CartReview /></RequireConfig> },
+      { path: '/pago', element: <RequireConfig><PaymentSelect /></RequireConfig> },
+      { path: '/pago/:methodId', element: <RequireConfig><PaymentForm /></RequireConfig> },
+      { path: '/resultado', element: <RequireConfig><PaymentResult /></RequireConfig> },
+      { path: '/devolucion', element: <RequireConfig><Devolucion /></RequireConfig> },
+      { path: '*', element: <Navigate to="/" replace /> }
+    ]
+  }
+])

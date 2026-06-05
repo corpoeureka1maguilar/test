@@ -1,0 +1,322 @@
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0 0 2rem;
+  color: var(--color-text);
+}
+
+.search {
+  font-size: 1.75rem !important;
+  height: 80px !important;
+  margin-bottom: 2rem;
+}
+
+.info {
+  color: var(--color-text-muted);
+  padding: 1rem;
+  font-size: 1.2rem;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.resultCard {
+  composes: glass-card from global;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--app-font-family);
+  transition: all 0.2s;
+
+  &:active {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+  }
+}
+
+.orderName {
+  font-weight: 800;
+  flex: 1;
+  font-size: 1.25rem;
+  color: var(--color-text);
+}
+
+.amount {
+  font-weight: 900;
+  color: var(--color-accent);
+  font-size: 1.5rem;
+}
+
+.reasonLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 2rem 0;
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2.5rem;
+}
+
+.iconSuccess {
+  width: 120px;
+  height: 120px;
+  background: var(--color-success);
+  color: var(--color-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  font-weight: 900;
+  box-shadow: 0 0 30px var(--color-accent-glow);
+}
+
+/* Tabs Container */
+.tabs {
+  display: flex;
+  background: var(--color-surface);
+  padding: 0.5rem;
+  border-radius: 20px;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 2.5rem;
+}
+
+/* Individual Tab Button */
+.tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 1rem 1.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  font-family: var(--app-font-family);
+}
+
+.tab:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Active Tab */
+.activeTab {
+  background: #ffffff;
+  color: var(--color-text) !important;
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.08);
+}
+
+/* Cierres Grid Layout */
+.cierresGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  width: 100%;
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 768px) {
+  .cierresGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cierre Button Card */
+.cierreCard {
+  border: 1px solid var(--color-surface-border);
+  padding: 3rem 2rem;
+  border-radius: var(--app-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  text-decoration: none;
+  font-family: var(--app-font-family);
+  background: var(--color-panel);
+  box-shadow: var(--app-shadow);
+}
+
+.cierreCard:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-accent);
+}
+
+.cierreCard:active {
+  transform: scale(0.96) translateY(-5px);
+}
+
+/* Icons styling */
+.cierreIcon {
+  font-size: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cierreCard:hover .cierreIcon {
+  background: var(--color-accent-subtle);
+  transform: scale(1.1);
+}
+
+.cierreTitle {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.cierreDesc {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Config Form Terminal */
+.configForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-surface-border);
+  padding: 3rem;
+  border-radius: var(--app-radius);
+  box-shadow: var(--app-shadow);
+  animation: appleScaleIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem 2rem;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+.fieldLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+}
+
+.fieldLabel input {
+  margin-top: 0.25rem;
+}
+
+@media (max-aspect-ratio: 1.35), (max-height: 800px) {
+  .title {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .search {
+    height: 60px !important;
+    font-size: 1.3rem !important;
+    margin-bottom: 1rem;
+  }
+
+  .resultCard {
+    padding: 1rem 1.5rem;
+    gap: 1rem;
+  }
+
+  .orderName {
+    font-size: 1.1rem;
+  }
+
+  .amount {
+    font-size: 1.25rem;
+  }
+
+  .tabs {
+    margin-bottom: 1.5rem;
+    padding: 0.3rem;
+  }
+
+  .tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .cierresGrid {
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .cierreCard {
+    padding: 1.5rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .cierreIcon {
+    font-size: 2.2rem;
+    width: 60px;
+    height: 60px;
+  }
+
+  .cierreTitle {
+    font-size: 1.2rem;
+  }
+
+  .cierreDesc {
+    font-size: 0.85rem;
+  }
+
+  .configForm {
+    padding: 1.5rem;
+  }
+
+  .formGrid {
+    gap: 1rem;
+  }
+}

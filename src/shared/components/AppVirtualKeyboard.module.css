@@ -1,0 +1,184 @@
+.wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-top: 1px solid var(--color-surface-border);
+  box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.08);
+  padding: 0.5rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10000;
+  animation: slideUp 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+}
+
+/* Sleek iOS/Android Style Header Bar */
+.headerBar {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.25rem 0.75rem;
+  cursor: pointer;
+  position: relative;
+}
+
+.handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 5px;
+  background: var(--color-surface-heavy);
+  border-radius: 10px;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+
+.headerBar:hover .handle {
+  opacity: 1;
+}
+
+.headerTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.closeHeaderBtn {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 20px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:active {
+    transform: scale(0.95);
+    background: var(--color-surface-hover);
+  }
+}
+
+.keysContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 900px;
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.key {
+  flex: 1;
+  height: clamp(44px, 7vh, 60px); /* Ultra responsive height based on viewport */
+  min-width: 0; /* Ensures complete fluid shrinking, prevents horizontal overflow */
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+  color: var(--color-text);
+  font-size: clamp(1.1rem, 2vw, 1.35rem); /* Fluid responsive font sizing */
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.02);
+
+  &:active {
+    transform: scale(0.9);
+    background: var(--color-surface);
+    box-shadow: none;
+  }
+}
+
+.specialKey {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  flex: 1.3; /* Slightly wider than standard character keys */
+}
+
+.active {
+  background: var(--color-text) !important;
+  color: #ffffff !important;
+}
+
+.backspace {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+}
+
+.space {
+  flex: 4; /* Takes up much more room */
+  font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+  color: var(--color-text-muted);
+}
+
+.enter {
+  background: var(--color-accent);
+  color: #ffffff;
+  border-color: transparent;
+  flex: 2; /* Wider key */
+  font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+  box-shadow: 0 4px 12px var(--color-accent-glow);
+
+  &:active {
+    background: var(--color-accent-hover);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Tel/Numeric Layout Overrides */
+.wrapper[data-layout="tel"] {
+  max-width: 400px;
+  margin: 0 auto;
+  border-radius: 24px 24px 0 0;
+  border: 1px solid var(--color-surface-border);
+  padding: 0.5rem 1.25rem 1.5rem;
+
+  .key {
+    height: clamp(50px, 8vh, 64px);
+  }
+}
+
+/* Ultra short heights (like small touchscreens or when zoomed) */
+@media (max-height: 600px) {
+  .wrapper {
+    padding-bottom: 0.75rem;
+  }
+  .key {
+    height: 38px;
+    border-radius: 8px;
+  }
+  .headerBar {
+    padding-bottom: 0.4rem;
+  }
+}

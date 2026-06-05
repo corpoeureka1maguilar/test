@@ -1,0 +1,124 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { odooEnv } from '@/shared/lib/odooEnv'
+
+// En dev: proxy de Vite en la misma origin
+// En prod con app central: proxy local en localhost:9191
+const PROXY_BASE = import.meta.env.VITE_PROXY_BASE ?? ''
+
+async function setProxyTarget(url: string) {
+  try {
+    await fetch(`${PROXY_BASE}/__odoo-proxy-target`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target: url })
+    })
+  } catch {
+    // ignorar si el proxy no está corriendo
+  }
+}
+
+async function sha256(data: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data))
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+interface ConfigState {
+  odooUrl: string
+  odooDb: string
+  serviceUser: string
+  servicePassword: string
+  printerUrl: string
+  adminPinHash: string
+  isConfigured: boolean
+}
+
+interface ConfigActions {
+  saveConfig(data: {
+    odooUrl: string
+    odooDb: string
+    serviceUser: string
+    servicePassword: string
+    printerUrl: string
+    adminPin: string
+  }): Promise<void>
+  clearConfig(): void
+  verifyPin(pin: string): Promise<boolean>
+  reauthenticate(): Promise<void>
+}
+
+export const useConfigStore = create<ConfigState & ConfigActions>()(
+  persist(
+    (set, get) => ({
+      odooUrl: '',
+      odooDb: '',
+      serviceUser: '',
+      servicePassword: '',
+      printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
+      adminPinHash: '',
+      isConfigured: false,
+
+      async saveConfig(data) {
+        const pinHash = await sha256(data.adminPin)
+
+        await setProxyTarget(data.odooUrl)
+
+        odooEnv.setupConnection({
+          url: data.odooUrl,
+          db: data.odooDb,
+          password: data.servicePassword
+        })
+
+        await odooEnv.authenticate(data.serviceUser)
+
+        set({
+          odooUrl: data.odooUrl,
+          odooDb: data.odooDb,
+          serviceUser: data.serviceUser,
+          servicePassword: data.servicePassword,
+          printerUrl: data.printerUrl,
+          adminPinHash: pinHash,
+          isConfigured: true
+        })
+      },
+
+      clearConfig() {
+        odooEnv.disconnect()
+        set({
+          odooUrl: '',
+          odooDb: '',
+          serviceUser: '',
+          servicePassword: '',
+          printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
+          adminPinHash: '',
+          isConfigured: false
+        })
+      },
+
+      async verifyPin(pin) {
+        const hash = await sha256(pin)
+        return hash === get().adminPinHash
+      },
+
+      async reauthenticate() {
+        const { odooUrl, odooDb, serviceUser, servicePassword, isConfigured } = get()
+        if (!isConfigured) return
+        await setProxyTarget(odooUrl)
+        odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })
+        await odooEnv.authenticate(serviceUser)
+      }
+    }),
+    {
+      name: 'autopay-config',
+      partialize: (state) => ({
+        odooUrl: state.odooUrl,
+        odooDb: state.odooDb,
+        serviceUser: state.serviceUser,
+        servicePassword: state.servicePassword,
+        printerUrl: state.printerUrl,
+        adminPinHash: state.adminPinHash,
+        isConfigured: state.isConfigured
+      })
+    }
+  )
+)
