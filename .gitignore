@@ -1,0 +1,22 @@
+#  dependencies
+node_modules
+
+# next
+/.next/
+/out/
+.next-build-id.*
+
+# vercel
+.vercel
+
+# production
+build
+dist
+
+# misc
+.DS_Store
+.env.local
+.env.example
+
+# odoo nextjs
+/odoo_nextjs

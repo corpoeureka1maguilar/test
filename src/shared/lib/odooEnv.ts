@@ -32,6 +32,7 @@ interface RpcResponse<T> {
 
 export class JSONRpcEnv implements OdooEnvService {
   readonly #rpcUrl = `${PROXY_BASE}/jsonrpc`
+  #url = ''
   #uid = 0
   #db = ''
   #password = ''
@@ -43,6 +44,7 @@ export class JSONRpcEnv implements OdooEnvService {
   }
 
   setupConnection(data: Partial<EnvCredentials>) {
+    if (data.url) this.#url = data.url
     if (data.db) this.#db = data.db
     if (data.password !== undefined) this.#password = data.password
   }
@@ -73,10 +75,15 @@ export class JSONRpcEnv implements OdooEnvService {
     if (abortable) this.#controllers.add(controller)
 
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (this.#url) {
+        headers['x-odoo-target'] = this.#url
+      }
+
       const res = await window.fetch(this.#rpcUrl, {
         method: 'POST',
         body: JSON.stringify({ jsonrpc: '2.0', method: 'call_kw', params }),
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         credentials: 'include',
         signal: controller.signal
       })

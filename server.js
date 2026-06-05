@@ -76,7 +76,10 @@ const server = http.createServer((req, res) => {
 
   // ── Proxy hacia Odoo ───────────────────────────────────────────────────────
   if (url.startsWith('/jsonrpc') || url.startsWith('/web')) {
-    if (!odooTarget) {
+    const headerTarget = req.headers['x-odoo-target']
+    const currentTarget = headerTarget || odooTarget
+
+    if (!currentTarget) {
       console.warn('[proxy] /jsonrpc bloqueado: odooTarget no configurado')
       res.statusCode = 503
       res.setHeader('Content-Type', 'application/json')
@@ -86,7 +89,7 @@ const server = http.createServer((req, res) => {
     }
 
     let target
-    try { target = new URL(odooTarget) }
+    try { target = new URL(currentTarget) }
     catch {
       res.statusCode = 500
       res.end('Invalid proxy target URL')
@@ -97,13 +100,14 @@ const server = http.createServer((req, res) => {
     const doReq = isHttps ? https.request : http.request
     const port = target.port ? parseInt(target.port) : (isHttps ? 443 : 80)
 
-    console.log(`[proxy] ${req.method} ${url} → ${odooTarget}`)
+    console.log(`[proxy] ${req.method} ${url} → ${currentTarget}`)
 
     // Construir headers sin los que causan problemas
     const headers = Object.assign({}, req.headers)
     headers['host'] = target.hostname
     delete headers['origin']
     delete headers['referer']
+    delete headers['x-odoo-target']
 
     const proxyReq = doReq(
       { hostname: target.hostname, port, path: url, method: req.method, headers, rejectUnauthorized: false },

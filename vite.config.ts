@@ -39,16 +39,23 @@ function dynamicOdooProxy() {
           return next()
         }
 
-        if (!odooTarget) {
+        const headerTarget = req.headers['x-odoo-target'] as string | undefined
+        const currentTarget = headerTarget || odooTarget
+
+        if (!currentTarget) {
           res.statusCode = 503
           res.setHeader('Content-Type', 'application/json')
           res.end(JSON.stringify({ error: 'Proxy target not configured. Guardá la configuración primero.' }))
           return
         }
 
-        const target = new URL(odooTarget)
+        const target = new URL(currentTarget)
         const isHttps = target.protocol === 'https:'
         const doRequest = isHttps ? httpsReq : httpReq
+
+        const headers = { ...req.headers }
+        delete headers['x-odoo-target']
+        headers['host'] = target.hostname
 
         const proxyReq = doRequest(
           {
@@ -56,7 +63,7 @@ function dynamicOdooProxy() {
             port: target.port || (isHttps ? 443 : 80),
             path: url,
             method: req.method,
-            headers: { ...req.headers, host: target.hostname },
+            headers,
             rejectUnauthorized: false
           },
           (proxyRes) => {

@@ -67,27 +67,34 @@ http.createServer((req, res) => {
 
   // Proxy Odoo
   if (url.startsWith('/jsonrpc') || url.startsWith('/web')) {
-    if (!odooTarget) {
+    const headerTarget = req.headers['x-odoo-target']
+    const currentTarget = headerTarget || odooTarget
+
+    if (!currentTarget) {
       res.statusCode = 503
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.setHeader('Content-Type', 'application/json')
       return res.end(JSON.stringify({ error: 'Proxy no configurado' }))
     }
 
-    const t      = new URL(odooTarget)
+    const t      = new URL(currentTarget)
     const secure = t.protocol === 'https:'
     const doReq  = secure ? https.request : http.request
+
+    const headers = { ...req.headers }
+    delete headers['x-odoo-target']
+    headers['host'] = t.hostname
 
     const proxyReq = doReq({
       hostname: t.hostname,
       port: t.port || (secure ? 443 : 80),
       path: url,
       method: req.method,
-      headers: { ...req.headers, host: t.hostname },
+      headers,
       rejectUnauthorized: false
     }, proxyRes => {
-      const headers = { ...proxyRes.headers, 'access-control-allow-origin': '*' }
-      res.writeHead(proxyRes.statusCode || 200, headers)
+      const outHeaders = { ...proxyRes.headers, 'access-control-allow-origin': '*' }
+      res.writeHead(proxyRes.statusCode || 200, outHeaders)
       proxyRes.pipe(res, { end: true })
     })
 
