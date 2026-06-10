@@ -56,14 +56,19 @@ const printFiscalInvoice = fromPromise<
   PrinterInvoiceData,
   { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string }
 >(async ({ input }) => {
-  const { customer, cart, method, payment, printerUrl } = input
+  const { customer, cart, method, printerUrl } = input
   const printer = new FiscalPrinterAdapter(printerUrl)
+  
+  const totalBs = cart.reduce((sum, item) => sum + item.subtotal, 0)
+  const igtfBs = method.applyIgtf ? totalBs * (method.igtfPercent / 100) : 0
+  const totalAmountBs = totalBs + igtfBs
+
   const payload = buildFacturaPayload(
     customer.name,
     customer.cedula,
     cart.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
     method,
-    payment.amount + payment.igtfAmount
+    totalAmountBs
   )
   const response = await printer.printFactura(payload as Record<string, unknown>)
   return {

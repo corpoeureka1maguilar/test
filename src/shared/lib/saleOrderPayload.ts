@@ -13,7 +13,7 @@ export function buildSaleOrderPayload(
     // Campos que lee _action_parse_pos_data de sale.order
     partner: customer.id,
     isCreditOrder: false,
-    rate: 1,
+    rate: method.currencyRate || 1,
     date: new Date().toISOString(),
 
     // Líneas — field names que lee _action_parse_pos_data de sale.order.line
@@ -34,7 +34,7 @@ export function buildSaleOrderPayload(
       ref:        payment.reference || '',
       amount:    payment.amount,
       currency:  method.currencyId,
-      rate:      1,
+      rate:      method.currencyRate || 1,
       journal:   method.journalId,
       method:    method.id,
       montoIgtf: payment.igtfAmount

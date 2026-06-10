@@ -132,7 +132,37 @@ export async function fetchPaymentMethods(): Promise<KioskPaymentMethod[]> {
     [[['use_for_payment', '=', true]]],
     { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change'] }
   )
-  return raw.map(mapMethod)
+
+  const mapped = raw.map(mapMethod)
+
+  // Fetch unique currency info to get name, symbol and rate
+  const uniqueCurrencyIds = Array.from(
+    new Set(raw.map(r => (r.currency_id ? r.currency_id[0] : null)).filter((id): id is number => id !== null))
+  )
+
+  if (uniqueCurrencyIds.length > 0) {
+    try {
+      const currencies = await odooEnv.callMethod<{ id: number; name: string; symbol: string; rate: number }[]>(
+        'res.currency', 'search_read',
+        [[['id', 'in', uniqueCurrencyIds]]],
+        { fields: ['id', 'name', 'symbol', 'rate'] }
+      )
+      const currencyMap = new Map(currencies.map(c => [c.id, c]))
+
+      for (const m of mapped) {
+        const cInfo = currencyMap.get(m.currencyId)
+        if (cInfo) {
+          m.currencyName = cInfo.name
+          m.currencySymbol = cInfo.symbol
+          m.currencyRate = cInfo.rate
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching currency rates:', err)
+    }
+  }
+
+  return mapped
 }
 
 // ─── Products ─────────────────────────────────────────────────────────────────

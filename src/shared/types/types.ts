@@ -45,6 +45,9 @@ export interface KioskPaymentMethod {
   igtfPercent: number
   journalId: number
   currencyId: number       // requerido por account_payment_fex.currency_id (NOT NULL)
+  currencyName?: string
+  currencySymbol?: string
+  currencyRate?: number
   useForChange: boolean
 }
 

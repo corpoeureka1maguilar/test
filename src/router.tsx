@@ -3,6 +3,7 @@ import { useConfigStore } from '@/shared/stores/config'
 import { RootLayout } from '@/shared/layouts/RootLayout'
 import { Welcome } from '@/features/welcome/pages/Welcome'
 import { Setup } from '@/features/setup/pages/Setup'
+import { PrinterTest } from '@/features/setup/pages/PrinterTest'
 import { CustomerIdentity } from '@/features/customer/pages/CustomerIdentity'
 import { CustomerRegister } from '@/features/customer/pages/CustomerRegister'
 import { ProductCatalog } from '@/features/catalog/pages/ProductCatalog'
@@ -23,6 +24,10 @@ export const router = createBrowserRouter([
     element: <Setup />
   },
   {
+    path: '/test-printer',
+    element: <PrinterTest />
+  },
+  {
     element: <RootLayout />,
     children: [
       { path: '/', element: <RequireConfig><Welcome /></RequireConfig> },
@@ -38,3 +43,4 @@ export const router = createBrowserRouter([
     ]
   }
 ])
+

@@ -58,7 +58,12 @@ export function Setup() {
           <input type="text" value={form.servicePassword} onChange={set('servicePassword')} required />
         </label>
         <label>URL impresora fiscal
-          <input type="text" value={form.printerUrl} onChange={set('printerUrl')} required />
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input type="text" value={form.printerUrl} onChange={set('printerUrl')} required style={{ flex: 1 }} />
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/test-printer')} style={{ whiteSpace: 'nowrap' }}>
+              Probar conexion
+            </button>
+          </div>
         </label>
         <label>PIN de administrador (mín. 4 dígitos)
           <input type="password" value={form.adminPin} onChange={set('adminPin')} maxLength={6} required />

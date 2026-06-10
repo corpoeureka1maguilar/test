@@ -25,8 +25,21 @@ export function PaymentForm() {
   const igtfAmount = method.applyIgtf ? total * (method.igtfPercent / 100) : 0
   const totalWithIgtf = total + igtfAmount
 
+  const isForeign = !!method.currencyRate && method.currencyRate !== 1
+  const currencySymbol = method.currencySymbol || '$'
+  const currencyName = method.currencyName || 'USD'
+  const rateInBs = method.currencyRate ? (1 / method.currencyRate) : 1
+
+  const subtotalForeign = total * (method.currencyRate || 1)
+  const igtfForeign = igtfAmount * (method.currencyRate || 1)
+  const totalWithIgtfForeign = totalWithIgtf * (method.currencyRate || 1)
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const paymentAmount = isForeign ? subtotalForeign : total
+    const paymentIgtf = isForeign ? igtfForeign : igtfAmount
+
     send({
       type: 'SUBMIT_PAYMENT',
       payment: {
@@ -34,8 +47,8 @@ export function PaymentForm() {
         reference,
         bank: bank || undefined,
         phone: phone || undefined,
-        amount: total,
-        igtfAmount
+        amount: paymentAmount,
+        igtfAmount: paymentIgtf
       }
     })
     navigate('/resultado')
@@ -51,10 +64,45 @@ export function PaymentForm() {
             <span>Subtotal</span>
             <strong>Bs. {total.toFixed(2)}</strong>
           </div>
+          {isForeign && (
+            <div className={styles.amountRowForeign}>
+              <span>Subtotal ({currencyName})</span>
+              <strong>{currencySymbol} {subtotalForeign.toFixed(2)}</strong>
+            </div>
+          )}
+
+          {igtfAmount > 0 && (
+            <>
+              <div className={styles.amountRow}>
+                <span>IGTF ({method.igtfPercent}%)</span>
+                <strong>Bs. {igtfAmount.toFixed(2)}</strong>
+              </div>
+              {isForeign && (
+                <div className={styles.amountRowForeign}>
+                  <span>IGTF ({method.igtfPercent}%) ({currencyName})</span>
+                  <strong>{currencySymbol} {igtfForeign.toFixed(2)}</strong>
+                </div>
+              )}
+            </>
+          )}
+
           <div className={`${styles.amountRow} ${styles.total}`}>
             <span>Total a pagar</span>
             <strong>Bs. {totalWithIgtf.toFixed(2)}</strong>
           </div>
+          {isForeign && (
+            <div className={styles.totalForeign}>
+              <span>Total a pagar ({currencyName})</span>
+              <strong>{currencySymbol} {totalWithIgtfForeign.toFixed(2)}</strong>
+            </div>
+          )}
+
+          {isForeign && (
+            <div className={styles.rateRow}>
+              <span>Tasa de cambio:</span>
+              <span>1 {currencyName} = Bs. {rateInBs.toFixed(2)}</span>
+            </div>
+          )}
         </div>
       </div>
 
