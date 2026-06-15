@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { usePartnerByCedula } from '@/features/customer/hooks/usePartnerByCedula'
 import { AppNumericKeyboard } from '@/shared/components/AppNumericKeyboard'
+import { useUIStore } from '@/shared/stores/ui'
 import styles from './CustomerIdentity.module.css'
 
 const PREFIXES = ['V', 'E', 'J', 'G'] as const
@@ -12,6 +13,7 @@ export function CustomerIdentity() {
   const { send } = useSaleMachine()
   const navigate = useNavigate()
   const { mutateAsync: search, isPending } = usePartnerByCedula()
+  const pushToast = useUIStore(s => s.pushToast)
   const scannerRef = useRef<HTMLInputElement>(null)
 
   const [prefix, setPrefix] = useState<Prefix>('V')
@@ -24,13 +26,26 @@ export function CustomerIdentity() {
   }, [])
 
   const performSearch = async (p: Prefix, d: string) => {
-    if (d.length < 5) return
-    const partner = await search(`${p}-${d}`)
+    if (d.length < 6) {
+      pushToast('error', 'La cédula o RIF debe tener al menos 6 dígitos')
+      return
+    }
+    if ((p === 'V' || p === 'E') && d.length > 9) {
+      pushToast('error', 'La cédula debe tener entre 6 y 9 dígitos')
+      return
+    }
+    if ((p === 'J' || p === 'G') && d.length > 9) {
+      pushToast('error', 'El RIF debe tener entre 6 y 9 dígitos')
+      return
+    }
+
+    const padded = d.padStart(9, '0')
+    const partner = await search(`${p}-${padded}`)
     if (partner) {
       send({ type: 'FOUND', customer: partner })
       navigate('/productos')
     } else {
-      send({ type: 'NOT_FOUND', vat: `${p}-${d}` })
+      send({ type: 'NOT_FOUND', vat: `${p}-${padded}` })
       navigate('/registro')
     }
   }
@@ -42,8 +57,8 @@ export function CustomerIdentity() {
     const raw = e.currentTarget.value.trim().toUpperCase()
     e.currentTarget.value = ''
 
-    const withPrefix = raw.match(/^([VEJG])-?(\d{5,10})$/)
-    const digitsOnly = raw.match(/^(\d{5,10})$/)
+    const withPrefix = raw.match(/^([VEJG])-?(\d{6,10})$/)
+    const digitsOnly = raw.match(/^(\d{6,10})$/)
 
     if (withPrefix) {
       const p = withPrefix[1] as Prefix
@@ -55,6 +70,8 @@ export function CustomerIdentity() {
       const d = digitsOnly[1]
       setDigits(d)
       await performSearch(prefix, d)
+    } else {
+      pushToast('error', 'Formato de cédula o RIF escaneado inválido')
     }
   }
 
@@ -94,7 +111,7 @@ export function CustomerIdentity() {
           type="button"
           className="btn btn-primary"
           onClick={handleConfirm}
-          disabled={digits.length < 5 || isPending}
+          disabled={digits.length < 6 || isPending}
         >
           {isPending ? 'Buscando...' : 'Continuar'}
         </button>
