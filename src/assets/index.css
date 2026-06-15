@@ -187,7 +187,8 @@ input[type="text"],
 input[type="tel"],
 input[type="email"],
 input[type="number"],
-input[type="password"] {
+input[type="password"],
+select {
   width: 100%;
   height: var(--kiosk-input-height);
   padding: 0 2rem;
@@ -199,6 +200,7 @@ input[type="password"] {
   color: var(--color-text);
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   outline: none;
+  cursor: pointer;
 }
 
 input::placeholder {
@@ -206,7 +208,8 @@ input::placeholder {
   opacity: 0.4;
 }
 
-input:focus {
+input:focus,
+select:focus {
   background: #fff;
   border-color: var(--color-accent);
   box-shadow: 0 10px 30px -10px var(--color-accent-glow);

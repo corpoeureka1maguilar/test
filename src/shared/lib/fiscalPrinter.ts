@@ -19,9 +19,27 @@ const getPrinterErrorMessage = (errorCode: string | object): string => {
 export class FiscalPrinterAdapter {
   constructor(private readonly printerUrl: string) {}
 
-  async checkConnection(): Promise<void> {
+  private getProxyUrlAndHeaders(endpoint: string): { url: string; headers: Record<string, string> } {
+    if (this.printerUrl.startsWith('http://') || this.printerUrl.startsWith('https://')) {
+      return {
+        url: `/printer-proxy/${endpoint}`,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-printer-target': this.printerUrl
+        }
+      }
+    }
     const baseUrl = this.printerUrl.endsWith('/') ? this.printerUrl : this.printerUrl + '/'
-    const url = new URL('Estado', baseUrl).toString()
+    return {
+      url: new URL(endpoint, baseUrl).toString(),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  }
+
+  async checkConnection(): Promise<void> {
+    const { url, headers } = this.getProxyUrlAndHeaders('Estado')
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000)
@@ -29,7 +47,7 @@ export class FiscalPrinterAdapter {
     try {
       const response = await window.fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({}),
         signal: controller.signal
       })
@@ -56,15 +74,14 @@ export class FiscalPrinterAdapter {
   }
 
   async sendRequest(endpoint: string, data: Record<string, unknown>, signal?: AbortSignal): Promise<PrinterApiResponse> {
-    const baseUrl = this.printerUrl.endsWith('/') ? this.printerUrl : this.printerUrl + '/'
-    const url = new URL(endpoint, baseUrl).toString()
+    const { url, headers } = this.getProxyUrlAndHeaders(endpoint)
 
     console.debug(`[FiscalPrinter] POST ${url}`, data)
 
     try {
       const response = await window.fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data),
         signal
       })

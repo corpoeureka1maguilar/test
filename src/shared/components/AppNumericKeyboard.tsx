@@ -5,16 +5,17 @@ interface Props {
   onChange: (value: string) => void
   maxLength?: number
   masked?: boolean
+  onConfirm?: () => void
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '←', '0', '✓'] as const
 
-export function AppNumericKeyboard({ value, onChange, maxLength = 6, masked = false }: Props) {
+export function AppNumericKeyboard({ value, onChange, maxLength = 6, masked = false, onConfirm }: Props) {
   const handleKey = (key: string) => {
     if (key === '←') {
       onChange(value.slice(0, -1))
     } else if (key === '✓') {
-      // handled externally
+      onConfirm?.()
     } else if (value.length < maxLength) {
       onChange(value + key)
     }

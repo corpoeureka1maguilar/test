@@ -81,7 +81,8 @@
 .scannerZone {
   width: 100%;
   max-width: 500px;
-  height: 250px;
+  height: 200px;
+  scale: 0.6;
   background: var(--color-surface);
   border: 3px dashed var(--color-surface-heavy);
   border-radius: var(--app-radius);

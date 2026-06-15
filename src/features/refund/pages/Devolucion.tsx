@@ -167,12 +167,14 @@ export function Devolucion() {
                 </div>
               )}
               <label className={styles.reasonLabel}>Motivo de devolución
-                <input
-                  type="text"
+                <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Ej: Producto defectuoso"
-                />
+                >
+                  <option value="">Seleccione un motivo</option>
+                  <option value="averia">Por avería</option>
+                  <option value="producto">Por producto</option>
+                </select>
               </label>
               <div className={styles.actions}>
                 <button type="button" className="btn btn-danger" onClick={handleReturn}>

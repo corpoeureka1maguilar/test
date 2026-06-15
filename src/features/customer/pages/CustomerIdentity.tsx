@@ -87,7 +87,7 @@ export function CustomerIdentity() {
         {prefix}-{formatDigits(digits) || <span className={styles.placeholder}>__________</span>}
       </div>
 
-      <AppNumericKeyboard value={digits} onChange={setDigits} maxLength={10} />
+      <AppNumericKeyboard value={digits} onChange={setDigits} maxLength={10} onConfirm={handleConfirm} />
 
       <div className={styles.actions}>
         <button
