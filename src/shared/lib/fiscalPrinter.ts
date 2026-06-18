@@ -20,7 +20,9 @@ export class FiscalPrinterAdapter {
   constructor(private readonly printerUrl: string, private readonly modelo?: string) {}
 
   private getProxyUrlAndHeaders(endpoint: string): { url: string; headers: Record<string, string> } {
-    if (this.printerUrl.startsWith('http://') || this.printerUrl.startsWith('https://')) {
+    const isLocal = /^(https?:\/\/)?(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)/i.test(this.printerUrl)
+
+    if ((this.printerUrl.startsWith('http://') || this.printerUrl.startsWith('https://')) && !isLocal) {
       return {
         url: `/printer-proxy/${endpoint}`,
         headers: {
