@@ -1,5 +1,10 @@
 import type { PrinterApiResponse } from '@/shared/types/types'
 
+// Base del proxy de impresión.
+// - Dev: vacío → URL relativa → middleware de Vite (mismo origen).
+// - Prod (Vercel): http://localhost:9191 → agente local en la máquina del cajero.
+const PRINTER_PROXY_BASE = import.meta.env.VITE_PRINTER_PROXY_BASE ?? 'http://localhost:9191'
+
 const getPrinterErrorMessage = (errorCode: string | object): string => {
   if (!errorCode) return 'Error desconocido de la impresora'
   if (typeof errorCode === 'object') return `Error de impresora: ${JSON.stringify(errorCode)}`
@@ -17,20 +22,24 @@ const getPrinterErrorMessage = (errorCode: string | object): string => {
 }
 
 export class FiscalPrinterAdapter {
-  constructor(private readonly printerUrl: string, private readonly modelo?: string) {}
+  constructor(private readonly printerUrl: string, private readonly modelo?: string) { }
 
   private getProxyUrlAndHeaders(endpoint: string): { url: string; headers: Record<string, string> } {
-    const isLocal = /^(https?:\/\/)?(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)/i.test(this.printerUrl)
+    const hasProtocol = this.printerUrl.startsWith('http://') || this.printerUrl.startsWith('https://')
 
-    if ((this.printerUrl.startsWith('http://') || this.printerUrl.startsWith('https://')) && !isLocal) {
+    // Siempre vía proxy: relativo en dev (middleware de Vite) o el agente
+    // local en prod (VITE_PRINTER_PROXY_BASE). El proxy es quien resuelve CORS.
+    if (hasProtocol) {
       return {
-        url: `/printer-proxy/${endpoint}`,
+        url: `${PRINTER_PROXY_BASE}/printer-proxy/${endpoint}`,
         headers: {
           'Content-Type': 'application/json',
           'x-printer-target': this.printerUrl
         }
       }
     }
+
+    // Fallback: URL sin protocolo, intento directo (no debería ocurrir).
     const baseUrl = this.printerUrl.endsWith('/') ? this.printerUrl : this.printerUrl + '/'
     return {
       url: new URL(endpoint, baseUrl).toString(),

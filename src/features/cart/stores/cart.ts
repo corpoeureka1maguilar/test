@@ -46,7 +46,7 @@ export const useCartStore = create<CartState & CartActions>((set) => ({
 
   setQty(productId, qty) {
     if (qty <= 0) {
-      set((s) => ({ items: s.items.filter(i => i.productId !== productId) }))
+      return;
     } else {
       set((s) => ({
         items: s.items.map(i =>
