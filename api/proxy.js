@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-odoo-target');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-odoo-target, x-printer-target');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
@@ -23,28 +23,28 @@ module.exports = async (req, res) => {
     return res.end(JSON.stringify({ ok: true }));
   }
 
-  const odooTarget = req.headers['x-odoo-target'];
+  const targetHeader = req.headers['x-printer-target'] || req.headers['x-odoo-target'];
 
-  if (!odooTarget) {
+  if (!targetHeader) {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({
       jsonrpc: '2.0',
       id: null,
-      error: { message: 'Missing x-odoo-target header' }
+      error: { message: 'Missing target header (x-odoo-target or x-printer-target)' }
     }));
   }
 
   let target;
   try {
-    target = new URL(odooTarget);
+    target = new URL(targetHeader);
   } catch (e) {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({
       jsonrpc: '2.0',
       id: null,
-      error: { message: `Invalid x-odoo-target URL: ${odooTarget}` }
+      error: { message: `Invalid target URL: ${targetHeader}` }
     }));
   }
 
@@ -52,10 +52,13 @@ module.exports = async (req, res) => {
   const doReq = isHttps ? https.request : http.request;
   const port = target.port ? parseInt(target.port) : (isHttps ? 443 : 80);
 
-  // Determine path to proxy to Odoo
+  // Determine path to proxy
   let targetPath = url;
   if (targetPath.startsWith('/api/proxy')) {
     targetPath = targetPath.replace(/^\/api\/proxy/, '') || '/';
+  }
+  if (targetPath.startsWith('/printer-proxy')) {
+    targetPath = targetPath.replace(/^\/printer-proxy/, '') || '/';
   }
 
   const headers = { ...req.headers };
@@ -63,6 +66,7 @@ module.exports = async (req, res) => {
   delete headers['origin'];
   delete headers['referer'];
   delete headers['x-odoo-target'];
+  delete headers['x-printer-target'];
 
   const proxyReq = doReq(
     {
@@ -76,21 +80,21 @@ module.exports = async (req, res) => {
     (proxyRes) => {
       const outHeaders = { ...proxyRes.headers };
       outHeaders['access-control-allow-origin'] = '*';
-      outHeaders['access-control-allow-headers'] = 'Content-Type, Authorization, x-odoo-target';
+      outHeaders['access-control-allow-headers'] = 'Content-Type, Authorization, x-odoo-target, x-printer-target';
       res.writeHead(proxyRes.statusCode || 200, outHeaders);
       proxyRes.pipe(res, { end: true });
     }
   );
 
   proxyReq.on('error', (err) => {
-    console.error('[proxy] error Odoo:', err.message);
+    console.error('[proxy] error Target:', err.message);
     if (!res.headersSent) {
       res.statusCode = 502;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({
         jsonrpc: '2.0',
         id: null,
-        error: { message: `No se pudo conectar con Odoo: ${err.message}` }
+        error: { message: `No se pudo conectar con el destino: ${err.message}` }
       }));
     }
   });

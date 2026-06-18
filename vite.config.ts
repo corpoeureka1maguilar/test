@@ -34,7 +34,68 @@ function dynamicOdooProxy() {
           return
         }
 
-        // ── 2. Proxy /jsonrpc y /web hacia Odoo ───────────────────
+        // ── 2. Proxy para la impresora fiscal ─────────────────────
+        if (url.startsWith('/printer-proxy')) {
+          const headerTarget = req.headers['x-printer-target'] as string | undefined
+          if (!headerTarget) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Falta la cabecera x-printer-target' }))
+            return
+          }
+
+          let target
+          try {
+            target = new URL(headerTarget)
+          } catch {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Cabecera x-printer-target no es una URL válida' }))
+            return
+          }
+
+          const isHttps = target.protocol === 'https:'
+          const doRequest = isHttps ? httpsReq : httpReq
+          const pathName = url.replace(/^\/printer-proxy/, '') // /printer-proxy/Estado -> /Estado
+          
+          // Re-construir el path completo (incluyendo query strings si tiene)
+          const targetPath = (target.pathname.replace(/\/$/, '') + pathName).replace(/\/+/g, '/')
+
+          const headers = { ...req.headers }
+          delete headers['x-printer-target']
+          headers['host'] = target.hostname
+
+          const proxyReq = doRequest(
+            {
+              hostname: target.hostname,
+              port: target.port || (isHttps ? 443 : 80),
+              path: targetPath,
+              method: req.method,
+              headers,
+              rejectUnauthorized: false
+            },
+            (proxyRes) => {
+              const headers: Record<string, string | string[]> = {}
+              for (const [k, v] of Object.entries(proxyRes.headers)) {
+                if (v !== undefined) headers[k] = v
+              }
+              headers['access-control-allow-origin'] = '*'
+              res.writeHead(proxyRes.statusCode ?? 200, headers)
+              proxyRes.pipe(res, { end: true })
+            }
+          )
+
+          proxyReq.on('error', (err: Error) => {
+            res.statusCode = 502
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: `Error de proxy de impresora: ${err.message}` }))
+          })
+
+          req.pipe(proxyReq, { end: true })
+          return
+        }
+
+        // ── 3. Proxy /jsonrpc y /web hacia Odoo ───────────────────
         if (!url.startsWith('/jsonrpc') && !url.startsWith('/web')) {
           return next()
         }

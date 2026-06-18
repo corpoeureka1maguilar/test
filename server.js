@@ -74,6 +74,67 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // ── Proxy para la impresora fiscal ─────────────────────────────────────────
+  if (url.startsWith('/printer-proxy')) {
+    const headerTarget = req.headers['x-printer-target']
+    if (!headerTarget) {
+      res.statusCode = 400
+      res.setHeader('Content-Type', 'application/json')
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.end(JSON.stringify({ error: 'Falta la cabecera x-printer-target' }))
+      return
+    }
+
+    let target
+    try {
+      target = new URL(headerTarget)
+    } catch {
+      res.statusCode = 400
+      res.setHeader('Content-Type', 'application/json')
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.end(JSON.stringify({ error: 'Cabecera x-printer-target no es una URL válida' }))
+      return
+    }
+
+    const isHttps = target.protocol === 'https:'
+    const doReq = isHttps ? https.request : http.request
+    const port = target.port ? parseInt(target.port) : (isHttps ? 443 : 80)
+    const pathName = url.replace(/^\/printer-proxy/, '') // /printer-proxy/Estado -> /Estado
+    const targetPath = (target.pathname.replace(/\/$/, '') + pathName).replace(/\/+/g, '/')
+
+    console.log(`[proxy-printer] ${req.method} ${url} → ${headerTarget}`)
+
+    const headers = Object.assign({}, req.headers)
+    headers['host'] = target.hostname
+    delete headers['origin']
+    delete headers['referer']
+    delete headers['x-printer-target']
+
+    const proxyReq = doReq(
+      { hostname: target.hostname, port, path: targetPath, method: req.method, headers, rejectUnauthorized: false },
+      (proxyRes) => {
+        const outHeaders = Object.assign({}, proxyRes.headers)
+        outHeaders['access-control-allow-origin'] = '*'
+        outHeaders['access-control-allow-headers'] = 'Content-Type, Authorization, x-printer-target'
+        res.writeHead(proxyRes.statusCode || 200, outHeaders)
+        proxyRes.pipe(res, { end: true })
+      }
+    )
+
+    proxyReq.on('error', (err) => {
+      console.error('[proxy-printer] error al conectar con la impresora:', err.message)
+      if (!res.headersSent) {
+        res.statusCode = 502
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Access-Control-Allow-Origin', '*')
+        res.end(JSON.stringify({ error: `Error de proxy de impresora: ${err.message}` }))
+      }
+    })
+
+    req.pipe(proxyReq, { end: true })
+    return
+  }
+
   // ── Proxy hacia Odoo ───────────────────────────────────────────────────────
   if (url.startsWith('/jsonrpc') || url.startsWith('/web')) {
     const headerTarget = req.headers['x-odoo-target']

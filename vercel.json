@@ -4,6 +4,7 @@
     { "source": "/web", "destination": "/api/proxy" },
     { "source": "/web/:path*", "destination": "/api/proxy" },
     { "source": "/__odoo-proxy-target", "destination": "/api/proxy" },
+    { "source": "/printer-proxy/:path*", "destination": "/api/proxy" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
