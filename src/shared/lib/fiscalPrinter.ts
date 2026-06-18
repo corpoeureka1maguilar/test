@@ -17,7 +17,7 @@ const getPrinterErrorMessage = (errorCode: string | object): string => {
 }
 
 export class FiscalPrinterAdapter {
-  constructor(private readonly printerUrl: string) {}
+  constructor(private readonly printerUrl: string, private readonly modelo?: string) {}
 
   private getProxyUrlAndHeaders(endpoint: string): { url: string; headers: Record<string, string> } {
     if (this.printerUrl.startsWith('http://') || this.printerUrl.startsWith('https://')) {
@@ -48,7 +48,7 @@ export class FiscalPrinterAdapter {
       const response = await window.fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify({}),
+        body: JSON.stringify(this.modelo ? { modelo: this.modelo } : {}),
         signal: controller.signal
       })
 
@@ -79,10 +79,11 @@ export class FiscalPrinterAdapter {
     console.debug(`[FiscalPrinter] POST ${url}`, data)
 
     try {
+      const payload = this.modelo ? { modelo: this.modelo, ...data } : data
       const response = await window.fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
         signal
       })
 

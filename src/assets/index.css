@@ -248,6 +248,12 @@ select:focus {
     min-height: calc(100vh - 40px);
     padding: 1rem 1.5rem;
     gap: 1rem;
+
+  }
+
+  .kiosk-container > h2 {
+    color: rgb(0, 0, 0);
+    padding: 2rem 0;
   }
 
   .glass-card {

@@ -8,11 +8,13 @@ import styles from './Setup.module.css'
 export function PrinterTest() {
   const navigate = useNavigate()
   const currentPrinterUrl = useConfigStore((s) => s.printerUrl)
+  const currentPrinterModel = useConfigStore((s) => s.printerModel)
   const { pushToast } = useUIStore()
 
   const [printerUrl, setPrinterUrl] = useState(
     currentPrinterUrl || 'http://127.0.0.1/ServWebImpresion/api/'
   )
+  const [printerModel, setPrinterModel] = useState(currentPrinterModel || '')
   const [testingConnection, setTestingConnection] = useState(false)
   const [printingTest, setPrintingTest] = useState(false)
   const [testResult, setTestResult] = useState<{
@@ -24,7 +26,7 @@ export function PrinterTest() {
   const handleTestConnection = async () => {
     setTestingConnection(true)
     setTestResult(null)
-    const printer = new FiscalPrinterAdapter(printerUrl)
+    const printer = new FiscalPrinterAdapter(printerUrl, printerModel)
     try {
       await printer.checkConnection()
       setTestResult({
@@ -48,13 +50,13 @@ export function PrinterTest() {
   const handleSendTestPrint = async () => {
     setPrintingTest(true)
     setTestResult(null)
-    const printer = new FiscalPrinterAdapter(printerUrl)
+    const printer = new FiscalPrinterAdapter(printerUrl, printerModel)
 
     // Payload de factura de prueba minimalista (compatible con el formato de la impresora)
     const testPayload = {
       condicion: 'Pago inmediato',
       codigobarra: '',
-      montoigtf: '0.00',
+      montoigtf: '0',
       direccion: 'CONSUMIDOR FINAL',
       documento: 'V999999999',
       nombre: 'CONSUMIDOR FINAL',
@@ -67,12 +69,12 @@ export function PrinterTest() {
           descripcion: 'PRUEBA DE CONEXION',
           impuesto: '1',
           tasa: '1',
-          cantidad: '1.000',
-          precio: '0.10',
-          descuentop: '0.00'
+          cantidad: '1000',
+          precio: '10',
+          descuentop: '0'
         }
       ],
-      pago01: '0.10'
+      pago01: '10'
     }
 
     try {
@@ -109,6 +111,16 @@ export function PrinterTest() {
             onChange={(e) => setPrinterUrl(e.target.value)}
             placeholder="http://127.0.0.1/ServWebImpresion/api/"
             required
+          />
+        </label>
+
+        <label>
+          Modelo de la Impresora
+          <input
+            type="text"
+            value={printerModel}
+            onChange={(e) => setPrinterModel(e.target.value)}
+            placeholder="Ej. HKA, Bixolon, Bematech..."
           />
         </label>
 

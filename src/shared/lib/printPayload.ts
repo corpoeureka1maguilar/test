@@ -28,7 +28,7 @@ function resolvePrinterTaxCode(taxRate?: number): string {
 }
 
 function fixNumberForAPI(n: number, decimals = 2): string {
-  return n.toFixed(decimals)
+  return n.toFixed(decimals).replace('.', '')
 }
 
 export interface FacturaPayload {

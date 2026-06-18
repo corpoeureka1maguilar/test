@@ -54,10 +54,10 @@ const submitPaymentToOdoo = fromPromise<
 
 const printFiscalInvoice = fromPromise<
   PrinterInvoiceData,
-  { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string }
+  { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }
 >(async ({ input }) => {
-  const { customer, cart, method, printerUrl } = input
-  const printer = new FiscalPrinterAdapter(printerUrl)
+  const { customer, cart, method, printerUrl, printerModel } = input
+  const printer = new FiscalPrinterAdapter(printerUrl, printerModel)
   
   const totalBs = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const igtfBs = method.applyIgtf ? totalBs * (method.igtfPercent / 100) : 0
@@ -153,7 +153,7 @@ export const saleMachine = setup({
     idle: {
       on: { START: 'enteringCedula' }
     },
-
+ 
     enteringCedula: {
       on: {
         FOUND: { target: 'browsingProducts', actions: 'setCustomer' },
@@ -161,35 +161,35 @@ export const saleMachine = setup({
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
-
+ 
     registeringCustomer: {
       on: {
         REGISTERED: { target: 'browsingProducts', actions: 'setCustomer' },
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
-
+ 
     browsingProducts: {
       on: {
         CHECKOUT: { target: 'reviewingCart', actions: 'setCart' },
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
-
+ 
     reviewingCart: {
       on: {
         PAY: 'selectingMethod',
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
-
+ 
     selectingMethod: {
       on: {
         SELECT_METHOD: { target: 'enteringDetails', actions: 'setMethod' },
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
-
+ 
     enteringDetails: {
       on: {
         SUBMIT_PAYMENT: { target: 'processing', actions: 'setPayment' },
@@ -198,7 +198,7 @@ export const saleMachine = setup({
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
-
+ 
     processing: {
       invoke: {
         src: 'submitPaymentToOdoo',
@@ -217,7 +217,7 @@ export const saleMachine = setup({
         onError: { target: 'paymentError', actions: 'setPaymentError' }
       }
     },
-
+ 
     printing: {
       invoke: {
         src: 'printFiscalInvoice',
@@ -230,7 +230,8 @@ export const saleMachine = setup({
             cart: context.cart,
             method: context.selectedMethod,
             payment: context.activePayment,
-            printerUrl: useConfigStore.getState().printerUrl
+            printerUrl: useConfigStore.getState().printerUrl,
+            printerModel: useConfigStore.getState().printerModel
           }
         },
         onDone: { target: 'success', actions: 'setPrinterResult' },

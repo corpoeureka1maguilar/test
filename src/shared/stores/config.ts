@@ -29,6 +29,7 @@ interface ConfigState {
   serviceUser: string
   servicePassword: string
   printerUrl: string
+  printerModel: string
   adminPinHash: string
   isConfigured: boolean
 }
@@ -40,6 +41,7 @@ interface ConfigActions {
     serviceUser: string
     servicePassword: string
     printerUrl: string
+    printerModel: string
     adminPin: string
   }): Promise<void>
   clearConfig(): void
@@ -55,6 +57,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       serviceUser: '',
       servicePassword: '',
       printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
+      printerModel: '',
       adminPinHash: '',
       isConfigured: false,
 
@@ -77,6 +80,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           serviceUser: data.serviceUser,
           servicePassword: data.servicePassword,
           printerUrl: data.printerUrl,
+          printerModel: data.printerModel,
           adminPinHash: pinHash,
           isConfigured: true
         })
@@ -90,6 +94,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           serviceUser: '',
           servicePassword: '',
           printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
+          printerModel: '',
           adminPinHash: '',
           isConfigured: false
         })
@@ -116,6 +121,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         serviceUser: state.serviceUser,
         servicePassword: state.servicePassword,
         printerUrl: state.printerUrl,
+        printerModel: state.printerModel,
         adminPinHash: state.adminPinHash,
         isConfigured: state.isConfigured
       })

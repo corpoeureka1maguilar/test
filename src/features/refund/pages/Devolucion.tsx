@@ -28,6 +28,7 @@ export function Devolucion() {
     serviceUser: config.serviceUser,
     servicePassword: config.servicePassword,
     printerUrl: config.printerUrl,
+    printerModel: config.printerModel,
     adminPin: ''
   })
 
@@ -63,7 +64,7 @@ export function Devolucion() {
 
     setLoading(true)
     try {
-      const printer = new FiscalPrinterAdapter(printerUrl)
+      const printer = new FiscalPrinterAdapter(printerUrl, config.printerModel)
       await printer.checkConnection()
       const response = await printer.sendRequest('PrintReporte', { tipo })
       pushToast('success', `${reportName} impreso con éxito. Nro Reporte: ${response.numReporte || 'N/A'}`)
@@ -240,6 +241,9 @@ export function Devolucion() {
             </label>
             <label className={styles.fieldLabel}>URL Impresora Fiscal
               <input type="text" value={form.printerUrl} onChange={setFormField('printerUrl')} required />
+            </label>
+            <label className={styles.fieldLabel}>Modelo Impresora Fiscal
+              <input type="text" value={form.printerModel} onChange={setFormField('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." />
             </label>
             <label className={styles.fieldLabel}>PIN de Administrador (para confirmar)
               <input type="password" value={form.adminPin} onChange={setFormField('adminPin')} maxLength={6} required placeholder="PIN de 4 a 6 dígitos" />

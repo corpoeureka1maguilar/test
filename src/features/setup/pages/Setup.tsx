@@ -6,15 +6,17 @@ import styles from './Setup.module.css'
 
 export function Setup() {
   const navigate = useNavigate()
-  const { saveConfig } = useConfigStore()
+  const config = useConfigStore()
+  const { saveConfig } = config
   const { pushToast, setLoading } = useUIStore()
 
   const [form, setForm] = useState({
-    odooUrl: '',
-    odooDb: '',
-    serviceUser: '',
-    servicePassword: '',
-    printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
+    odooUrl: config.odooUrl || '',
+    odooDb: config.odooDb || '',
+    serviceUser: config.serviceUser || '',
+    servicePassword: config.servicePassword || '',
+    printerUrl: config.printerUrl || 'http://127.0.0.1/ServWebImpresion/api/',
+    printerModel: config.printerModel || '',
     adminPin: ''
   })
 
@@ -64,6 +66,9 @@ export function Setup() {
               Probar conexion
             </button>
           </div>
+        </label>
+        <label>Modelo impresora fiscal
+          <input type="text" value={form.printerModel} onChange={set('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." />
         </label>
         <label>PIN de administrador (mín. 4 dígitos)
           <input type="password" value={form.adminPin} onChange={set('adminPin')} maxLength={6} required />
