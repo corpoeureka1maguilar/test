@@ -9,6 +9,35 @@
   overflow: hidden;
 }
 
+.muteBtn {
+  position: absolute;
+  top: 2.5rem;
+  right: 2.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-text);
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--app-shadow);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 10;
+
+  &:hover {
+    background: var(--color-surface-hover);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+
 .content {
   display: flex;
   flex-direction: column;
@@ -171,6 +200,14 @@
     height: 56px !important;
     font-size: 1.1rem !important;
   }
+
+  .muteBtn {
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 54px;
+    height: 54px;
+  }
 }
+
 
 

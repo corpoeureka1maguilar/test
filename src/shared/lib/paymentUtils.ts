@@ -35,9 +35,13 @@ export const paymentTypeLabelsByCode: Record<string, string> = {
   CAMBIO: 'CAMBIO'
 } as const
 
+import { ves, toFloat, mulVES } from './money'
+
 export function calcIgtf(method: KioskPaymentMethod, baseAmount: number): number {
   if (!method.applyIgtf || !method.igtfPercent) return 0
-  return Math.round(baseAmount * (method.igtfPercent / 100) * 100) / 100
+  const base = ves(baseAmount)
+  const igtf = mulVES(base, method.igtfPercent / 100)
+  return toFloat(igtf)
 }
 
 export function getPaymentLabel(paymentType: PaymentType): string {

@@ -7,7 +7,6 @@ import { useCartStore, useCartTotal, useCartCount } from '@/features/cart/stores
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phosphor-icons/react'
 
-import { formatBs } from '@/shared/lib/money'
 import styles from './ProductCatalog.module.css'
 
 export function ProductCatalog() {
@@ -103,14 +102,144 @@ export function ProductCatalog() {
 
   return (
     <div 
-      className={`${styles.wrapper} ${!isManualMode ? styles.scanMode : ''} ${showKeyboard && isManualMode ? styles.keyboardOpen : ''}`} 
+      className={`${styles.wrapper} ${showKeyboard && isManualMode ? styles.keyboardOpen : ''}`} 
       onClick={handleWrapperClick}
     >
       {/* SECCIÓN IZQUIERDA: ZONA DE OPERACIÓN (ESCANEO / BÚSQUEDA) */}
-     
       <div className={styles.leftSection}>
-      {!isManualMode ? (
-            null
+        {/* Header */}
+        <div className={styles.header}>
+          <div className={styles.greeting}>
+            Hola, <strong>{context.customer?.name ?? 'cliente'}</strong>
+          </div>
+          <button
+            type="button"
+            className={`${styles.manualToggleBtn} ${isManualMode ? styles.active : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const newMode = !isManualMode;
+              setIsManualMode(newMode);
+              setShowKeyboard(newMode);
+              if (newMode) {
+                setTimeout(() => searchRef.current?.focus(), 50);
+              }
+            }}
+          >
+            {isManualMode ? (
+              <>
+                <Barcode size={20} /> Escanear Productos
+              </>
+            ) : (
+              <>
+                <MagnifyingGlass size={20} /> Buscar Manualmente
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* INPUT DE BÚSQUEDA - Siempre activo para la pistola física */}
+        <div 
+          style={{ 
+            position: 'absolute', 
+            opacity: isManualMode ? 1 : 0, 
+            pointerEvents: isManualMode ? 'auto' : 'none', 
+            top: isManualMode ? '70px' : '-1000px', 
+            width: '100%', 
+            zIndex: 10,
+            transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            ref={searchRef}
+            type="text"
+            className={styles.search}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => {
+              if (isManualMode) setShowKeyboard(true);
+            }}
+            inputMode="none"
+            placeholder="Escribí nombre o código de barras..."
+            autoComplete="off"
+          />
+        </div>
+
+        {/* MODO ESCANEO (Por Defecto) */}
+        {!isManualMode ? (
+          <div className={styles.scannerContainer}>
+            {/* Zona del Lector de Código de Barras */}
+            <div className={`${styles.scannerZone} ${lastScannedProduct ? styles.scannerZoneActive : ''}`}>
+              <div className={styles.barcodeIcon}>
+                <Barcode size={80} weight="thin" />
+              </div>
+              <div className={styles.scanInstruction}>
+                Listo para escanear
+              </div>
+              <div className={styles.scanSubInstruction}>
+                Pasa el código de barras de tu producto
+              </div>
+            </div>
+
+            {/* Visualización Premium del Último Producto Escaneado */}
+            {lastScannedProduct && (
+              <div className={styles.lastScannedSection}>
+                <div className={styles.lastScannedTitle}>
+                  <Sparkle size={18} weight="fill" style={{ color: 'var(--color-accent)', marginRight: '4px' }} />
+                  Último Producto Escaneado
+                </div>
+                <div className={styles.lastScannedCard}>
+                  <div className={styles.lastScannedHeader}>
+                    <div className={styles.lastScannedInfo}>
+                      <span className={styles.lastScannedCode}>
+                        {lastScannedProduct.defaultCode || 'Sin código'}
+                      </span>
+                      <h3 className={styles.lastScannedName}>
+                        {lastScannedProduct.name}
+                      </h3>
+                    </div>
+                    <div className={styles.lastScannedPrice}>
+                      Bs. {lastScannedProduct.price.toFixed(2)}
+                      <span className={styles.lastScannedUom}>
+                        por {lastScannedProduct.uomName || 'unidad'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Control rápido de cantidad */}
+                  <div className={styles.lastScannedControls} onClick={(e) => e.stopPropagation()}>
+                    <span className={styles.lastScannedControlsLabel}>
+                      Cantidad:
+                    </span>
+                    <div className={styles.qtyControlGiant}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const qty = getQty(lastScannedProduct.id)
+                          if (qty > 1) {
+                            setQty(lastScannedProduct.id, qty - 1)
+                          } else {
+                            removeItem(lastScannedProduct.id)
+                            setLastScannedProduct(null)
+                          }
+                        }}
+                      >
+                        −
+                      </button>
+                      <span>{getQty(lastScannedProduct.id)}</span>
+                      <button
+                        type="button"
+                        onClick={() => setQty(lastScannedProduct.id, getQty(lastScannedProduct.id) + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           /* MODO BÚSQUEDA MANUAL */
           <div className={styles.manualSearchSection} style={{ marginTop: '5.5rem' }}>
@@ -157,7 +286,7 @@ export function ProductCatalog() {
                         <h4 className={styles.name}>{product.name}</h4>
                       </div>
                       <div onClick={(e) => e.stopPropagation()}>
-                        <span className={styles.price}>{formatBs(product.price)}</span>
+                        <span className={styles.price}>Bs. {product.price.toFixed(2)}</span>
                         <div className={styles.uom} style={{ marginBottom: '0.5rem' }}>
                           {product.uomName}
                         </div>
@@ -200,37 +329,15 @@ export function ProductCatalog() {
           </div>
         )}
       </div>
+
       {/* SECCIÓN DERECHA: CARRITO LATERAL INTEGRADO EN CALIENTE */}
       <div className={styles.rightSection}>
-      <button
-            type="button"
-            className={`${styles.manualToggleBtn} ${isManualMode ? styles.active : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              const newMode = !isManualMode;
-              setIsManualMode(newMode);
-              setShowKeyboard(newMode);
-              if (newMode) {
-                setTimeout(() => searchRef.current?.focus(), 50);
-              }
-            }}
-          >
-            {isManualMode ? (
-              <>
-                <Barcode size={20} /> Escanear Productos
-              </>
-            ) : (
-              <>
-                <MagnifyingGlass size={20} /> Buscar Manualmente
-              </>
-            )}
-          </button>
         <div className={styles.cartSidebar}>
           <div className={styles.cartHeader}>
             <h2 className={styles.cartTitle}>Tu Compra</h2>
             <span className={styles.cartCountBadge}>{count} {count === 1 ? 'elemento' : 'elementos'}</span>
           </div>
-        
+
           {/* Listado con Scroll de ítems */}
           <div className={styles.cartList}>
             {items.map(item => (
@@ -240,7 +347,7 @@ export function ProductCatalog() {
                   <div className={styles.cartItemMeta}>
                     {item.defaultCode && <span>{item.defaultCode}</span>}
                     <span>•</span>
-                    <span className={styles.cartItemPrice}>{formatBs(item.price)}</span>
+                    <span className={styles.cartItemPrice}>Bs. {item.price.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -271,7 +378,7 @@ export function ProductCatalog() {
                   </div>
 
                   <span className={styles.cartItemSubtotal}>
-                    {formatBs(item.subtotal)}
+                    Bs. {item.subtotal.toFixed(2)}
                   </span>
 
                   <button
@@ -306,15 +413,15 @@ export function ProductCatalog() {
           <div className={styles.totalsSection}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
-              <span>{formatBs(total)}</span>
+              <span>Bs. {total.toFixed(2)}</span>
             </div>
             <div className={styles.totalRow}>
               <span>Impuestos estimados</span>
-              <span>{formatBs(0)}</span>
+              <span>Bs. 0.00</span>
             </div>
             <div className={styles.totalRowBig}>
               <span>Total</span>
-              <span className={styles.totalAmount}>{formatBs(total)}</span>
+              <span className={styles.totalAmount}>Bs. {total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -347,10 +454,10 @@ export function ProductCatalog() {
         <div className={styles.mobileCheckoutBar}>
           <div className={styles.mobileCheckoutInfo}>
             <span className={styles.mobileCheckoutCount}>
-              {count} {count === 1 ? 'elemento' : 'elementos'}
+              {count} {count === 1 ? 'ítem' : 'ítems'}
             </span>
             <span className={styles.mobileCheckoutTotal}>
-              Total: {formatBs(total)}
+              Total: Bs. {total.toFixed(2)}
             </span>
           </div>
           <button

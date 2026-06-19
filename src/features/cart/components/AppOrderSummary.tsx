@@ -1,4 +1,5 @@
 import type { KioskOrder } from '@/shared/types/types'
+import { formatBs } from '@/shared/lib/money'
 import styles from './AppOrderSummary.module.css'
 
 interface Props {
@@ -25,8 +26,8 @@ export function AppOrderSummary({ order, showTotal = true }: Props) {
             <tr key={line.id}>
               <td>{line.productId[1]}</td>
               <td>{line.productUomQty}</td>
-              <td>{line.priceUnit.toFixed(2)}</td>
-              <td>{line.priceSubtotal.toFixed(2)}</td>
+              <td>{formatBs(line.priceUnit)}</td>
+              <td>{formatBs(line.priceSubtotal)}</td>
             </tr>
           ))}
           {lines.length === 0 && (
@@ -39,7 +40,7 @@ export function AppOrderSummary({ order, showTotal = true }: Props) {
       {showTotal && (
         <div className={styles.total}>
           <span>Total</span>
-          <span className={styles.totalAmount}>{order.amountTotal.toFixed(2)}</span>
+          <span className={styles.totalAmount}>{formatBs(order.amountTotal)}</span>
         </div>
       )}
     </div>

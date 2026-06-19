@@ -17,6 +17,7 @@
   min-height: 0; /* Permite scroll interno si es necesario */
   min-width: 0; /* Evita que elementos con scroll horizontal expandan la columna */
   position: relative;
+
 }
 
 .header {
@@ -333,6 +334,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+
   background: #fff;
   border: 1px solid var(--color-surface-border);
   transition: all 0.3s;
@@ -352,7 +354,7 @@
 
 .name {
   font-size: 1.2rem;
-  font-weight: 800;
+  font-weight: 400;
   color: var(--color-text);
   line-height: 1.2;
   height: 2.8rem;
@@ -431,9 +433,14 @@
   composes: glass-card from global;
   padding: 2rem;
   height: 100%;
+  width: 100% !important;
+  max-width: 100% !important;
+
   display: flex;
   flex-direction: column;
   min-height: 0;
+
+  justify-content: center;
   background: var(--color-panel);
 }
 
@@ -495,6 +502,7 @@
   padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column;
+
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -513,7 +521,7 @@
 }
 
 .cartItemName {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1.15rem;
   color: var(--color-text);
   line-height: 1.2;
@@ -685,6 +693,9 @@
   .wrapper {
     padding: 1rem;
     gap: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .greeting {
@@ -795,4 +806,59 @@
     font-weight: 800;
     color: var(--color-accent);
   }
+}
+
+/* --- MODO ESCANEO (CENTRADITO Y VERTICAL) --- */
+.scanMode {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  grid-template-columns: none !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 1rem 2rem 2rem 2rem !important;
+  height: 100% !important;
+}
+
+.scanMode .leftSection {
+  display: none !important;
+}
+
+.scanMode .rightSection {
+  width: 100% !important;
+  max-width: 620px !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 auto !important;
+}
+
+.scanMode .manualToggleBtn {
+  width: 100% !important;
+  background: #f1f3f5 !important;
+  color: #495057 !important;
+  font-weight: 700 !important;
+  font-size: 1.1rem !important;
+  padding: 1.1rem 1.8rem !important;
+  border-radius: 50px !important;
+  border: 1px solid #e9ecef !important;
+  justify-content: flex-start !important;
+  margin-bottom: 1.5rem !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+  transition: all 0.2s ease !important;
+}
+
+.scanMode .manualToggleBtn:hover {
+  background: #e9ecef !important;
+  transform: scale(1.01) !important;
+}
+
+.scanMode .cartSidebar {
+  background: #ffffff !important;
+  border: 1px solid var(--color-surface-border) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;
+  border-radius: 24px !important;
+  padding: 2.5rem !important;
+  justify-content: flex-start !important;
 }

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { CartItem, KioskProduct } from '@/shared/types/types'
+import { ves, addVES, toFloat, mulVES } from '@/shared/lib/money'
 
 interface CartState {
   items: CartItem[]
@@ -22,7 +23,7 @@ export const useCartStore = create<CartState & CartActions>((set) => ({
         return {
           items: s.items.map(i =>
             i.productId === product.id
-              ? { ...i, qty: i.qty + 1, subtotal: (i.qty + 1) * i.price }
+              ? { ...i, qty: i.qty + 1, subtotal: toFloat(mulVES(ves(i.price), i.qty + 1)) }
               : i
           )
         }
@@ -51,7 +52,7 @@ export const useCartStore = create<CartState & CartActions>((set) => ({
       set((s) => ({
         items: s.items.map(i =>
           i.productId === productId
-            ? { ...i, qty, subtotal: qty * i.price }
+            ? { ...i, qty, subtotal: toFloat(mulVES(ves(i.price), qty)) }
             : i
         )
       }))
@@ -64,7 +65,10 @@ export const useCartStore = create<CartState & CartActions>((set) => ({
 }))
 
 export function useCartTotal() {
-  return useCartStore(s => s.items.reduce((sum, i) => sum + i.subtotal, 0))
+  return useCartStore(s => {
+    const totalD = s.items.reduce((sumD, i) => addVES(sumD, ves(i.subtotal)), ves(0))
+    return toFloat(totalD)
+  })
 }
 
 export function useCartCount() {

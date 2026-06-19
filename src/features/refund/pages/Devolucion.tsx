@@ -8,6 +8,7 @@ import { useUIStore } from '@/shared/stores/ui'
 import { useConfigStore } from '@/shared/stores/config'
 import { FiscalPrinterAdapter } from '@/shared/lib/fiscalPrinter'
 import type { KioskOrder } from '@/shared/types/types'
+import { formatBs } from '@/shared/lib/money'
 import styles from './Devolucion.module.css'
 
 export function Devolucion() {
@@ -155,7 +156,7 @@ export function Devolucion() {
                   <button key={o.id} type="button" className={styles.resultCard} onClick={() => setSelectedOrder(o)}>
                     <span className={styles.orderName}>{o.name}</span>
                     <span>{o.partnerId[1]}</span>
-                    <span className={styles.amount}>Bs. {o.amountTotal.toFixed(2)}</span>
+                    <span className={styles.amount}>{formatBs(o.amountTotal)}</span>
                   </button>
                 ))}
               </div>

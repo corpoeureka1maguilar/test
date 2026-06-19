@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCartStore, useCartTotal } from '@/features/cart/stores/cart'
+import { formatBs } from '@/shared/lib/money'
 import styles from './CartReview.module.css'
 
 export function CartReview() {
@@ -46,7 +47,7 @@ export function CartReview() {
                       <div className={styles.productName}>{item.name}</div>
                       {item.defaultCode && <div className={styles.code}>{item.defaultCode}</div>}
                     </td>
-                    <td>Bs. {item.price.toFixed(2)}</td>
+                    <td>{formatBs(item.price)}</td>
                     <td>
                       <div className={styles.qtyControl}>
                         <button type="button" onClick={() => setQty(item.productId, item.qty - 1)}>−</button>
@@ -54,7 +55,7 @@ export function CartReview() {
                         <button type="button" onClick={() => setQty(item.productId, item.qty + 1)}>+</button>
                       </div>
                     </td>
-                    <td className={styles.subtotal}>Bs. {item.subtotal.toFixed(2)}</td>
+                    <td className={styles.subtotal}>{formatBs(item.subtotal)}</td>
                     <td>
                       <button type="button" className={styles.removeBtn} onClick={() => removeItem(item.productId)}>✕</button>
                     </td>
@@ -67,15 +68,15 @@ export function CartReview() {
           <div className={styles.totalSection}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
-              <span>Bs. {total.toFixed(2)}</span>
+              <span>{formatBs(total)}</span>
             </div>
             <div className={styles.totalRow}>
               <span>Impuestos estimados</span>
-              <span>Bs. 0.00</span>
+              <span>{formatBs(0)}</span>
             </div>
             <div className={styles.totalRow} style={{ marginTop: '1rem', borderTop: '1px solid var(--color-surface-border)', paddingTop: '2rem' }}>
               <span style={{ color: '#fff', fontSize: '2rem', fontWeight: 600 }}>Total</span>
-              <strong className={styles.totalAmount}>Bs. {total.toFixed(2)}</strong>
+              <strong className={styles.totalAmount}>{formatBs(total)}</strong>
             </div>
           </div>
 

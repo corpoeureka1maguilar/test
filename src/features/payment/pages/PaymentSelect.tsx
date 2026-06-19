@@ -4,6 +4,7 @@ import { usePaymentMethods } from '@/features/payment/hooks/usePaymentMethods'
 import { useCartTotal } from '@/features/cart/stores/cart'
 import { AppPaymentMethodCard } from '@/features/payment/components/AppPaymentMethodCard'
 import type { KioskPaymentMethod } from '@/shared/types/types'
+import { formatBs } from '@/shared/lib/money'
 import styles from './PaymentSelect.module.css'
 
 export function PaymentSelect() {
@@ -20,7 +21,7 @@ export function PaymentSelect() {
   return (
     <div className="kiosk-container">
       <h2 className={styles.title}>Elegí cómo pagar</h2>
-      <p className={styles.total}>Total: <strong>Bs. {total.toFixed(2)}</strong></p>
+      <p className={styles.total}>Total: <strong>{formatBs(total)}</strong></p>
 
       {isLoading ? (
         <p className={styles.loading}>Cargando métodos de pago...</p>

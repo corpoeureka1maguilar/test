@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCartTotal } from '@/features/cart/stores/cart'
 import { getPaymentFormFields, getPaymentLabel } from '@/shared/lib/paymentUtils'
+import { formatBs } from '@/shared/lib/money'
 import styles from './PaymentForm.module.css'
 
 export function PaymentForm() {
@@ -62,7 +63,7 @@ export function PaymentForm() {
         <div className={styles.summaryCard}>
           <div className={styles.amountRow}>
             <span>Subtotal</span>
-            <strong>Bs. {total.toFixed(2)}</strong>
+            <strong>{formatBs(total)}</strong>
           </div>
           {isForeign && (
             <div className={styles.amountRowForeign}>
@@ -75,7 +76,7 @@ export function PaymentForm() {
             <>
               <div className={styles.amountRow}>
                 <span>IGTF ({method.igtfPercent}%)</span>
-                <strong>Bs. {igtfAmount.toFixed(2)}</strong>
+                <strong>{formatBs(igtfAmount)}</strong>
               </div>
               {isForeign && (
                 <div className={styles.amountRowForeign}>
@@ -88,7 +89,7 @@ export function PaymentForm() {
 
           <div className={`${styles.amountRow} ${styles.total}`}>
             <span>Total a pagar</span>
-            <strong>Bs. {totalWithIgtf.toFixed(2)}</strong>
+            <strong>{formatBs(totalWithIgtf)}</strong>
           </div>
           {isForeign && (
             <div className={styles.totalForeign}>
@@ -100,7 +101,7 @@ export function PaymentForm() {
           {isForeign && (
             <div className={styles.rateRow}>
               <span>Tasa de cambio:</span>
-              <span>1 {currencyName} = Bs. {rateInBs.toFixed(2)}</span>
+              <span>1 {currencyName} = {formatBs(rateInBs)}</span>
             </div>
           )}
         </div>

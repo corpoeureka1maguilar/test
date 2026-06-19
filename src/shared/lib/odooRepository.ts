@@ -168,12 +168,25 @@ export async function fetchPaymentMethods(): Promise<KioskPaymentMethod[]> {
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 export async function fetchProducts(): Promise<KioskProduct[]> {
-  const raw = await odooEnv.callMethod<RawProduct[]>(
-    'product.product', 'search_read',
-    [[['sale_ok', '=', true], ['active', '=', true], ['invoice_policy', '=', 'order']]],
-    { fields: ['id', 'name', 'default_code', 'barcode', 'list_price', 'categ_id', 'uom_id'], limit: 200 }
-  )
-  return raw.map(mapProduct)
+  const [raw, rate] = await Promise.all([
+    odooEnv.callMethod<RawProduct[]>(
+      'product.product', 'search_read',
+      [[['sale_ok', '=', true], ['active', '=', true], ['invoice_policy', '=', 'order']]],
+      { fields: ['id', 'name', 'default_code', 'barcode', 'list_price', 'categ_id', 'uom_id'], limit: 200 }
+    ),
+    odooEnv.callMethod<number>('res.currency', 'action_get_rate').catch((err) => {
+      console.error('[fetchProducts] Error fetching currency rate:', err)
+      return 1
+    })
+  ])
+
+  return raw.map(r => {
+    const p = mapProduct(r)
+    if (rate > 1) {
+      p.price = p.price * rate
+    }
+    return p
+  })
 }
 
 // ─── Sale orders ──────────────────────────────────────────────────────────────

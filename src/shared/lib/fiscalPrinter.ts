@@ -3,7 +3,7 @@ import type { PrinterApiResponse } from '@/shared/types/types'
 // Base del proxy de impresión.
 // - Dev: vacío → URL relativa → middleware de Vite (mismo origen).
 // - Prod (Vercel): http://localhost:9191 → agente local en la máquina del cajero.
-const PRINTER_PROXY_BASE = import.meta.env.VITE_PRINTER_PROXY_BASE ?? 'http://localhost:9191'
+const PRINTER_PROXY_BASE = import.meta.env.VITE_PRINTER_PROXY_BASE ?? ''
 
 const getPrinterErrorMessage = (errorCode: string | object): string => {
   if (!errorCode) return 'Error desconocido de la impresora'
@@ -22,7 +22,7 @@ const getPrinterErrorMessage = (errorCode: string | object): string => {
 }
 
 export class FiscalPrinterAdapter {
-  constructor(private readonly printerUrl: string, private readonly modelo?: string) { }
+  constructor(private readonly printerUrl: string, private readonly modelo?: string) {}
 
   private getProxyUrlAndHeaders(endpoint: string): { url: string; headers: Record<string, string> } {
     const hasProtocol = this.printerUrl.startsWith('http://') || this.printerUrl.startsWith('https://')

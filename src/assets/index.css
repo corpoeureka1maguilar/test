@@ -89,7 +89,7 @@ body {
   border-radius: var(--app-radius);
   box-shadow: var(--app-shadow);
   padding: 3rem;
-  width: 100%;
+  width: 80ch;
 }
 
 /* Typography */
