@@ -5,13 +5,13 @@ import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
 import { useCartStore, useCartTotal, useCartCount } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
-import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phosphor-icons/react'
+import { Barcode, MagnifyingGlass, ShoppingCart, Trash } from '@phosphor-icons/react'
 
 import { formatBs } from '@/shared/lib/money'
 import styles from './ProductCatalog.module.css'
 
 export function ProductCatalog() {
-  const { send, context } = useSaleMachine()
+  const { send } = useSaleMachine()
   const navigate = useNavigate()
   const { data: products = [], isLoading } = useProducts()
   const { items, addItem, setQty, removeItem } = useCartStore()
@@ -51,23 +51,7 @@ export function ProductCatalog() {
     triggerCartAnimation()
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const q = search.trim().toLowerCase()
-      if (!q) return
 
-      // Find exact match by default code (ref) or barcode Technical Field
-      const exactMatch = products.find(p =>
-        p.defaultCode?.toLowerCase() === q ||
-        p.barcode?.toLowerCase() === q
-      )
-
-      if (exactMatch) {
-        handleAddItem(exactMatch)
-        setSearch('') // Clear search input for next scan
-      }
-    }
-  }
 
   const categories = useMemo(() => {
     const map = new Map<number, string>()
