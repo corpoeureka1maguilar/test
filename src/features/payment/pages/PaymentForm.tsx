@@ -23,23 +23,28 @@ export function PaymentForm() {
   if (!method) return null
 
   const fields = getPaymentFormFields(method.paymentType)
-  const igtfAmount = method.applyIgtf ? total * (method.igtfPercent / 100) : 0
-  const totalWithIgtf = total + igtfAmount
 
-  const isForeign = !!method.currencyRate && method.currencyRate !== 1
+  // El carrito acumula en Bs. currencyRate = Bs por unidad de moneda extranjera (ej: 36.5 Bs/USD)
+  const isForeign = !!method.currencyRate && method.currencyRate > 1
   const currencySymbol = method.currencySymbol || '$'
   const currencyName = method.currencyName || 'USD'
-  const rateInBs = method.currencyRate ? (1 / method.currencyRate) : 1
+  const rate = method.currencyRate ?? 0
+  const hasRate = rate > 0
 
-  const subtotalForeign = total * (method.currencyRate || 1)
-  const igtfForeign = igtfAmount * (method.currencyRate || 1)
-  const totalWithIgtfForeign = totalWithIgtf * (method.currencyRate || 1)
+  // Bs siempre disponible desde el carrito
+  const igtfBs = method.applyIgtf ? total * (method.igtfPercent / 100) : 0
+  const totalWithIgtfBs = total + igtfBs
+
+  // USD = Bs / tasa (base en dólares, se aplica en Bs por la tasa del día)
+  const subtotalUSD = hasRate ? total / rate : null
+  const igtfUSD = hasRate ? igtfBs / rate : null
+  const totalWithIgtfUSD = hasRate ? totalWithIgtfBs / rate : null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const paymentAmount = isForeign ? subtotalForeign : total
-    const paymentIgtf = isForeign ? igtfForeign : igtfAmount
+    const paymentAmount = isForeign ? (totalWithIgtfUSD ?? 0) : totalWithIgtfBs
+    const paymentIgtf = isForeign ? (igtfUSD ?? 0) : igtfBs
 
     send({
       type: 'SUBMIT_PAYMENT',
@@ -61,48 +66,70 @@ export function PaymentForm() {
 
       <div className={styles.summaryContainer}>
         <div className={styles.summaryCard}>
-          <div className={styles.amountRow}>
-            <span>Subtotal</span>
-            <strong>{formatBs(total)}</strong>
-          </div>
-          {isForeign && (
-            <div className={styles.amountRowForeign}>
-              <span>Subtotal ({currencyName})</span>
-              <strong>{currencySymbol} {subtotalForeign.toFixed(2)}</strong>
+
+          {isForeign && !hasRate && (
+            <div className={styles.noRateWarning}>
+              Sin tasa de cambio disponible. No se puede procesar este método de pago.
             </div>
           )}
 
-          {igtfAmount > 0 && (
+          {isForeign ? (
             <>
               <div className={styles.amountRow}>
-                <span>IGTF ({method.igtfPercent}%)</span>
-                <strong>{formatBs(igtfAmount)}</strong>
+                <span>Subtotal ({currencyName})</span>
+                <strong>{currencySymbol} {subtotalUSD?.toFixed(2) ?? '—'}</strong>
               </div>
-              {isForeign && (
-                <div className={styles.amountRowForeign}>
-                  <span>IGTF ({method.igtfPercent}%) ({currencyName})</span>
-                  <strong>{currencySymbol} {igtfForeign.toFixed(2)}</strong>
+              <div className={styles.amountRowForeign}>
+                <span>Subtotal (Bs)</span>
+                <strong>{formatBs(total)}</strong>
+              </div>
+
+              {igtfBs > 0 && (
+                <>
+                  <div className={styles.amountRow}>
+                    <span>IGTF {method.igtfPercent}% ({currencyName})</span>
+                    <strong>{currencySymbol} {igtfUSD?.toFixed(2) ?? '—'}</strong>
+                  </div>
+                  <div className={styles.amountRowForeign}>
+                    <span>IGTF {method.igtfPercent}% (Bs)</span>
+                    <strong>{formatBs(igtfBs)}</strong>
+                  </div>
+                </>
+              )}
+
+              <div className={`${styles.amountRow} ${styles.total}`}>
+                <span>Total ({currencyName})</span>
+                <strong>{currencySymbol} {totalWithIgtfUSD?.toFixed(2) ?? '—'}</strong>
+              </div>
+              <div className={styles.totalForeign}>
+                <span>Total (Bs)</span>
+                <strong>{formatBs(totalWithIgtfBs)}</strong>
+              </div>
+
+              <div className={styles.rateRow}>
+                <span>Tasa del día:</span>
+                <span>1 {currencyName} = {hasRate ? `Bs. ${rate.toFixed(2)}` : 'No disponible'}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={styles.amountRow}>
+                <span>Subtotal</span>
+                <strong>{formatBs(total)}</strong>
+              </div>
+
+              {igtfBs > 0 && (
+                <div className={styles.amountRow}>
+                  <span>IGTF ({method.igtfPercent}%)</span>
+                  <strong>{formatBs(igtfBs)}</strong>
                 </div>
               )}
+
+              <div className={`${styles.amountRow} ${styles.total}`}>
+                <span>Total a pagar</span>
+                <strong>{formatBs(totalWithIgtfBs)}</strong>
+              </div>
             </>
-          )}
-
-          <div className={`${styles.amountRow} ${styles.total}`}>
-            <span>Total a pagar</span>
-            <strong>{formatBs(totalWithIgtf)}</strong>
-          </div>
-          {isForeign && (
-            <div className={styles.totalForeign}>
-              <span>Total a pagar ({currencyName})</span>
-              <strong>{currencySymbol} {totalWithIgtfForeign.toFixed(2)}</strong>
-            </div>
-          )}
-
-          {isForeign && (
-            <div className={styles.rateRow}>
-              <span>Tasa de cambio:</span>
-              <span>1 {currencyName} = {formatBs(rateInBs)}</span>
-            </div>
           )}
         </div>
       </div>
@@ -128,7 +155,7 @@ export function PaymentForm() {
         )}
 
         <div className={styles.actions}>
-          <button type="submit" className="btn btn-accent">Confirmar pago</button>
+          <button type="submit" className="btn btn-accent" disabled={isForeign && !hasRate}>Confirmar pago</button>
           <button type="button" className="btn btn-secondary" onClick={() => { send({ type: 'BACK' }); navigate('/pago') }}>Volver</button>
         </div>
       </form>

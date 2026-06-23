@@ -32,14 +32,16 @@ export function PaymentSelect() {
           ))}
         </div>
       )}
-
+      <div className="sticky-controls">
       <button
         type="button"
-        className="btn btn-secondary"
+        className="btn  btn-secondary"
         onClick={() => navigate('/carrito')}
       >
         Volver al carrito
       </button>
+      </div>
+      
     </div>
   )
 }

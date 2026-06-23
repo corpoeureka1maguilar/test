@@ -24,7 +24,7 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: var(--app-shadow);
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   z-index: 10;
 
   &:hover {
@@ -33,7 +33,7 @@
   }
 
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
 }
 
@@ -45,7 +45,7 @@
   gap: 5rem;
   width: min(800px, 90vw);
   text-align: center;
-  animation: appleFadeIn 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: appleFadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .logo {
@@ -59,7 +59,7 @@
   transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 
   &:active {
-    transform: scale(0.98);
+    transform: scale(0.96);
   }
 }
 
@@ -141,17 +141,6 @@
 
   &:active {
     background: var(--color-surface) !important;
-  }
-}
-
-@keyframes appleFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

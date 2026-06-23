@@ -55,7 +55,7 @@
   display: inline-flex;
   align-items: center;
   gap: 1.5rem;
-  background: var(--color-surface-heavy);
+  background: var(--color-surface);
   padding: 0.4rem;
   border-radius: 50px;
 
@@ -64,8 +64,8 @@
     height: 56px;
     border: none;
     border-radius: 50%;
-    background: transparent;
-    color: #fff;
+    background: #fff;
+    color: var(--color-text);
     font-size: 1.5rem;
     font-weight: 300;
     cursor: pointer;
@@ -73,9 +73,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 
-    &:active { background: rgba(255, 255, 255, 0.1); }
+    &:active {
+      transform: scale(0.96);
+      background: var(--color-surface-hover);
+    }
   }
 
   span {
@@ -83,10 +87,16 @@
     font-weight: 600;
     min-width: 2rem;
     text-align: center;
+    font-variant-numeric: tabular-nums;
   }
 }
 
-.subtotal { font-weight: 700; color: #fff; font-size: 1.5rem !important; }
+.subtotal {
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 1.5rem !important;
+  font-variant-numeric: tabular-nums;
+}
 
 .removeBtn {
   background: transparent;
@@ -100,10 +110,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease, opacity 0.2s ease;
 
   &:hover { color: var(--color-danger); }
-  &:active { transform: scale(0.9); opacity: 0.5; }
+  &:active { transform: scale(0.96); opacity: 0.5; }
 }
 
 .totalSection {
@@ -119,6 +129,7 @@
   font-size: 1.75rem;
   font-weight: 500;
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .totalAmount { 
@@ -126,6 +137,7 @@
   font-weight: 700; 
   color: var(--color-accent);
   letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
 }
 
 .actions {
@@ -178,7 +190,7 @@
     button {
       width: 40px;
       height: 40px;
-      background-color: rgb(88, 88, 88);
+      background-color: var(--color-surface-heavy);
       font-size: 1.1rem;
     }
 

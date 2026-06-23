@@ -67,8 +67,24 @@ body {
 #root {
   height: 100%;
 }
+.sticky-controls{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  position: sticky;
+  bottom: 0;
+  backdrop-filter: blur(20px);
+  width: 100%;
+  > button{
+    margin: 1rem;
+  }
+  
+}
 
 .kiosk-container {
+  position: relative;
   max-width: var(--kiosk-max-width);
   margin: 0 auto;
   min-height: calc(100vh - 120px);
@@ -78,7 +94,7 @@ body {
   align-items: center; /* Crucial for Apple centering */
   justify-content: flex-start;
   gap: 2rem;
-  animation: appleFadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: appleFadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   text-align: center;
 }
 
@@ -89,7 +105,8 @@ body {
   border-radius: var(--app-radius);
   box-shadow: var(--app-shadow);
   padding: 3rem;
-  width: 80ch;
+  min-width: 100%;
+  max-width: 100%;
 }
 
 /* Typography */
@@ -98,6 +115,11 @@ h1, h2, h3 {
   letter-spacing: -0.04em; 
   color: var(--color-text);
   margin-bottom: 1rem;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 /* Buttons */
@@ -112,7 +134,7 @@ h1, h2, h3 {
   font-size: var(--kiosk-btn-font-size);
   border-radius: 50px;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   border: none;
   outline: none;
   width: 100%;
@@ -152,7 +174,7 @@ h1, h2, h3 {
 
 /* Utility Animations */
 @keyframes appleFadeIn {
-  from { opacity: 0; transform: translateY(30px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -173,8 +195,8 @@ h1, h2, h3 {
 }
 
 @keyframes applePop {
-  0% { transform: scale(0.8); opacity: 0; }
-  70% { transform: scale(1.1); }
+  0% { transform: scale(0.95); opacity: 0; }
+  70% { transform: scale(1.03); }
   100% { transform: scale(1); opacity: 1; }
 }
 
@@ -198,7 +220,7 @@ select {
   border: 2px solid transparent;
   border-radius: 22px;
   color: var(--color-text);
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   outline: none;
   cursor: pointer;
 }
@@ -216,6 +238,20 @@ select:focus {
   transform: translateY(-2px);
 }
 
+.card {
+  background: var(--color-panel);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--app-radius);
+  box-shadow: var(--app-shadow);
+  padding: var(--kiosk-card-padding);
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  animation: appleScaleIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 .label-premium {
   display: flex;
   flex-direction: column;
@@ -227,6 +263,16 @@ select:focus {
   letter-spacing: 0.08em;
   text-align: left;
   width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-aspect-ratio: 1.35), (max-height: 800px) {

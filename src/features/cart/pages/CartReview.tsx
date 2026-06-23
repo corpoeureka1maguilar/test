@@ -75,7 +75,7 @@ export function CartReview() {
               <span>{formatBs(0)}</span>
             </div>
             <div className={styles.totalRow} style={{ marginTop: '1rem', borderTop: '1px solid var(--color-surface-border)', paddingTop: '2rem' }}>
-              <span style={{ color: '#fff', fontSize: '2rem', fontWeight: 600 }}>Total</span>
+              <span style={{ color: 'var(--color-text)', fontSize: '2rem', fontWeight: 600 }}>Total</span>
               <strong className={styles.totalAmount}>{formatBs(total)}</strong>
             </div>
           </div>

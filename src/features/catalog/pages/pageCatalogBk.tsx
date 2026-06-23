@@ -139,14 +139,15 @@ export function ProductCatalog() {
 
         {/* INPUT DE BÚSQUEDA - Siempre activo para la pistola física */}
         <div 
-          style={{ 
-            position: 'absolute', 
-            opacity: isManualMode ? 1 : 0, 
-            pointerEvents: isManualMode ? 'auto' : 'none', 
-            top: isManualMode ? '70px' : '-1000px', 
-            width: '100%', 
+          style={{
+            position: 'absolute',
+            top: '70px',
+            width: '100%',
             zIndex: 10,
-            transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)'
+            opacity: isManualMode ? 1 : 0,
+            transform: isManualMode ? 'translateY(0)' : 'translateY(-6px)',
+            pointerEvents: isManualMode ? 'auto' : 'none',
+            transition: 'opacity 0.2s ease-out, transform 0.2s ease-out'
           }}
           onClick={(e) => e.stopPropagation()}
         >

@@ -11,7 +11,7 @@ import { formatBs } from '@/shared/lib/money'
 import styles from './ProductCatalog.module.css'
 
 export function ProductCatalog() {
-  const { send } = useSaleMachine()
+  const { send, context } = useSaleMachine()
   const navigate = useNavigate()
   const { data: products = [], isLoading } = useProducts()
   const { items, addItem, setQty, removeItem } = useCartStore()
@@ -51,7 +51,23 @@ export function ProductCatalog() {
     triggerCartAnimation()
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const q = search.trim().toLowerCase()
+      if (!q) return
 
+      // Find exact match by default code (ref) or barcode Technical Field
+      const exactMatch = products.find(p =>
+        p.defaultCode?.toLowerCase() === q ||
+        p.barcode?.toLowerCase() === q
+      )
+
+      if (exactMatch) {
+        handleAddItem(exactMatch)
+        setSearch('') // Clear search input for next scan
+      }
+    }
+  }
 
   const categories = useMemo(() => {
     const map = new Map<number, string>()
@@ -236,10 +252,7 @@ export function ProductCatalog() {
                         if (item.qty > 1) {
                           setQty(item.productId, item.qty - 1)
                         } else {
-                          removeItem(item.productId)
-                          if (lastScannedProduct?.id === item.productId) {
-                            setLastScannedProduct(null)
-                          }
+                          return 
                         }
                       }}
                     >

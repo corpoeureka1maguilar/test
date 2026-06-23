@@ -7,7 +7,7 @@
   gap: 1.5rem;
   padding: 3rem 2rem;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   text-align: center;
   background: #fff;
   border: 1px solid var(--color-surface-border);
@@ -20,8 +20,19 @@
   }
 
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
+}
+
+.igtf {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-accent-glow);
+  border-radius: 50px;
+  padding: 0.3rem 1rem;
+  letter-spacing: 0.03em;
 }
 
 .icon {

@@ -14,10 +14,22 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  height: 100%;
   min-height: 0; /* Permite scroll interno si es necesario */
   min-width: 0; /* Evita que elementos con scroll horizontal expandan la columna */
   position: relative;
+  overflow: hidden;
+}
 
+/* --- MODO BÚSQUEDA MANUAL --- */
+.manualSearchSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: calc(100% - 5.5rem);
+  min-height: 0;
+  animation: appleFadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .header {
@@ -46,7 +58,7 @@
   border-radius: 50px;
   border: 1px solid var(--color-surface-border);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color 0.2s ease-out, transform 0.2s ease-out, border-color 0.2s ease-out;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -57,7 +69,7 @@
   }
 
   &:active {
-    transform: translateY(1px);
+    transform: scale(0.97);
   }
 }
 
@@ -94,7 +106,7 @@
   gap: 1rem;
   position: relative;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: border-color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 
   &::before {
     content: '';
@@ -254,7 +266,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s;
+    transition: transform 0.15s ease-out;
 
     &:active {
       transform: scale(0.9);
@@ -269,15 +281,7 @@
   }
 }
 
-/* --- MODO BÚSQUEDA MANUAL --- */
-.manualSearchSection {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  min-height: 0;
-  animation: appleFadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
+
 
 .searchContainer {
   display: flex;
@@ -310,7 +314,11 @@
   font-weight: 600;
   border: none;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background-color 0.2s ease-out, color 0.2s ease-out, transform 0.15s ease-out;
+
+  &:active {
+    transform: scale(0.97);
+  }
 
   &.active {
     background: var(--color-text);
@@ -337,12 +345,16 @@
 
   background: #fff;
   border: 1px solid var(--color-surface-border);
-  transition: all 0.3s;
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.15s ease-out;
   text-align: center;
   justify-content: space-between;
 
   &:hover {
     border-color: var(--color-accent);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 }
 
@@ -402,6 +414,11 @@
     color: var(--color-text);
     cursor: pointer;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.15s ease-out;
+
+    &:active {
+      transform: scale(0.9);
+    }
   }
 
   span {
@@ -425,6 +442,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  gap: 1rem;
   min-height: 0;
   min-width: 0;
 }
@@ -433,8 +451,7 @@
   composes: glass-card from global;
   padding: 2rem;
   height: 100%;
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 1000ch;
 
   display: flex;
   flex-direction: column;
@@ -496,18 +513,18 @@
 }
 
 .cartItemCard {
-
+  font-variant-numeric: tabular-nums;
   border: 1px solid var(--color-surface-border);
   border-radius: 20px;
   padding: 1rem 1.25rem;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 
   align-items: center;
-  justify-content: space-between;
+
   gap: 1rem;
-  transition: all 0.3s;
-  animation: appleFadeIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+  animation: appleFadeIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 
   &:hover {
     border-color: var(--color-surface-heavy);
@@ -550,14 +567,14 @@
 .qtyControlMini {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 2rem;
   background: var(--color-surface);
   padding: 0.3rem;
   border-radius: 50px;
 
   button {
-    width: 32px;
-    height: 32px;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
     border: none;
     background: #fff;
@@ -569,6 +586,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.15s ease-out;
+
+    &:active {
+      transform: scale(0.9);
+    }
   }
 
   span {
@@ -623,6 +645,7 @@
   padding-top: 1.25rem;
   margin-bottom: 1.5rem;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .totalRow {
@@ -693,7 +716,6 @@
   .wrapper {
     padding: 1rem;
     gap: 1rem;
-    display: flex;
     justify-content: center;
     align-items: center;
   }
@@ -814,8 +836,7 @@
   justify-content: center !important;
   align-items: center !important;
   grid-template-columns: none !important;
-  max-width: 100% !important;
-  width: 100% !important;
+
   margin: 0 auto !important;
   padding: 1rem 2rem 2rem 2rem !important;
   height: 100% !important;
@@ -826,8 +847,7 @@
 }
 
 .scanMode .rightSection {
-  width: 100% !important;
-  max-width: 620px !important;
+ 
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;

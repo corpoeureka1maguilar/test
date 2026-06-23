@@ -1,6 +1,4 @@
 .title {
-  font-size: 3rem;
-  font-weight: 700;
   font-size: 3.5rem;
   font-weight: 800;
   margin-bottom: 0.5rem;
@@ -8,6 +6,8 @@
   color: var(--color-text);
   letter-spacing: -0.05em;
 }
+
+
 
 .total {
   font-size: 1.5rem;
@@ -19,6 +19,7 @@
 .total strong {
   color: var(--color-accent);
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .grid {
@@ -30,7 +31,7 @@
   width: 100%;
   max-width: 900px;
   margin-bottom: 4rem;
-  animation: appleFadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: appleFadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .loading {
