@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useInactivityTimer } from '@/shared/hooks/useInactivityTimer'
 import { AppStepper } from '@/features/cart/components/AppStepper'
-import { trackView } from '@/shared/lib/metrics'
+import { trackView, trackViewDuration } from '@/shared/lib/metrics'
 
 export function RootLayout() {
   const { state, send } = useSaleMachine()
@@ -50,6 +50,20 @@ export function RootLayout() {
     return () => {
       if (currentAudioRef.current) {
         currentAudioRef.current.pause()
+      }
+    }
+  }, [location.pathname])
+
+  // Escuchar cambios de ruta para registrar el tiempo que pasa el usuario en cada vista
+  useEffect(() => {
+    const startTime = Date.now()
+    const path = location.pathname
+
+    return () => {
+      const endTime = Date.now()
+      const durationSeconds = Math.round((endTime - startTime) / 1000)
+      if (durationSeconds > 0) {
+        trackViewDuration(path, durationSeconds)
       }
     }
   }, [location.pathname])

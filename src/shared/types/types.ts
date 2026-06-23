@@ -104,3 +104,14 @@ export interface KioskOrder {
   lines?: KioskOrderLine[]
   state: string
 }
+
+export interface AdConfig {
+  type: 'image' | 'video' | 'gradient'
+  url?: string
+  title?: string
+  description?: string
+  colorStart?: string
+  colorEnd?: string
+  active: boolean
+}
+

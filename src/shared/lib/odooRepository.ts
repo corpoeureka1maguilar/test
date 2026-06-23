@@ -1,5 +1,5 @@
 import { odooEnv } from '@/shared/lib/odooEnv'
-import type { KioskPartner, KioskPaymentMethod, KioskProduct, KioskOrder, KioskOrderLine } from '@/shared/types/types'
+import type { KioskPartner, KioskPaymentMethod, KioskProduct, KioskOrder, KioskOrderLine, AdConfig } from '@/shared/types/types'
 
 // ─── Raw Odoo shapes ──────────────────────────────────────────────────────────
 
@@ -231,3 +231,17 @@ export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
 export async function returnOrder(orderId: number, reason: string): Promise<void> {
   await odooEnv.callMethod('sale.order', 'action_return_order_total', [orderId, reason, [], null])
 }
+
+export async function fetchAdvertisements(): Promise<AdConfig[]> {
+  try {
+    const config = await odooEnv.callMethod<{ ad_configs?: AdConfig[] }>(
+      'x.pos.station',
+      'action_get_custom_config'
+    )
+    return config?.ad_configs || []
+  } catch (err) {
+    console.error('Error fetching ads from backend:', err)
+    return []
+  }
+}
+

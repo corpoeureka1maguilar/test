@@ -313,6 +313,21 @@ export function Devolucion() {
               <span className={styles.metricValue}>{metrics.sales.refundCount}</span>
               <span className={styles.metricSubvalue}>Órdenes devueltas</span>
             </div>
+
+            <div className={styles.metricCard} style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(255, 255, 255, 0.8) 100%)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+              <span className={styles.metricLabel}>Tiempo Muerto</span>
+              <span className={styles.metricValue}>
+                {(() => {
+                  const sec = metrics.viewsDuration['/'] || 0
+                  if (!sec) return '0s'
+                  if (sec < 60) return `${sec}s`
+                  const m = Math.floor(sec / 60)
+                  const s = sec % 60
+                  return s > 0 ? `${m}m ${s}s` : `${m}m`
+                })()}
+              </span>
+              <span className={styles.metricSubvalue}>Standby en Inicio</span>
+            </div>
           </div>
 
           {/* Dos columnas de detalles */}
@@ -329,11 +344,30 @@ export function Devolucion() {
                     .map(([viewPath, count]) => {
                       const maxCount = Math.max(...Object.values(metrics.views), 1)
                       const percent = (count / maxCount) * 100
+                      const duration = metrics.viewsDuration?.[viewPath] || 0
+                      const formatDuration = (sec: number) => {
+                        if (!sec) return '0s'
+                        if (sec < 60) return `${sec}s`
+                        const m = Math.floor(sec / 60)
+                        const s = sec % 60
+                        return s > 0 ? `${m}m ${s}s` : `${m}m`
+                      }
+
+                      const isWelcome = viewPath === '/'
+                      const displayName = isWelcome ? 'Inicio (Tiempo Muerto / Standby)' : viewPath
+
                       return (
                         <div key={viewPath} className={styles.viewItem}>
                           <div className={styles.viewMeta}>
-                            <span className={styles.itemName}>{viewPath}</span>
-                            <span className={styles.itemCount}>{count} vistas</span>
+                            <span 
+                              className={styles.itemName}
+                              style={isWelcome ? { color: 'var(--color-text-muted)', fontStyle: 'italic' } : undefined}
+                            >
+                              {displayName}
+                            </span>
+                            <span className={styles.itemCount}>
+                              {count} v. • {formatDuration(duration)}
+                            </span>
                           </div>
                           <div className={styles.progressBarContainer}>
                             <div

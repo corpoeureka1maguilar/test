@@ -32,6 +32,7 @@ interface ConfigState {
   printerModel: string
   adminPinHash: string
   isConfigured: boolean
+  isConnectionReady: boolean
 }
 
 interface ConfigActions {
@@ -60,6 +61,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       printerModel: '',
       adminPinHash: '',
       isConfigured: false,
+      isConnectionReady: false,
 
       async saveConfig(data) {
         const pinHash = await sha256(data.adminPin)
@@ -82,7 +84,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           printerUrl: data.printerUrl,
           printerModel: data.printerModel,
           adminPinHash: pinHash,
-          isConfigured: true
+          isConfigured: true,
+          isConnectionReady: true
         })
       },
 
@@ -96,7 +99,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
           printerModel: '',
           adminPinHash: '',
-          isConfigured: false
+          isConfigured: false,
+          isConnectionReady: false
         })
       },
 
@@ -108,9 +112,15 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       async reauthenticate() {
         const { odooUrl, odooDb, serviceUser, servicePassword, isConfigured } = get()
         if (!isConfigured) return
-        await setProxyTarget(odooUrl)
-        odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })
-        await odooEnv.authenticate(serviceUser)
+        try {
+          await setProxyTarget(odooUrl)
+          odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })
+          await odooEnv.authenticate(serviceUser)
+          set({ isConnectionReady: true })
+        } catch (err) {
+          set({ isConnectionReady: false })
+          throw err
+        }
       }
     }),
     {

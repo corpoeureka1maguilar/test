@@ -16,6 +16,7 @@ export interface ProductMetric {
 
 export interface AutopayMetrics {
   views: ViewMetrics
+  viewsDuration: Record<string, number>
   sales: {
     totalAmount: number
     orderCount: number
@@ -37,6 +38,7 @@ export function getMetrics(): AutopayMetrics {
     // Devolvemos una estructura limpia y aislada por copia profunda
     return {
       views: (parsed && typeof parsed.views === 'object') ? { ...parsed.views } : {},
+      viewsDuration: (parsed && typeof parsed.viewsDuration === 'object') ? { ...parsed.viewsDuration } : {},
       sales: {
         totalAmount: Number(parsed?.sales?.totalAmount) || 0,
         orderCount: Number(parsed?.sales?.orderCount) || 0,
@@ -56,6 +58,7 @@ export function getMetrics(): AutopayMetrics {
     console.error('Error reading metrics from localStorage', e)
     return {
       views: {},
+      viewsDuration: {},
       sales: {
         totalAmount: 0,
         orderCount: 0,
@@ -144,9 +147,26 @@ export function trackRefund(): void {
   }
 }
 
+export function trackViewDuration(path: string, durationSeconds: number): void {
+  try {
+    if (!path) return
+    let viewKey = path
+    if (path.startsWith('/pago/')) {
+      viewKey = '/pago/:methodId'
+    }
+
+    const metrics = getMetrics()
+    metrics.viewsDuration[viewKey] = (metrics.viewsDuration[viewKey] || 0) + durationSeconds
+    saveMetrics(metrics)
+  } catch (err) {
+    console.error('Error in trackViewDuration:', err)
+  }
+}
+
 export function resetMetrics(): void {
   saveMetrics({
     views: {},
+    viewsDuration: {},
     sales: {
       totalAmount: 0,
       orderCount: 0,
