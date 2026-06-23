@@ -28,40 +28,43 @@ export interface AutopayMetrics {
 
 const STORAGE_KEY = 'fex_autopay_metrics'
 
-const INITIAL_METRICS: AutopayMetrics = {
-  views: {},
-  sales: {
-    totalAmount: 0,
-    orderCount: 0,
-    refundCount: 0,
-    paymentMethods: {},
-    topProducts: {},
-    trackedOrders: []
-  }
-}
 
 export function getMetrics(): AutopayMetrics {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
-      return { ...INITIAL_METRICS }
-    }
-    const parsed = JSON.parse(raw)
-    // Asegurar estructura
+    const parsed = raw ? JSON.parse(raw) : null
+    
+    // Devolvemos una estructura limpia y aislada por copia profunda
     return {
-      views: parsed.views || {},
+      views: (parsed && typeof parsed.views === 'object') ? { ...parsed.views } : {},
       sales: {
-        totalAmount: parsed.sales?.totalAmount || 0,
-        orderCount: parsed.sales?.orderCount || 0,
-        refundCount: parsed.sales?.refundCount || 0,
-        paymentMethods: parsed.sales?.paymentMethods || {},
-        topProducts: parsed.sales?.topProducts || {},
-        trackedOrders: parsed.sales?.trackedOrders || []
+        totalAmount: Number(parsed?.sales?.totalAmount) || 0,
+        orderCount: Number(parsed?.sales?.orderCount) || 0,
+        refundCount: Number(parsed?.sales?.refundCount) || 0,
+        paymentMethods: (parsed?.sales?.paymentMethods && typeof parsed.sales.paymentMethods === 'object') 
+          ? JSON.parse(JSON.stringify(parsed.sales.paymentMethods)) 
+          : {},
+        topProducts: (parsed?.sales?.topProducts && typeof parsed.sales.topProducts === 'object') 
+          ? JSON.parse(JSON.stringify(parsed.sales.topProducts)) 
+          : {},
+        trackedOrders: Array.isArray(parsed?.sales?.trackedOrders) 
+          ? [...parsed.sales.trackedOrders] 
+          : []
       }
     }
   } catch (e) {
     console.error('Error reading metrics from localStorage', e)
-    return { ...INITIAL_METRICS }
+    return {
+      views: {},
+      sales: {
+        totalAmount: 0,
+        orderCount: 0,
+        refundCount: 0,
+        paymentMethods: {},
+        topProducts: {},
+        trackedOrders: []
+      }
+    }
   }
 }
 
@@ -74,15 +77,19 @@ export function saveMetrics(metrics: AutopayMetrics): void {
 }
 
 export function trackView(path: string): void {
-  // Simplificar rutas para que se agrupen de forma legible
-  let viewKey = path
-  if (path.startsWith('/pago/')) {
-    viewKey = '/pago/:methodId'
-  }
+  try {
+    if (!path) return
+    let viewKey = path
+    if (path.startsWith('/pago/')) {
+      viewKey = '/pago/:methodId'
+    }
 
-  const metrics = getMetrics()
-  metrics.views[viewKey] = (metrics.views[viewKey] || 0) + 1
-  saveMetrics(metrics)
+    const metrics = getMetrics()
+    metrics.views[viewKey] = (metrics.views[viewKey] || 0) + 1
+    saveMetrics(metrics)
+  } catch (err) {
+    console.error('Error in trackView:', err)
+  }
 }
 
 export function trackSale(
@@ -91,42 +98,50 @@ export function trackSale(
   paymentMethodName: string,
   items: CartItem[]
 ): void {
-  if (!orderRef) return
-  const metrics = getMetrics()
+  try {
+    if (!orderRef) return
+    const metrics = getMetrics()
 
-  // Evitar duplicación
-  if (metrics.sales.trackedOrders.includes(orderRef)) {
-    return
-  }
-
-  metrics.sales.trackedOrders.push(orderRef)
-  metrics.sales.totalAmount += amount
-  metrics.sales.orderCount += 1
-
-  // Métodos de pago
-  const currentMethod = metrics.sales.paymentMethods[paymentMethodName] || { count: 0, amount: 0 }
-  metrics.sales.paymentMethods[paymentMethodName] = {
-    count: currentMethod.count + 1,
-    amount: currentMethod.amount + amount
-  }
-
-  // Productos
-  items.forEach((item) => {
-    const key = String(item.productId)
-    const currentProd = metrics.sales.topProducts[key] || { name: item.name, qty: 0 }
-    metrics.sales.topProducts[key] = {
-      name: item.name,
-      qty: currentProd.qty + item.qty
+    // Evitar duplicación
+    if (metrics.sales.trackedOrders.includes(orderRef)) {
+      return
     }
-  })
 
-  saveMetrics(metrics)
+    metrics.sales.trackedOrders.push(orderRef)
+    metrics.sales.totalAmount += amount
+    metrics.sales.orderCount += 1
+
+    // Métodos de pago
+    const currentMethod = metrics.sales.paymentMethods[paymentMethodName] || { count: 0, amount: 0 }
+    metrics.sales.paymentMethods[paymentMethodName] = {
+      count: currentMethod.count + 1,
+      amount: currentMethod.amount + amount
+    }
+
+    // Productos
+    items.forEach((item) => {
+      const key = String(item.productId)
+      const currentProd = metrics.sales.topProducts[key] || { name: item.name, qty: 0 }
+      metrics.sales.topProducts[key] = {
+        name: item.name,
+        qty: currentProd.qty + item.qty
+      }
+    })
+
+    saveMetrics(metrics)
+  } catch (err) {
+    console.error('Error in trackSale:', err)
+  }
 }
 
 export function trackRefund(): void {
-  const metrics = getMetrics()
-  metrics.sales.refundCount += 1
-  saveMetrics(metrics)
+  try {
+    const metrics = getMetrics()
+    metrics.sales.refundCount += 1
+    saveMetrics(metrics)
+  } catch (err) {
+    console.error('Error in trackRefund:', err)
+  }
 }
 
 export function resetMetrics(): void {
