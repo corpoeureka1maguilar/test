@@ -141,7 +141,23 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         printerModel: state.printerModel,
         adminPinHash: state.adminPinHash,
         isConfigured: state.isConfigured
-      })
+      }),
+      merge: (persistedState: any, currentState) => {
+        const hasEnv = !!(
+          (import.meta.env.VITE_ODOO_URL || import.meta.env.VITE_ODOO_TARGET) &&
+          import.meta.env.VITE_ODOO_DB &&
+          import.meta.env.VITE_SERVICE_USER &&
+          import.meta.env.VITE_SERVICE_PASSWORD
+        );
+        if (hasEnv) {
+          return {
+            ...persistedState,
+            ...currentState,
+            isConfigured: true
+          };
+        }
+        return { ...currentState, ...persistedState };
+      }
     }
   )
 )
