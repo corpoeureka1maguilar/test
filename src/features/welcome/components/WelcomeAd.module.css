@@ -1,0 +1,166 @@
+.adContainer {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  height: 620px;
+  border-radius: var(--app-radius);
+  overflow: hidden;
+  box-shadow: var(--app-shadow);
+  border: 1px solid var(--color-surface-border);
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.adContainer:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.15);
+}
+
+/* Instagram Story Header Progress Bars */
+.progressHeader {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.35rem;
+  z-index: 5;
+}
+
+.progressBarBg {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+}
+
+.progressBarFill {
+  height: 100%;
+  background: #ffffff;
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+.adVideo,
+.adImage,
+.adGradient {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: calc(var(--app-radius) - 1px);
+}
+
+/* Text Overlay and Vignette */
+.contentOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2.5rem 1.5rem 1.5rem;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.6) 100%);
+  border-radius: calc(var(--app-radius) - 1px);
+  pointer-events: none;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.adBadge {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.textInfo {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.adTitle {
+  color: #ffffff;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+.adDesc {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.4;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+@media (max-aspect-ratio: 1.35), (max-height: 800px) {
+  .adContainer {
+    height: 420px;
+    max-width: 720px;
+  }
+  
+  .adTitle {
+    font-size: 1.35rem;
+  }
+  
+  .adDesc {
+    font-size: 0.95rem;
+  }
+}
+
+.adSkeleton {
+  width: 100%;
+  max-width: 900px;
+  height: 620px;
+  border-radius: var(--app-radius);
+  background: var(--color-surface);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-surface-border);
+}
+
+.shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmerAnim 1.6s infinite linear;
+}
+
+@keyframes shimmerAnim {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
