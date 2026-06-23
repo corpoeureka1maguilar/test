@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCartStore } from '@/features/cart/stores/cart'
+import { trackSale } from '@/shared/lib/metrics'
 import styles from './PaymentResult.module.css'
 
 export function PaymentResult() {
@@ -14,8 +15,17 @@ export function PaymentResult() {
   const isProcessing = state === 'processing' || state === 'printing'
 
   useEffect(() => {
-    if (isSuccess) clearCart()
-  }, [isSuccess, clearCart])
+    if (isSuccess) {
+      const orderRef = context.printerResult?.code || context.activePayment?.reference || `TEMP-${Date.now()}`
+      const totalBs = context.cart.reduce((sum, item) => sum + item.subtotal, 0)
+      const igtfBs = context.selectedMethod?.applyIgtf ? totalBs * (context.selectedMethod.igtfPercent / 100) : 0
+      const finalAmount = totalBs + igtfBs
+      const methodName = context.selectedMethod?.name || 'Otro'
+
+      trackSale(orderRef, finalAmount, methodName, context.cart)
+      clearCart()
+    }
+  }, [isSuccess, clearCart, context])
 
   useEffect(() => {
     if (!isSuccess && !isError && !isProcessing) {

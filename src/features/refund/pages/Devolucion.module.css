@@ -322,3 +322,234 @@
     gap: 1rem;
   }
 }
+
+/* ==========================================
+   METRICS DASHBOARD STYLES
+   ========================================== */
+
+.metricsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 1100px;
+  animation: appleScaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 550px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metricCard {
+  background: var(--color-panel);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--app-shadow);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.metricCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Gradients sutiles para tarjetas destacadas */
+.salesCard {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(255, 255, 255, 0.8) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.ticketCard {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(255, 255, 255, 0.8) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.metricLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.metricValue {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--color-text);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.metricSubvalue {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.dashboardSection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+@media (max-width: 850px) {
+  .dashboardSection {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.sectionCard {
+  background: var(--color-panel);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 24px;
+  padding: 2rem;
+  text-align: left;
+  box-shadow: var(--app-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-surface);
+  padding-bottom: 0.75rem;
+}
+
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: var(--color-surface);
+  border-radius: 14px;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.listItem:hover {
+  background: var(--color-surface-hover);
+}
+
+.itemName {
+  font-weight: 700;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.itemCount {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.itemAmount {
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.progressBarContainer {
+  width: 100%;
+  background: var(--color-surface-hover);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 3px;
+}
+
+.viewItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border-radius: 14px;
+}
+
+.viewMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.emptyState {
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 3rem 1rem;
+  font-size: 1.05rem;
+}
+
+.dangerZone {
+  margin-top: 1.5rem;
+  border-top: 1px dashed var(--color-surface-border);
+  padding-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.resetBtn {
+  background: rgba(239, 68, 110, 0.1);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 110, 0.2);
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--app-font-family);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.resetBtn:hover {
+  background: var(--color-danger);
+  color: #fff;
+  border-color: var(--color-danger);
+}

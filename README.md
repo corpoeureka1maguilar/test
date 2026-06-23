@@ -140,6 +140,20 @@ AUTOPAY_URL=http://192.168.1.10:4173 bun run dev
 
 ---
 
+## Despliegue en Vercel
+
+Al desplegar en Vercel, el enrutamiento está configurado en [vercel.json](file:///c:/Users/maguilar/Desktop/maikol/fex/eu_fex_autopay/vercel.json) para redirigir las peticiones `/jsonrpc`, `/web` y `/printer-proxy` a una función Serverless que actúa como proxy (`/api/proxy`).
+
+Es necesario configurar las siguientes variables de entorno en la consola de Vercel:
+
+| Variable | Valor Recomendado | Descripción |
+|---|---|---|
+| `VITE_PRINTER_PROXY_BASE` | `http://localhost:9191` | **Requerido para imprimir**. Es la base de la URL para el proxy de la impresora fiscal. Redirige las peticiones seguras de Vercel (HTTPS) hacia el agente de impresión local HTTP de la PC del cajero. |
+| `VITE_PROXY_BASE` | *(Dejar vacío)* | Base de la URL para el proxy de Odoo. Si se deja vacío, las peticiones se realizan de forma relativa usando el propio dominio de la SPA en Vercel. |
+| `VITE_ODOO_TARGET` | *(Opcional)* | URL de fallback del servidor de Odoo (ej. `https://latinbien-test.agroo.net.ve`) en caso de que no se especifique dinámicamente. |
+
+---
+
 ## Dependencias de Odoo
 
 - Módulo: `eu_pos_base` (parte de `eu_agroo_fex_integration_v19`)

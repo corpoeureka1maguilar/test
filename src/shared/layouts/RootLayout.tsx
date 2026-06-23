@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useInactivityTimer } from '@/shared/hooks/useInactivityTimer'
 import { AppStepper } from '@/features/cart/components/AppStepper'
+import { trackView } from '@/shared/lib/metrics'
 
 export function RootLayout() {
   const { state, send } = useSaleMachine()
@@ -33,9 +34,10 @@ export function RootLayout() {
     })
   }
 
-  // Escuchar cambios de ruta para reproducir audios de cada paso
+  // Escuchar cambios de ruta para reproducir audios de cada paso e ir registrando métricas
   useEffect(() => {
     const path = location.pathname
+    trackView(path)
 
     if (path === '/cedula') {
       playSound('/voices/1.documento.mp3')
