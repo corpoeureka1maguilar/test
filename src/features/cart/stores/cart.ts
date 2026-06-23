@@ -66,7 +66,7 @@ export const useCartStore = create<CartState & CartActions>((set) => ({
 
 export function useCartTotal() {
   return useCartStore(s => {
-    const totalD = s.items.reduce((sumD, i) => addVES(sumD, ves(i.subtotal)), ves(0))
+    const totalD = s.items.reduce<any>((sumD, i) => addVES(sumD, ves(i.subtotal)), ves(0))
     return toFloat(totalD)
   })
 }

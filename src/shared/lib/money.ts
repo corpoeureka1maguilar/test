@@ -33,7 +33,7 @@ export function formatBs(amount: number): string {
 export function formatVES(d: any): string {
   return toDecimal(d, ({ value, currency }) => {
     const [intPart, decPart = ''] = value.split('.')
-    const paddedDec = decPart.padEnd(currency.exponent, '0')
+    const paddedDec = decPart.padEnd(currency.exponent as number, '0')
     const formattedInt = new Intl.NumberFormat('es-VE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
