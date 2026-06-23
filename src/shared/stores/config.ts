@@ -53,14 +53,19 @@ interface ConfigActions {
 export const useConfigStore = create<ConfigState & ConfigActions>()(
   persist(
     (set, get) => ({
-      odooUrl: '',
-      odooDb: '',
-      serviceUser: '',
-      servicePassword: '',
-      printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
-      printerModel: '',
+      odooUrl: import.meta.env.VITE_ODOO_URL || import.meta.env.VITE_ODOO_TARGET || '',
+      odooDb: import.meta.env.VITE_ODOO_DB || '',
+      serviceUser: import.meta.env.VITE_SERVICE_USER || '',
+      servicePassword: import.meta.env.VITE_SERVICE_PASSWORD || '',
+      printerUrl: import.meta.env.VITE_PRINTER_URL || 'http://127.0.0.1/ServWebImpresion/api/',
+      printerModel: import.meta.env.VITE_PRINTER_MODEL || '',
       adminPinHash: '',
-      isConfigured: false,
+      isConfigured: !!(
+        (import.meta.env.VITE_ODOO_URL || import.meta.env.VITE_ODOO_TARGET) &&
+        import.meta.env.VITE_ODOO_DB &&
+        import.meta.env.VITE_SERVICE_USER &&
+        import.meta.env.VITE_SERVICE_PASSWORD
+      ),
       isConnectionReady: false,
 
       async saveConfig(data) {
@@ -106,6 +111,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
 
       async verifyPin(pin) {
         const hash = await sha256(pin)
+        const envPin = import.meta.env.VITE_ADMIN_PIN
+        if (envPin && pin === envPin) return true
         return hash === get().adminPinHash
       },
 
