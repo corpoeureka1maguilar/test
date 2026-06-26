@@ -219,15 +219,23 @@ export async function fetchOrder(id: number): Promise<KioskOrder> {
 }
 
 export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
-  const raw = await odooEnv.callMethod<RawOrderHeader[]>(
-    'sale.order', 'search_read',
-    [[
-      ['x_is_paid', '=', false],
+  const domain: any[] = [['x_is_paid', '=', false]]
+  if (pattern.trim()) {
+    domain.push(
       '|', ['name', 'ilike', pattern],
       '|', ['partner_id.vat', 'ilike', pattern],
            ['partner_id.name', 'ilike', pattern]
-    ]],
-    { fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state'], limit: 10 }
+    )
+  }
+
+  const raw = await odooEnv.callMethod<RawOrderHeader[]>(
+    'sale.order', 'search_read',
+    [domain],
+    {
+      fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state'],
+      limit: 10,
+      order: 'id desc'
+    }
   )
   return raw.map(mapOrderHeader)
 }

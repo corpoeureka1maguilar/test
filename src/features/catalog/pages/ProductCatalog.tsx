@@ -113,7 +113,7 @@ export function ProductCatalog() {
         style={{
           position: 'absolute',
           top: '70px',
-          width: '100%',
+          width: '55%',
           zIndex: 10,
           opacity: isManualMode ? 1 : 0,
           transform: isManualMode ? 'translateY(0)' : 'translateY(-6px)',
@@ -313,9 +313,7 @@ export function ProductCatalog() {
               const newMode = !isManualMode;
               setIsManualMode(newMode);
               setShowKeyboard(newMode);
-              if (newMode) {
-                setTimeout(() => searchRef.current?.focus(), 50);
-              }
+              setTimeout(() => searchRef.current?.focus(), 50);
             }}
           >
             {isManualMode ? (
