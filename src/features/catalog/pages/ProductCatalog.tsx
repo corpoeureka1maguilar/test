@@ -5,7 +5,7 @@ import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
 import { useCartStore, useCartTotal, useCartCount } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
-import { Barcode, MagnifyingGlass, ShoppingCart, Trash } from '@phosphor-icons/react'
+import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phosphor-icons/react'
 
 import { formatBs } from '@/shared/lib/money'
 import styles from './ProductCatalog.module.css'
@@ -51,6 +51,24 @@ export function ProductCatalog() {
     triggerCartAnimation()
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const q = search.trim().toLowerCase()
+      if (!q) return
+
+      // Find exact match by default code (ref) or barcode Technical Field
+      const exactMatch = products.find(p =>
+        p.defaultCode?.toLowerCase() === q ||
+        p.barcode?.toLowerCase() === q
+      )
+
+      if (exactMatch) {
+        handleAddItem(exactMatch)
+        setSearch('') // Clear search input for next scan
+      }
+    }
+  }
+
 
 
   const categories = useMemo(() => {
@@ -90,11 +108,112 @@ export function ProductCatalog() {
       className={`${styles.wrapper} ${!isManualMode ? styles.scanMode : ''} ${showKeyboard && isManualMode ? styles.keyboardOpen : ''}`} 
       onClick={handleWrapperClick}
     >
+      {/* INPUT DE BÚSQUEDA - Siempre activo para la pistola física */}
+      <div 
+        style={{
+          position: 'absolute',
+          top: '70px',
+          width: '100%',
+          zIndex: 10,
+          opacity: isManualMode ? 1 : 0,
+          transform: isManualMode ? 'translateY(0)' : 'translateY(-6px)',
+          pointerEvents: isManualMode ? 'auto' : 'none',
+          transition: 'opacity 0.2s ease-out, transform 0.2s ease-out'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          ref={searchRef}
+          type="text"
+          className={styles.search}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            if (isManualMode) setShowKeyboard(true);
+          }}
+          inputMode="none"
+          placeholder="Escribí nombre o código de barras..."
+          autoComplete="off"
+        />
+      </div>
+
       {/* SECCIÓN IZQUIERDA: ZONA DE OPERACIÓN (ESCANEO / BÚSQUEDA) */}
      
       <div className={styles.leftSection}>
       {!isManualMode ? (
-            null
+          <div className={styles.scannerContainer}>
+            {/* Zona del Lector de Código de Barras */}
+            <div className={`${styles.scannerZone} ${lastScannedProduct ? styles.scannerZoneActive : ''}`}>
+              <div className={styles.barcodeIcon}>
+                <Barcode size={80} weight="thin" />
+              </div>
+              <div className={styles.scanInstruction}>
+                Listo para escanear
+              </div>
+              <div className={styles.scanSubInstruction}>
+                Pasa el código de barras de tu producto
+              </div>
+            </div>
+
+            {/* Visualización Premium del Último Producto Escaneado */}
+            {lastScannedProduct && (
+              <div className={styles.lastScannedSection}>
+                <div className={styles.lastScannedTitle}>
+                  <Sparkle size={18} weight="fill" style={{ color: 'var(--color-accent)', marginRight: '4px' }} />
+                  Último Producto Escaneado
+                </div>
+                <div className={styles.lastScannedCard}>
+                  <div className={styles.lastScannedHeader}>
+                    <div className={styles.lastScannedInfo}>
+                      <span className={styles.lastScannedCode}>
+                        {lastScannedProduct.defaultCode || 'Sin código'}
+                      </span>
+                      <h3 className={styles.lastScannedName}>
+                        {lastScannedProduct.name}
+                      </h3>
+                    </div>
+                    <div className={styles.lastScannedPrice}>
+                      {formatBs(lastScannedProduct.price)}
+                      <span className={styles.lastScannedUom}>
+                        por {lastScannedProduct.uomName || 'unidad'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Control rápido de cantidad */}
+                  <div className={styles.lastScannedControls} onClick={(e) => e.stopPropagation()}>
+                    <span className={styles.lastScannedControlsLabel}>
+                      Cantidad:
+                    </span>
+                    <div className={styles.qtyControlGiant}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const qty = getQty(lastScannedProduct.id)
+                          if (qty > 1) {
+                            setQty(lastScannedProduct.id, qty - 1)
+                          } else {
+                            removeItem(lastScannedProduct.id)
+                            setLastScannedProduct(null)
+                          }
+                        }}
+                      >
+                        −
+                      </button>
+                      <span>{getQty(lastScannedProduct.id)}</span>
+                      <button
+                        type="button"
+                        onClick={() => setQty(lastScannedProduct.id, getQty(lastScannedProduct.id) + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           /* MODO BÚSQUEDA MANUAL */
           <div className={styles.manualSearchSection} style={{ marginTop: '5.5rem' }}>
