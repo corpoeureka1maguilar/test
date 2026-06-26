@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCreatePartner } from '@/features/customer/hooks/useCreatePartner'
@@ -12,6 +12,12 @@ export function CustomerRegister() {
   const { mutateAsync: createPartner, isPending } = useCreatePartner()
   const pushToast = useUIStore(s => s.pushToast)
 
+  useEffect(() => {
+    if (!context.pendingVat) {
+      navigate('/cedula')
+    }
+  }, [context.pendingVat, navigate])
+
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -21,6 +27,7 @@ export function CustomerRegister() {
   const [activeField, setActiveField] = useState<'name' | 'phone' | 'street' | null>(null)
 
   const vat = context.pendingVat ?? ''
+  console.log('DEBUG CustomerRegister: context.pendingVat =', context.pendingVat, 'vat =', vat)
   const formattedVat = vat.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')
   const set = (field: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>

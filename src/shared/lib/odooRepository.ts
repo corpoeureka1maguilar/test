@@ -180,6 +180,10 @@ export async function fetchProducts(): Promise<KioskProduct[]> {
     })
   ])
 
+  // Persist rate globally so the header can display it
+  const { useExchangeRateStore } = await import('@/shared/stores/exchangeRate')
+  useExchangeRateStore.getState().setRate(rate)
+
   return raw.map(r => {
     const p = mapProduct(r)
     if (rate > 1) {

@@ -1,14 +1,62 @@
+/* ─── Header bar: customer | stepper | rate ─── */
+.headerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem 0;
+  gap: 1rem;
+  animation: appleFadeIn 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.customerInfo {
+  flex: 0 0 auto;
+  min-width: 140px;
+}
+
+.customerName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+  opacity: 0.85;
+}
+
+.rateInfo {
+  flex: 0 0 auto;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.rateLabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.rateValue {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 0.02em;
+}
+
+/* ─── Stepper (center) ─── */
 .wrapper {
-  width: 100%;
+  flex: 1;
   max-width: 600px;
-  margin: 2rem auto 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 1rem;
   position: relative;
   z-index: 10;
-  animation: appleFadeIn 1s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .step {

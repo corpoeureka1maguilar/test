@@ -10,7 +10,7 @@ const PREFIXES = ['V', 'E', 'J', 'G'] as const
 type Prefix = typeof PREFIXES[number]
 
 export function CustomerIdentity() {
-  const { send } = useSaleMachine()
+  const { send, matches } = useSaleMachine()
   const navigate = useNavigate()
   const { mutateAsync: search, isPending } = usePartnerByCedula()
   const pushToast = useUIStore(s => s.pushToast)
@@ -22,8 +22,11 @@ export function CustomerIdentity() {
   const formatDigits = (d: string) => d.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 
   useEffect(() => {
+    if (matches('idle')) {
+      send({ type: 'START' })
+    }
     scannerRef.current?.focus()
-  }, [])
+  }, [matches, send])
 
   const performSearch = async (p: Prefix, d: string) => {
     if (d.length < 6) {
@@ -39,7 +42,8 @@ export function CustomerIdentity() {
       return
     }
 
-    const padded = d.padStart(9, '0')
+    const limit = (p === 'V' || p === 'E') ? 8 : 9
+    const padded = d.padEnd(limit, '0')
     const partner = await search(`${p}-${padded}`)
     if (partner) {
       send({ type: 'FOUND', customer: partner })

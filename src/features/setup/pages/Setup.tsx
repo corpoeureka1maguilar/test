@@ -23,39 +23,6 @@ export function Setup() {
   const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }))
 
-  const handlePasteFromClipboard = async () => {
-    try {
-      const text = await navigator.clipboard.readText()
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-      if (lines.length === 0) {
-        pushToast('error', 'El portapapeles está vacío')
-        return
-      }
-
-      let parsedOdooUrl = lines[0] || ''
-      if (parsedOdooUrl.includes('/web/login')) {
-        try {
-          const urlObj = new URL(parsedOdooUrl)
-          parsedOdooUrl = urlObj.origin
-        } catch {
-          // fallback
-        }
-      }
-
-      setForm((prev) => ({
-        ...prev,
-        odooUrl: parsedOdooUrl,
-        odooDb: lines[1] || prev.odooDb,
-        serviceUser: lines[2] || prev.serviceUser,
-        servicePassword: lines[3] || prev.servicePassword,
-        adminPin: lines[4] || prev.adminPin
-      }))
-      pushToast('success', 'Datos importados correctamente')
-    } catch (err) {
-      pushToast('error', 'No se pudo leer el portapapeles')
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (form.adminPin.length < 4) {
@@ -80,14 +47,6 @@ export function Setup() {
       <h1 className={styles.title}>Configuración del kiosco</h1>
 
       <form className={styles.form} onSubmit={handleSubmit}>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handlePasteFromClipboard}
-          style={{ width: '100%', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-        >
-          <span>📋</span> Importar desde Portapapeles
-        </button>
         <label>URL de Odoo
           <input type="text" value={form.odooUrl} onChange={set('odooUrl')} placeholder="https://mi-empresa.odoo.com" required />
         </label>
