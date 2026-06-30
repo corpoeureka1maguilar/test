@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
-import { useCartStore, useCartTotal } from '@/features/cart/stores/cart'
-import { formatBs } from '@/shared/lib/money'
+import { useCartStore, useCartTotal, useCartTaxTotal } from '@/features/cart/stores/cart'
+import { formatBs, formatUSD } from '@/shared/lib/money'
+import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import styles from './CartReview.module.css'
 
 export function CartReview() {
@@ -9,6 +10,8 @@ export function CartReview() {
   const navigate = useNavigate()
   const { items, setQty, removeItem } = useCartStore()
   const total = useCartTotal()
+  const taxTotal = useCartTaxTotal()
+  const rate = useExchangeRateStore((s) => s.rate)
 
   const handlePay = () => {
     if (items.length === 0) return
@@ -47,7 +50,7 @@ export function CartReview() {
                       <div className={styles.productName}>{item.name}</div>
                       {item.defaultCode && <div className={styles.code}>{item.defaultCode}</div>}
                     </td>
-                    <td>{formatBs(item.price)}</td>
+                    <td>{formatBs(item.price)}<span className={styles.amountUsd}>{formatUSD(item.priceUsd)}</span></td>
                     <td>
                       <div className={styles.qtyControl}>
                         <button type="button" onClick={() => setQty(item.productId, item.qty - 1)}>−</button>
@@ -55,7 +58,7 @@ export function CartReview() {
                         <button type="button" onClick={() => setQty(item.productId, item.qty + 1)}>+</button>
                       </div>
                     </td>
-                    <td className={styles.subtotal}>{formatBs(item.subtotal)}</td>
+                    <td className={styles.subtotal}>{formatBs(item.subtotal)}<span className={styles.amountUsd}>{formatUSD(item.priceUsd * item.qty)}</span></td>
                     <td>
                       <button type="button" className={styles.removeBtn} onClick={() => removeItem(item.productId)}>✕</button>
                     </td>
@@ -68,15 +71,15 @@ export function CartReview() {
           <div className={styles.totalSection}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
-              <span>{formatBs(total)}</span>
+              <span>{formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}</span>
             </div>
             <div className={styles.totalRow}>
               <span>Impuestos estimados</span>
-              <span>{formatBs(0)}</span>
+              <span>{formatBs(taxTotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(taxTotal / rate)}</span>}</span>
             </div>
             <div className={styles.totalRow} style={{ marginTop: '1rem', borderTop: '1px solid var(--color-surface-border)', paddingTop: '2rem' }}>
               <span style={{ color: 'var(--color-text)', fontSize: '2rem', fontWeight: 600 }}>Total</span>
-              <strong className={styles.totalAmount}>{formatBs(total)}</strong>
+              <strong className={styles.totalAmount}>{formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}</strong>
             </div>
           </div>
 

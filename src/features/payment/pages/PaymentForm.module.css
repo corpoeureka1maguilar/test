@@ -26,7 +26,7 @@
 .amountRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   font-size: 1.4rem;
   color: var(--color-text-muted);
   font-weight: 500;
@@ -34,6 +34,9 @@
 }
 
 .amountRow strong {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   color: var(--color-text);
   font-weight: 700;
 }
@@ -124,6 +127,9 @@
 }
 
 .amountRowForeign strong {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   color: var(--color-text);
   font-weight: 700;
 }
@@ -140,6 +146,9 @@
 }
 
 .totalForeign strong {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   font-size: 2.1rem;
   font-weight: 800;
   color: var(--color-accent);
@@ -170,3 +179,21 @@
   text-align: center;
 }
 
+.amountSecondary {
+  display: block;
+  font-size: 0.85em;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  margin-top: 0.15em;
+  font-variant-numeric: tabular-nums;
+}
+
+.amountUsd {
+  display: block;
+  font-size: 0.75em;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  margin-top: 0.1em;
+  font-variant-numeric: tabular-nums;
+}

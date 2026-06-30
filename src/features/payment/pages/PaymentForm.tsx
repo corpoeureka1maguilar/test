@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCartTotal } from '@/features/cart/stores/cart'
 import { getPaymentFormFields, getPaymentLabel } from '@/shared/lib/paymentUtils'
-import { formatBs } from '@/shared/lib/money'
+import { formatBs, formatUSD } from '@/shared/lib/money'
+import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import styles from './PaymentForm.module.css'
 
 export function PaymentForm() {
   const { send, context } = useSaleMachine()
   const navigate = useNavigate()
   const total = useCartTotal()
+  const globalRate = useExchangeRateStore((s) => s.rate)
 
   const method = context.selectedMethod
   const [reference, setReference] = useState('')
@@ -23,8 +25,6 @@ export function PaymentForm() {
   if (!method) return null
 
   const fields = getPaymentFormFields(method.paymentType)
-
-  // El carrito acumula en Bs. currencyRate = Bs por unidad de moneda extranjera (ej: 36.5 Bs/USD)
   const isForeign = !!method.currencyRate && method.currencyRate > 1
   const currencySymbol = method.currencySymbol || '$'
   const currencyName = method.currencyName || 'USD'
@@ -76,58 +76,51 @@ export function PaymentForm() {
           {isForeign ? (
             <>
               <div className={styles.amountRow}>
-                <span>Subtotal ({currencyName})</span>
-                <strong>{currencySymbol} {subtotalUSD?.toFixed(2) ?? '—'}</strong>
-              </div>
-              <div className={styles.amountRowForeign}>
-                <span>Subtotal (Bs)</span>
-                <strong>{formatBs(total)}</strong>
+                <span>Subtotal</span>
+                <strong>
+                   {globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(total / globalRate)}</span>}
+                  <span className={styles.amountSecondary}>{formatBs(total)}</span>
+          
+                </strong>
               </div>
 
               {igtfBs > 0 && (
-                <>
-                  <div className={styles.amountRow}>
-                    <span>IGTF {method.igtfPercent}% ({currencyName})</span>
-                    <strong>{currencySymbol} {igtfUSD?.toFixed(2) ?? '—'}</strong>
-                  </div>
-                  <div className={styles.amountRowForeign}>
-                    <span>IGTF {method.igtfPercent}% (Bs)</span>
-                    <strong>{formatBs(igtfBs)}</strong>
-                  </div>
-                </>
+                <div className={styles.amountRow}>
+                  <span>IGTF ({method.igtfPercent}%)</span>
+                  <strong>
+                    {currencySymbol} {igtfUSD?.toFixed(2) ?? '—'}
+                    <span className={styles.amountSecondary}>{formatBs(igtfBs)}</span>
+                    {globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(igtfBs / globalRate)}</span>}
+                  </strong>
+                </div>
               )}
 
               <div className={`${styles.amountRow} ${styles.total}`}>
-                <span>Total ({currencyName})</span>
-                <strong>{currencySymbol} {totalWithIgtfUSD?.toFixed(2) ?? '—'}</strong>
-              </div>
-              <div className={styles.totalForeign}>
-                <span>Total (Bs)</span>
-                <strong>{formatBs(totalWithIgtfBs)}</strong>
-              </div>
-
-              <div className={styles.rateRow}>
-                <span>Tasa del día:</span>
-                <span>1 {currencyName} = {hasRate ? `Bs. ${rate.toFixed(2)}` : 'No disponible'}</span>
+                <span>Total a pagar</span>
+                <strong>
+                  
+                  {globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(totalWithIgtfBs / globalRate)}</span>}
+                  <span className={styles.amountSecondary}>{formatBs(totalWithIgtfBs)}</span>
+                </strong>
               </div>
             </>
           ) : (
             <>
               <div className={styles.amountRow}>
                 <span>Subtotal</span>
-                <strong>{formatBs(total)}</strong>
+                <strong>{formatBs(total)}{globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(total / globalRate)}</span>}</strong>
               </div>
 
               {igtfBs > 0 && (
                 <div className={styles.amountRow}>
                   <span>IGTF ({method.igtfPercent}%)</span>
-                  <strong>{formatBs(igtfBs)}</strong>
+                  <strong>{formatBs(igtfBs)}{globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(igtfBs / globalRate)}</span>}</strong>
                 </div>
               )}
 
               <div className={`${styles.amountRow} ${styles.total}`}>
                 <span>Total a pagar</span>
-                <strong>{formatBs(totalWithIgtfBs)}</strong>
+                <strong>{formatBs(totalWithIgtfBs)}{globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(totalWithIgtfBs / globalRate)}</span>}</strong>
               </div>
             </>
           )}

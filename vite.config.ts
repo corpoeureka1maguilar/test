@@ -57,7 +57,7 @@ function dynamicOdooProxy() {
           const isHttps = target.protocol === 'https:'
           const doRequest = isHttps ? httpsReq : httpReq
           const pathName = url.replace(/^\/printer-proxy/, '') // /printer-proxy/Estado -> /Estado
-          
+
           // Re-construir el path completo (incluyendo query strings si tiene)
           const targetPath = (target.pathname.replace(/\/$/, '') + pathName).replace(/\/+/g, '/')
 
@@ -151,6 +151,11 @@ function dynamicOdooProxy() {
 
 export default defineConfig({
   plugins: [react(), dynamicOdooProxy()],
+  css: {
+    modules: {
+      generateScopedName: '[name].[local]'
+    }
+  },
   server: {
     allowedHosts: true
   },

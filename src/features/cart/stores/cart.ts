@@ -34,6 +34,8 @@ export const useCartStore = create<CartState & CartActions>((set) => ({
           name: product.name,
           defaultCode: product.defaultCode,
           price: product.price,
+          priceUsd: product.priceUsd,
+          taxRate: product.taxRate,
           qty: 1,
           subtotal: product.price
         }]
@@ -68,6 +70,16 @@ export function useCartTotal() {
   return useCartStore(s => {
     const totalD = s.items.reduce<any>((sumD, i) => addVES(sumD, ves(i.subtotal)), ves(0))
     return toFloat(totalD)
+  })
+}
+
+export function useCartTaxTotal() {
+  return useCartStore(s => {
+    const taxD = s.items.reduce<any>(
+      (sumD, i) => addVES(sumD, ves(i.subtotal * i.taxRate / (1 + i.taxRate))),
+      ves(0)
+    )
+    return toFloat(taxD)
   })
 }
 

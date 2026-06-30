@@ -26,6 +26,15 @@ export function mulVES(d: any, multiplier: number) {
   return multiply(d, { amount: Math.round(multiplier * 100), scale: 2 })
 }
 
+export function formatUSD(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)
+}
+
 export function formatBs(amount: number): string {
   return formatVES(ves(amount))
 }
@@ -38,6 +47,6 @@ export function formatVES(d: any): string {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(parseInt(intPart, 10))
-    return `Bs. ${formattedInt},${paddedDec}`
+    return `Bs.${formattedInt},${paddedDec}`
   })
 }

@@ -28,6 +28,7 @@ interface RawProduct {
   default_code: string | false
   barcode: string | false
   list_price: number
+  taxes_id: number[]
   categ_id: [number, string]
   uom_id: [number, string]
 }
@@ -69,13 +70,17 @@ function mapMethod(r: RawMethod): KioskPaymentMethod {
   }
 }
 
-function mapProduct(r: RawProduct): KioskProduct {
+function mapProduct(r: RawProduct, taxRateMap: Map<number, number>): KioskProduct {
+  const firstTaxId = r.taxes_id?.[0]
+  const taxRate = firstTaxId != null ? (taxRateMap.get(firstTaxId) ?? 0.16) : 0.16
   return {
     id: r.id,
     name: r.name,
     defaultCode: r.default_code || '',
     barcode: r.barcode || undefined,
     price: r.list_price,
+    priceUsd: r.list_price,
+    taxRate,
     categId: r.categ_id[0],
     categName: r.categ_id[1],
     uomName: r.uom_id[1]
@@ -172,7 +177,7 @@ export async function fetchProducts(): Promise<KioskProduct[]> {
     odooEnv.callMethod<RawProduct[]>(
       'product.product', 'search_read',
       [[['sale_ok', '=', true], ['active', '=', true], ['invoice_policy', '=', 'order']]],
-      { fields: ['id', 'name', 'default_code', 'barcode', 'list_price', 'categ_id', 'uom_id'], limit: 200 }
+      { fields: ['id', 'name', 'default_code', 'barcode', 'list_price', 'taxes_id', 'categ_id', 'uom_id'], limit: 200 }
     ),
     odooEnv.callMethod<number>('res.currency', 'action_get_rate').catch((err) => {
       console.error('[fetchProducts] Error fetching currency rate:', err)
@@ -180,12 +185,31 @@ export async function fetchProducts(): Promise<KioskProduct[]> {
     })
   ])
 
+  // Batch-fetch tax rates for all unique tax IDs
+  const taxRateMap = new Map<number, number>()
+  const uniqueTaxIds = [...new Set(raw.flatMap(r => r.taxes_id ?? []))]
+  if (uniqueTaxIds.length > 0) {
+    try {
+      const taxes = await odooEnv.callMethod<{ id: number; amount: number }[]>(
+        'account.tax', 'search_read',
+        [[['id', 'in', uniqueTaxIds]]],
+        { fields: ['id', 'amount'] }
+      )
+      for (const t of taxes) {
+        taxRateMap.set(t.id, t.amount / 100)
+      }
+    } catch (err) {
+      console.error('[fetchProducts] Error fetching tax rates:', err)
+    }
+  }
+
   // Persist rate globally so the header can display it
   const { useExchangeRateStore } = await import('@/shared/stores/exchangeRate')
   useExchangeRateStore.getState().setRate(rate)
 
   return raw.map(r => {
-    const p = mapProduct(r)
+    const p = mapProduct(r, taxRateMap)
+    p.priceUsd = p.price
     if (rate > 1) {
       p.price = p.price * rate
     }

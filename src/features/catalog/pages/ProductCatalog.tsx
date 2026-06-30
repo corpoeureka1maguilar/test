@@ -3,11 +3,12 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
-import { useCartStore, useCartTotal, useCartCount } from '@/features/cart/stores/cart'
+import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phosphor-icons/react'
 
-import { formatBs } from '@/shared/lib/money'
+import { formatBs, formatUSD } from '@/shared/lib/money'
+import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import styles from './ProductCatalog.module.css'
 
 export function ProductCatalog() {
@@ -16,7 +17,9 @@ export function ProductCatalog() {
   const { data: products = [], isLoading } = useProducts()
   const { items, addItem, setQty, removeItem } = useCartStore()
   const total = useCartTotal()
+  const taxTotal = useCartTaxTotal()
   const count = useCartCount()
+  const rate = useExchangeRateStore((s) => s.rate)
 
   const searchRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState('')
@@ -175,6 +178,7 @@ export function ProductCatalog() {
                     </div>
                     <div className={styles.lastScannedPrice}>
                       {formatBs(lastScannedProduct.price)}
+                      <span className={styles.amountUsd}>{formatUSD(lastScannedProduct.priceUsd)}</span>
                       <span className={styles.lastScannedUom}>
                         por {lastScannedProduct.uomName || 'unidad'}
                       </span>
@@ -261,9 +265,10 @@ export function ProductCatalog() {
                       </div>
                       <div onClick={(e) => e.stopPropagation()}>
                         <span className={styles.price}>{formatBs(product.price)}</span>
-                        <div className={styles.uom} style={{ marginBottom: '0.5rem' }}>
+                        <span className={styles.amountUsd}>{formatUSD(product.priceUsd)}</span>
+                        {/* <div className={styles.uom} style={{ marginBottom: '0.5rem' }}>
                           {product.uomName}
-                        </div>
+                        </div> */}
                         {qty === 0 ? (
                           <button
                             type="button"
@@ -341,7 +346,7 @@ export function ProductCatalog() {
                   <div className={styles.cartItemMeta}>
                     {item.defaultCode && <span>{item.defaultCode}</span>}
                     <span>•</span>
-                    <span className={styles.cartItemPrice}>{formatBs(item.price)}</span>
+                    <span className={styles.cartItemPrice}>{formatBs(item.price)} <span className={styles.amountUsd}>{formatUSD(item.priceUsd)}</span></span>
                   </div>
                 </div>
 
@@ -370,6 +375,7 @@ export function ProductCatalog() {
 
                   <span className={styles.cartItemSubtotal}>
                     {formatBs(item.subtotal)}
+                    <span className={styles.amountUsd}>{formatUSD(item.priceUsd * item.qty)}</span>
                   </span>
 
                   <button
@@ -404,15 +410,15 @@ export function ProductCatalog() {
           <div className={styles.totalsSection}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
-              <span>{formatBs(total)}</span>
+              <span>{formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}</span>
             </div>
             <div className={styles.totalRow}>
               <span>Impuestos estimados</span>
-              <span>{formatBs(0)}</span>
+              <span>{formatBs(taxTotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(taxTotal / rate)}</span>}</span>
             </div>
             <div className={styles.totalRowBig}>
               <span>Total</span>
-              <span className={styles.totalAmount}>{formatBs(total)}</span>
+              <span className={styles.totalAmount}>{formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}</span>
             </div>
           </div>
 
@@ -448,7 +454,7 @@ export function ProductCatalog() {
               {count} {count === 1 ? 'elemento' : 'elementos'}
             </span>
             <span className={styles.mobileCheckoutTotal}>
-              Total: {formatBs(total)}
+              Total: {formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}
             </span>
           </div>
           <button

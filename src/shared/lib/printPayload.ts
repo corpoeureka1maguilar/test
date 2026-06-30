@@ -59,6 +59,7 @@ export interface PrintLine {
   name: string
   qty: number
   price: number
+  taxRate?: number
 }
 
 export function buildFacturaPayload(
@@ -79,7 +80,7 @@ export function buildFacturaPayload(
       codigo: '',
       descripcion: sanitize(l.name),
       impuesto: '1',
-      tasa: resolvePrinterTaxCode(0.16),
+      tasa: resolvePrinterTaxCode(l.taxRate),
       cantidad: fixNumberForAPI(l.qty, 3),
       precio: fixNumberForAPI(l.price),
       descuentop: '0'

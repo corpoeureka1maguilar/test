@@ -23,6 +23,8 @@ export interface KioskProduct {
   defaultCode: string
   barcode?: string
   price: number
+  priceUsd: number
+  taxRate: number
   categId: number
   categName: string
   uomName: string
@@ -33,6 +35,8 @@ export interface CartItem {
   name: string
   defaultCode: string
   price: number
+  priceUsd: number
+  taxRate: number
   qty: number
   subtotal: number
 }

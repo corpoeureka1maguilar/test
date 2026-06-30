@@ -9,7 +9,8 @@ import { useConfigStore } from '@/shared/stores/config'
 import { useSessionStore } from '@/shared/stores/session'
 import { FiscalPrinterAdapter } from '@/shared/lib/fiscalPrinter'
 import type { KioskOrder } from '@/shared/types/types'
-import { formatBs } from '@/shared/lib/money'
+import { formatBs, formatUSD } from '@/shared/lib/money'
+import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import { getMetrics, resetMetrics, trackRefund } from '@/shared/lib/metrics'
 import styles from './Devolucion.module.css'
 
@@ -26,6 +27,7 @@ export function Devolucion() {
   const [reason, setReason] = useState('')
   const [done, setDone] = useState(false)
   const [metrics, setMetrics] = useState(() => getMetrics())
+  const rate = useExchangeRateStore((s) => s.rate)
 
   const sessionState = useSessionStore((s) => s.sessionState)
   const sessionId = useSessionStore((s) => s.sessionId)
@@ -221,7 +223,7 @@ export function Devolucion() {
                   <button key={o.id} type="button" className={styles.resultCard} onClick={() => setSelectedOrder(o)}>
                     <span className={styles.orderName}>{o.name}</span>
                     <span>{o.partnerId[1]}</span>
-                    <span className={styles.amount}>{formatBs(o.amountTotal)}</span>
+                    <span className={styles.amount}>{formatBs(o.amountTotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(o.amountTotal / rate)}</span>}</span>
                   </button>
                 ))}
               </div>
@@ -260,7 +262,7 @@ export function Devolucion() {
         <div className={styles.cierresContainer}>
           <div className={styles.sessionCard}>
             <div className={styles.sessionHeader}>
-              <h3>Estado de la Sesión (Odoo)</h3>
+              <h3>Estado de la Sesión</h3>
               <span className={`${styles.badge} ${sessionState === 'opened' ? styles.badgeOpen : styles.badgeClosed}`}>
                 {sessionState === 'opened' ? '🟢 ACTIVA' : sessionState === 'checking' ? '🟡 VERIFICANDO...' : '🔴 CERRADA'}
               </span>
@@ -280,12 +282,12 @@ export function Devolucion() {
             <div className={styles.sessionActions}>
               {sessionState === 'closed' && (
                 <button type="button" className="btn btn-primary" onClick={handleOpenSession} style={{ width: '100%' }}>
-                  Aperturar Caja (Iniciar Sesión)
+                  Aperturar Caja
                 </button>
               )}
               {sessionState === 'opened' && (
                 <button type="button" className="btn btn-danger" onClick={handleCloseSession} style={{ width: '100%' }}>
-                  Cerrar Caja (Finalizar Sesión)
+                  Cerrar Caja
                 </button>
               )}
             </div>

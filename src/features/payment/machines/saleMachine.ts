@@ -66,7 +66,7 @@ const printFiscalInvoice = fromPromise<
   const payload = buildFacturaPayload(
     customer.name,
     customer.cedula,
-    cart.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
+    cart.map(i => ({ name: i.name, qty: i.qty, price: i.price, taxRate: i.taxRate })),
     method,
     totalAmountBs
   )
