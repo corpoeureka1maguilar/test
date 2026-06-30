@@ -241,4 +241,5 @@
   letter-spacing: 0.01em;
   margin-top: 0.1em;
   font-variant-numeric: tabular-nums;
+  text-align: end;
 }
