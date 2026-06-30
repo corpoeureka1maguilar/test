@@ -13,6 +13,7 @@ export interface OdooEnvService {
   callMethodCached<T>(model: string, method: string, args?: unknown[], kwargs?: object): Promise<T>
   abortAll(): void
   readonly baseUrl: string
+  readonly uid: number
 }
 
 // En dev: proxy de Vite en la misma origin (/jsonrpc relativo)
@@ -30,7 +31,7 @@ interface RpcResponse<T> {
   error?: RpcError
 }
 
-export class JSONRpcEnv implements OdooEnvService {
+class JSONRpcEnv implements OdooEnvService {
   readonly #rpcUrl = `${PROXY_BASE}/jsonrpc`
   #url = ''
   #uid = 0
@@ -41,6 +42,10 @@ export class JSONRpcEnv implements OdooEnvService {
 
   get baseUrl(): string {
     return window.location.origin
+  }
+
+  get uid(): number {
+    return this.#uid
   }
 
   setupConnection(data: Partial<EnvCredentials>) {

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { odooEnv } from '@/shared/lib/odooEnv'
+import { linkStation, pingStation } from '@/shared/lib/odooRepository'
 
 // En dev: proxy de Vite en la misma origin
 // En prod con app central: proxy local en localhost:9191
@@ -31,6 +32,9 @@ interface ConfigState {
   printerUrl: string
   printerModel: string
   adminPinHash: string
+  stationId: number
+  stationName: string
+  appToken: string
   isConfigured: boolean
   isConnectionReady: boolean
 }
@@ -44,6 +48,9 @@ interface ConfigActions {
     printerUrl: string
     printerModel: string
     adminPin: string
+    configToken: string
+    stationId: number
+    stationName: string
   }): Promise<void>
   clearConfig(): void
   verifyPin(pin: string): Promise<boolean>
@@ -60,11 +67,15 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
       printerModel: '',
       adminPinHash: '',
+      stationId: 0,
+      stationName: '',
+      appToken: '',
       isConfigured: false,
       isConnectionReady: false,
 
       async saveConfig(data) {
         const pinHash = await sha256(data.adminPin)
+        const appToken = crypto.randomUUID()
 
         await setProxyTarget(data.odooUrl)
 
@@ -76,6 +87,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
 
         await odooEnv.authenticate(data.serviceUser)
 
+        const station = await linkStation(data.configToken, appToken)
+
         set({
           odooUrl: data.odooUrl,
           odooDb: data.odooDb,
@@ -84,6 +97,9 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           printerUrl: data.printerUrl,
           printerModel: data.printerModel,
           adminPinHash: pinHash,
+          stationId: station.id,
+          stationName: station.name,
+          appToken,
           isConfigured: true,
           isConnectionReady: true
         })
@@ -99,6 +115,9 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
           printerModel: '',
           adminPinHash: '',
+          stationId: 0,
+          stationName: '',
+          appToken: '',
           isConfigured: false,
           isConnectionReady: false
         })
@@ -110,12 +129,13 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       },
 
       async reauthenticate() {
-        const { odooUrl, odooDb, serviceUser, servicePassword, isConfigured } = get()
+        const { odooUrl, odooDb, serviceUser, servicePassword, stationId, isConfigured } = get()
         if (!isConfigured) return
         try {
           await setProxyTarget(odooUrl)
           odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })
           await odooEnv.authenticate(serviceUser)
+          await pingStation(stationId)
           set({ isConnectionReady: true })
         } catch (err) {
           set({ isConnectionReady: false })
@@ -133,6 +153,9 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         printerUrl: state.printerUrl,
         printerModel: state.printerModel,
         adminPinHash: state.adminPinHash,
+        stationId: state.stationId,
+        stationName: state.stationName,
+        appToken: state.appToken,
         isConfigured: state.isConfigured
       })
     }

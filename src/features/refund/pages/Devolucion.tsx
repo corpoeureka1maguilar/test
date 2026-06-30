@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useSearchOrders } from '@/features/refund/hooks/useSearchOrders'
 import { useOrder } from '@/features/cart/hooks/useOrder'
 import { AppOrderSummary } from '@/features/cart/components/AppOrderSummary'
 import { returnOrder } from '@/shared/lib/odooRepository'
 import { useUIStore } from '@/shared/stores/ui'
 import { useConfigStore } from '@/shared/stores/config'
+import { useSessionStore } from '@/shared/stores/session'
 import { FiscalPrinterAdapter } from '@/shared/lib/fiscalPrinter'
 import type { KioskOrder } from '@/shared/types/types'
 import { formatBs } from '@/shared/lib/money'
@@ -14,15 +15,55 @@ import styles from './Devolucion.module.css'
 
 export function Devolucion() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { pushToast, setLoading } = useUIStore()
   const config = useConfigStore()
 
-  const [activeTab, setActiveTab] = useState<'devoluciones' | 'cierres' | 'terminal' | 'metrics'>('devoluciones')
+  const defaultTab = (location.state as any)?.defaultTab || 'devoluciones'
+  const [activeTab, setActiveTab] = useState<'devoluciones' | 'cierres' | 'terminal' | 'metrics'>(defaultTab)
   const [pattern, setPattern] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<KioskOrder | null>(null)
   const [reason, setReason] = useState('')
   const [done, setDone] = useState(false)
   const [metrics, setMetrics] = useState(() => getMetrics())
+
+  const sessionState = useSessionStore((s) => s.sessionState)
+  const sessionId = useSessionStore((s) => s.sessionId)
+  const cashierName = useSessionStore((s) => s.cashierName)
+  const openingDate = useSessionStore((s) => s.openingDate)
+  const openSession = useSessionStore((s) => s.openSession)
+  const closeSession = useSessionStore((s) => s.closeSession)
+
+  const handleOpenSession = async () => {
+    if (!config.stationId) {
+      pushToast('error', 'La estación no está configurada. Configurala en la pestaña Terminal.')
+      return
+    }
+    setLoading(true)
+    try {
+      await openSession(config.stationId)
+      pushToast('success', 'Sesión de caja aperturada con éxito en Odoo')
+    } catch (err) {
+      pushToast('error', `Error al abrir sesión: ${(err as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCloseSession = async () => {
+    if (!window.confirm('¿Estás seguro de que querés cerrar la sesión de caja en Odoo? El kiosco no podrá procesar ventas hasta que se vuelva a abrir.')) {
+      return
+    }
+    setLoading(true)
+    try {
+      await closeSession()
+      pushToast('success', 'Sesión de caja cerrada con éxito en Odoo')
+    } catch (err) {
+      pushToast('error', `Error al cerrar sesión: ${(err as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (activeTab === 'metrics') {
@@ -216,36 +257,73 @@ export function Devolucion() {
       )}
 
       {activeTab === 'cierres' && (
-        <div className={styles.cierresGrid}>
-          <button
-            type="button"
-            className={`${styles.cierreCard} ${styles.cierreTurno}`}
-            onClick={() => handlePrintReport('X', 'Cierre de Turno')}
-          >
-            <div className={styles.cierreIcon}>⏱</div>
-            <div className={styles.cierreTitle}>Cierre de Turno</div>
-            <div className={styles.cierreDesc}>Imprime Reporte X sin cerrar memoria fiscal del día</div>
-          </button>
+        <div className={styles.cierresContainer}>
+          <div className={styles.sessionCard}>
+            <div className={styles.sessionHeader}>
+              <h3>Estado de la Sesión (Odoo)</h3>
+              <span className={`${styles.badge} ${sessionState === 'opened' ? styles.badgeOpen : styles.badgeClosed}`}>
+                {sessionState === 'opened' ? '🟢 ACTIVA' : sessionState === 'checking' ? '🟡 VERIFICANDO...' : '🔴 CERRADA'}
+              </span>
+            </div>
+            
+            <div className={styles.sessionDetails}>
+              <p><strong>Estación:</strong> {config.stationName || 'No configurada'}</p>
+              {sessionState === 'opened' && (
+                <>
+                  <p><strong>Cajero Activo:</strong> {cashierName}</p>
+                  <p><strong>Fecha de Apertura:</strong> {openingDate ? new Date(openingDate).toLocaleString() : 'N/A'}</p>
+                  <p><strong>ID de Sesión:</strong> {sessionId}</p>
+                </>
+              )}
+            </div>
 
-          <button
-            type="button"
-            className={`${styles.cierreCard} ${styles.cierreCaja}`}
-            onClick={() => handlePrintReport('X', 'Cierre de Caja')}
-          >
-            <div className={styles.cierreIcon}>💵</div>
-            <div className={styles.cierreTitle}>Cierre de Caja</div>
-            <div className={styles.cierreDesc}>Lectura de acumulados de caja - Reporte X</div>
-          </button>
+            <div className={styles.sessionActions}>
+              {sessionState === 'closed' && (
+                <button type="button" className="btn btn-primary" onClick={handleOpenSession} style={{ width: '100%' }}>
+                  Aperturar Caja (Iniciar Sesión)
+                </button>
+              )}
+              {sessionState === 'opened' && (
+                <button type="button" className="btn btn-danger" onClick={handleCloseSession} style={{ width: '100%' }}>
+                  Cerrar Caja (Finalizar Sesión)
+                </button>
+              )}
+            </div>
+          </div>
 
-          <button
-            type="button"
-            className={`${styles.cierreCard} ${styles.cierreZ}`}
-            onClick={() => handlePrintReport('Z', 'Cierre de Reporte Z')}
-          >
-            <div className={styles.cierreIcon}>📊</div>
-            <div className={styles.cierreTitle}>Cierre de Reporte Z</div>
-            <div className={styles.cierreDesc}>Cierre fiscal obligatorio del día - Reporte Z</div>
-          </button>
+          {sessionState === 'opened' && (
+            <div className={styles.cierresGrid}>
+              <button
+                type="button"
+                className={`${styles.cierreCard} ${styles.cierreTurno}`}
+                onClick={() => handlePrintReport('X', 'Cierre de Turno')}
+              >
+                <div className={styles.cierreIcon}>⏱</div>
+                <div className={styles.cierreTitle}>Cierre de Turno</div>
+                <div className={styles.cierreDesc}>Imprime Reporte X sin cerrar memoria fiscal del día</div>
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.cierreCard} ${styles.cierreCaja}`}
+                onClick={() => handlePrintReport('X', 'Cierre de Caja')}
+              >
+                <div className={styles.cierreIcon}>💵</div>
+                <div className={styles.cierreTitle}>Cierre de Caja</div>
+                <div className={styles.cierreDesc}>Lectura de acumulados de caja - Reporte X</div>
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.cierreCard} ${styles.cierreZ}`}
+                onClick={() => handlePrintReport('Z', 'Cierre de Reporte Z')}
+              >
+                <div className={styles.cierreIcon}>📊</div>
+                <div className={styles.cierreTitle}>Cierre de Reporte Z</div>
+                <div className={styles.cierreDesc}>Cierre fiscal obligatorio del día - Reporte Z</div>
+              </button>
+            </div>
+          )}
         </div>
       )}
 

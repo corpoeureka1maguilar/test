@@ -552,4 +552,86 @@
   background: var(--color-danger);
   color: #fff;
   border-color: var(--color-danger);
-}
+}
+
+/* Session Management Card */
+.sessionCard {
+  background: var(--color-panel);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--app-radius);
+  padding: 2.5rem;
+  box-shadow: var(--app-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+  max-width: 600px;
+  margin: 0 auto 2.5rem auto;
+}
+
+.sessionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--color-surface);
+  padding-bottom: 1rem;
+}
+
+.sessionHeader h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.badge {
+  font-size: 0.9rem;
+  font-weight: 800;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+}
+
+.badgeOpen {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.badgeClosed {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.sessionDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.sessionDetails p {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.sessionDetails strong {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.sessionActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.sessionActions button {
+  flex: 1;
+}
+
+.cierresContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+

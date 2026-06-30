@@ -7,6 +7,7 @@ import { WelcomeAd } from '../components/WelcomeAd'
 import type { AdConfig } from '@/shared/types/types'
 import { fetchAdvertisements } from '@/shared/lib/odooRepository'
 import { useConfigStore } from '@/shared/stores/config'
+import { useSessionStore } from '@/shared/stores/session'
 import styles from './Welcome.module.css'
 
 export function Welcome() {
@@ -20,12 +21,15 @@ export function Welcome() {
   
   const isConfigured = useConfigStore((s) => s.isConfigured)
   const isConnectionReady = useConfigStore((s) => s.isConnectionReady)
+  const stationId = useConfigStore((s) => s.stationId)
   
+  const sessionState = useSessionStore((s) => s.sessionState)
+  const checkSession = useSessionStore((s) => s.checkSession)
+
   const [isLoading, setIsLoading] = useState(() => {
     return isConfigured && !isConnectionReady
   })
 
-  
   // Configuración de publicidad simulada con fallback local
   const [adConfigs, setAdConfigs] = useState<AdConfig[]>([
     {
@@ -63,6 +67,12 @@ export function Welcome() {
     
     let active = true
     setIsLoading(true)
+
+    // Verificar estado de sesión en Odoo
+    if (stationId) {
+      checkSession(stationId)
+    }
+
     fetchAdvertisements()
       .then((backendAds) => {
         if (!active) return
@@ -82,11 +92,8 @@ export function Welcome() {
     return () => {
       active = false
     }
-  }, [isConnectionReady, isConfigured])
+  }, [isConnectionReady, isConfigured, stationId, checkSession])
 
-
-
-  
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -151,25 +158,36 @@ export function Welcome() {
       <div className={styles.content}>
         <WelcomeAd configs={adConfigs} isMuted={isMuted} isLoading={isLoading} />
 
-        
-
-        {/* <div className={styles.hero}>
-          <h1 className={styles.headline}>La mejor forma<br/>de pagar.</h1>
-          <p className={styles.sub}>Rápido, seguro y totalmente digital. Pagá tu factura en segundos.</p>
-        </div> */}
-
         <div className={styles.actions}>
-          <button type="button" className={styles.mainBtn} onClick={handleStart}>
-            COMENZAR
-          </button>
-          
-          <button
-            type="button"
-            className={styles.devolucionBtn}
-            onClick={() => setShowPinModal(true)}
-          >
-            Opciones Avanzadas
-          </button>
+          {sessionState === 'opened' ? (
+            <>
+              <button type="button" className={styles.mainBtn} onClick={handleStart}>
+                COMENZAR
+              </button>
+              
+              <button
+                type="button"
+                className={styles.devolucionBtn}
+                onClick={() => setShowPinModal(true)}
+              >
+                Opciones Avanzadas
+              </button>
+            </>
+          ) : sessionState === 'checking' ? (
+            <button type="button" className={styles.mainBtn} disabled>
+              VERIFICANDO CAJA...
+            </button>
+          ) : (
+            <div className={styles.closedWarningContainer}>
+              <div className={styles.closedWarningTitle}>⚠️ CAJA CERRADA</div>
+              <div className={styles.closedWarningDesc}>
+                Se requiere la apertura de caja desde el menú de administración para poder operar.
+              </div>
+              <button type="button" className={styles.mainBtn} onClick={() => setShowPinModal(true)}>
+                INGRESAR COMO SUPERVISOR
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -188,7 +206,10 @@ export function Welcome() {
         <AppPinModal
           onConfirmed={() => {
             setShowPinModal(false)
-            navigate('/devolucion')
+            // Si la caja está cerrada, navegamos indicando que vaya directo a la pestaña de cierres/sesión
+            navigate('/devolucion', { 
+              state: { defaultTab: sessionState === 'closed' ? 'cierres' : 'devoluciones' } 
+            })
           }}
           onCancel={() => setShowPinModal(false)}
         />
@@ -196,5 +217,6 @@ export function Welcome() {
     </div>
   )
 }
+
 
 
