@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { AppPinModal } from '@/features/payment/components/AppPinModal'
-import { SpeakerSimpleHigh, SpeakerSimpleSlash } from '@phosphor-icons/react'
+import { SpeakerSimpleHigh, SpeakerSimpleSlash, List } from '@phosphor-icons/react'
 import { WelcomeAd } from '../components/WelcomeAd'
 import type { AdConfig } from '@/shared/types/types'
 import { fetchAdvertisements } from '@/shared/lib/odooRepository'
@@ -22,6 +22,7 @@ export function Welcome() {
   const isConfigured = useConfigStore((s) => s.isConfigured)
   const isConnectionReady = useConfigStore((s) => s.isConnectionReady)
   const stationId = useConfigStore((s) => s.stationId)
+  const companyLogo = useConfigStore((s) => s.companyLogo)
   
   const sessionState = useSessionStore((s) => s.sessionState)
   const checkSession = useSessionStore((s) => s.checkSession)
@@ -145,10 +146,20 @@ export function Welcome() {
 
   return (
     <div className={styles.wrapper}>
+      {/* Botón de opciones avanzadas oculto en la esquina superior izquierda */}
+      <button
+        type="button"
+        className={styles.advancedBtn}
+        onClick={() => setShowPinModal(true)}
+        title="Opciones Avanzadas"
+      >
+        <List size={28} />
+      </button>
+
       {/* Botón de mute minimalista y premium en la esquina superior derecha */}
-      <button 
-        type="button" 
-        className={styles.muteBtn} 
+      <button
+        type="button"
+        className={styles.muteBtn}
         onClick={toggleMute}
         title={isMuted ? 'Activar sonido' : 'Silenciar'}
       >
@@ -160,19 +171,9 @@ export function Welcome() {
 
         <div className={styles.actions}>
           {sessionState === 'opened' ? (
-            <>
-              <button type="button" className={styles.mainBtn} onClick={handleStart}>
-                COMENZAR
-              </button>
-              
-              <button
-                type="button"
-                className={styles.devolucionBtn}
-                onClick={() => setShowPinModal(true)}
-              >
-                Opciones Avanzadas
-              </button>
-            </>
+            <button type="button" className={styles.mainBtn} onClick={handleStart}>
+              INICIAR COMPRA
+            </button>
           ) : sessionState === 'checking' ? (
             <button type="button" className={styles.mainBtn} disabled>
               VERIFICANDO CAJA...
@@ -192,13 +193,21 @@ export function Welcome() {
       </div>
 
       <div className={styles.footer}>
-        <button type="button" className={styles.logo} onClick={handleLogoTap}>
-          <span className={styles.logoText}>FEX</span>
-          <span className={styles.logoSub}>Autopago</span>
-        </button>
-        <div className={styles.partners}>
-          <span className={styles.partnerLabel}>Desarrollado por</span>
-          <span className={styles.partnerName}>CorpoEureka</span>
+        <img
+          src={companyLogo ? `data:image/png;base64,${companyLogo}` : undefined}
+          alt="Logo empresa"
+          className={styles.companyLogo}
+          style={{ visibility: companyLogo ? 'visible' : 'hidden' }}
+        />
+        <div className={styles.footerBranding}>
+          <button type="button" className={styles.logo} onClick={handleLogoTap}>
+            <span className={styles.logoText}>FEX</span>
+            <span className={styles.logoSub}>Autopago</span>
+          </button>
+          <div className={styles.partners}>
+            <span className={styles.partnerLabel}>Desarrollado por</span>
+            <span className={styles.partnerName}>CorpoEureka</span>
+          </div>
         </div>
       </div>
 

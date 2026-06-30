@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { odooEnv } from '@/shared/lib/odooEnv'
-import { linkStation, pingStation } from '@/shared/lib/odooRepository'
+import { linkStation, pingStation, fetchCompanyLogo } from '@/shared/lib/odooRepository'
 
 // En dev: proxy de Vite en la misma origin
 // En prod con app central: proxy local en localhost:9191
@@ -35,6 +35,7 @@ interface ConfigState {
   stationId: number
   stationName: string
   appToken: string
+  companyLogo: string
   isConfigured: boolean
   isConnectionReady: boolean
 }
@@ -48,9 +49,7 @@ interface ConfigActions {
     printerUrl: string
     printerModel: string
     adminPin: string
-    configToken: string
-    stationId: number
-    stationName: string
+    configToken?: string
   }): Promise<void>
   clearConfig(): void
   verifyPin(pin: string): Promise<boolean>
@@ -70,6 +69,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       stationId: 0,
       stationName: '',
       appToken: '',
+      companyLogo: '',
       isConfigured: false,
       isConnectionReady: false,
 
@@ -87,22 +87,43 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
 
         await odooEnv.authenticate(data.serviceUser)
 
-        const station = await linkStation(data.configToken, appToken)
+        const companyLogo = await fetchCompanyLogo().catch(() => '')
 
-        set({
-          odooUrl: data.odooUrl,
-          odooDb: data.odooDb,
-          serviceUser: data.serviceUser,
-          servicePassword: data.servicePassword,
-          printerUrl: data.printerUrl,
-          printerModel: data.printerModel,
-          adminPinHash: pinHash,
-          stationId: station.id,
-          stationName: station.name,
-          appToken,
-          isConfigured: true,
-          isConnectionReady: true
-        })
+        if (data.configToken) {
+          const station = await linkStation(data.configToken, appToken)
+          set({
+            odooUrl: data.odooUrl,
+            odooDb: data.odooDb,
+            serviceUser: data.serviceUser,
+            servicePassword: data.servicePassword,
+            printerUrl: data.printerUrl,
+            printerModel: data.printerModel,
+            adminPinHash: pinHash,
+            stationId: station.id,
+            stationName: station.name,
+            appToken,
+            companyLogo,
+            isConfigured: true,
+            isConnectionReady: true
+          })
+        } else {
+          const { stationId, stationName, appToken: existingToken } = get()
+          set({
+            odooUrl: data.odooUrl,
+            odooDb: data.odooDb,
+            serviceUser: data.serviceUser,
+            servicePassword: data.servicePassword,
+            printerUrl: data.printerUrl,
+            printerModel: data.printerModel,
+            adminPinHash: pinHash,
+            stationId,
+            stationName,
+            appToken: existingToken,
+            companyLogo,
+            isConfigured: true,
+            isConnectionReady: true
+          })
+        }
       },
 
       clearConfig() {
@@ -118,6 +139,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           stationId: 0,
           stationName: '',
           appToken: '',
+          companyLogo: '',
           isConfigured: false,
           isConnectionReady: false
         })
@@ -135,8 +157,11 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           await setProxyTarget(odooUrl)
           odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })
           await odooEnv.authenticate(serviceUser)
-          await pingStation(stationId)
-          set({ isConnectionReady: true })
+          const [, companyLogo] = await Promise.all([
+            pingStation(stationId),
+            fetchCompanyLogo().catch(() => get().companyLogo)
+          ])
+          set({ isConnectionReady: true, companyLogo })
         } catch (err) {
           set({ isConnectionReady: false })
           throw err
@@ -156,6 +181,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         stationId: state.stationId,
         stationName: state.stationName,
         appToken: state.appToken,
+        companyLogo: state.companyLogo,
         isConfigured: state.isConfigured
       })
     }

@@ -224,7 +224,7 @@ export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
     domain.push(
       '|', ['name', 'ilike', pattern],
       '|', ['partner_id.vat', 'ilike', pattern],
-           ['partner_id.name', 'ilike', pattern]
+      ['partner_id.name', 'ilike', pattern]
     )
   }
 
@@ -242,6 +242,15 @@ export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
 
 export async function returnOrder(orderId: number, reason: string): Promise<void> {
   await odooEnv.callMethod('sale.order', 'action_return_order_total', [orderId, reason, [], null])
+}
+
+export async function fetchCompanyLogo(): Promise<string> {
+  const results = await odooEnv.callMethod<{ x_pos_logo: string | false }[]>(
+    'res.config.settings', 'search_read',
+    [[]],
+    { fields: ['x_pos_logo'], limit: 1 }
+  )
+  return results?.[0]?.x_pos_logo || ''
 }
 
 export async function fetchAdvertisements(): Promise<AdConfig[]> {

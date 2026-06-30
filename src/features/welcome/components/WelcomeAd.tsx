@@ -24,11 +24,25 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
   const currentAd = activeConfigs[currentIndex]
   const duration = currentAd?.type === 'video' ? 10000 : 5000 // 10s video, 5s static
 
+  const handleNext = () => {
+    setCurrentIndex((prev) => {
+      if (activeConfigs.length === 0) return 0
+      return (prev + 1) % activeConfigs.length
+    })
+  }
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => {
+      if (activeConfigs.length === 0) return 0
+      return (prev - 1 + activeConfigs.length) % activeConfigs.length
+    })
+  }
+
   // Reset progress and handle slide change
   useEffect(() => {
     if (!currentAd) return
     setProgress(0)
-    
+
     if (progressInterval.current) {
       clearInterval(progressInterval.current)
     }
@@ -70,20 +84,6 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
   }
 
   if (activeConfigs.length === 0 || !currentAd) return null
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => {
-      if (activeConfigs.length === 0) return 0
-      return (prev + 1) % activeConfigs.length
-    })
-  }
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => {
-      if (activeConfigs.length === 0) return 0
-      return (prev - 1 + activeConfigs.length) % activeConfigs.length
-    })
-  }
 
   const handleTap = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()

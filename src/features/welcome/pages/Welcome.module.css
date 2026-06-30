@@ -9,6 +9,33 @@
   overflow: hidden;
 }
 
+.advancedBtn {
+  position: absolute;
+  top: 2.5rem;
+  left: 2.5rem;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.25;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+
+  &:hover {
+    opacity: 0.6;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
 .muteBtn {
   position: absolute;
   top: 2.5rem;
@@ -203,9 +230,24 @@
   margin-top: auto;
   padding-bottom: 2rem;
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.footerBranding {
+  display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
+}
+
+.companyLogo {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  opacity: 0.9;
 }
 
 .footer .logo {

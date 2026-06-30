@@ -32,6 +32,62 @@
   }
 }
 
+.streetWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.suggestionsDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.suggestionsLoading {
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+}
+
+.suggestionItem {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-surface-border);
+  padding: 1rem 1.25rem;
+  text-align: left;
+  font-size: 1rem;
+  color: var(--color-text);
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 0.15s ease;
+
+  &:first-child {
+    border-top: none;
+  }
+
+  &:active {
+    background: var(--color-surface-hover);
+  }
+}
+
+.readonlyField {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
 .actions {
   display: flex;
   flex-direction: column;
