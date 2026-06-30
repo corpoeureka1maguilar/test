@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { odooEnv } from '@/shared/lib/odooEnv'
-import { linkStation, pingStation, fetchCompanyLogo } from '@/shared/lib/odooRepository'
+import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState } from '@/shared/lib/odooRepository'
 
 // En dev: proxy de Vite en la misma origin
 // En prod con app central: proxy local en localhost:9191
@@ -34,6 +34,7 @@ interface ConfigState {
   adminPinHash: string
   stationId: number
   stationName: string
+  branchState: string
   appToken: string
   companyLogo: string
   isConfigured: boolean
@@ -68,6 +69,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       adminPinHash: '',
       stationId: 0,
       stationName: '',
+      branchState: '',
       appToken: '',
       companyLogo: '',
       isConfigured: false,
@@ -91,6 +93,9 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
 
         if (data.configToken) {
           const station = await linkStation(data.configToken, appToken)
+          const branchState = station.branchId
+            ? await fetchBranchState(station.branchId).catch(() => '')
+            : ''
           set({
             odooUrl: data.odooUrl,
             odooDb: data.odooDb,
@@ -101,13 +106,14 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             adminPinHash: pinHash,
             stationId: station.id,
             stationName: station.name,
+            branchState,
             appToken,
             companyLogo,
             isConfigured: true,
             isConnectionReady: true
           })
         } else {
-          const { stationId, stationName, appToken: existingToken } = get()
+          const { stationId, stationName, branchState, appToken: existingToken } = get()
           set({
             odooUrl: data.odooUrl,
             odooDb: data.odooDb,
@@ -118,6 +124,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             adminPinHash: pinHash,
             stationId,
             stationName,
+            branchState,
             appToken: existingToken,
             companyLogo,
             isConfigured: true,
@@ -138,6 +145,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           adminPinHash: '',
           stationId: 0,
           stationName: '',
+          branchState: '',
           appToken: '',
           companyLogo: '',
           isConfigured: false,
@@ -157,11 +165,14 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           await setProxyTarget(odooUrl)
           odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })
           await odooEnv.authenticate(serviceUser)
-          const [, companyLogo] = await Promise.all([
+          const [station, companyLogo] = await Promise.all([
             pingStation(stationId),
             fetchCompanyLogo().catch(() => get().companyLogo)
           ])
-          set({ isConnectionReady: true, companyLogo })
+          const branchState = station.branchId
+            ? await fetchBranchState(station.branchId).catch(() => get().branchState)
+            : get().branchState
+          set({ isConnectionReady: true, companyLogo, branchState })
         } catch (err) {
           set({ isConnectionReady: false })
           throw err
@@ -180,6 +191,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         adminPinHash: state.adminPinHash,
         stationId: state.stationId,
         stationName: state.stationName,
+        branchState: state.branchState,
         appToken: state.appToken,
         companyLogo: state.companyLogo,
         isConfigured: state.isConfigured

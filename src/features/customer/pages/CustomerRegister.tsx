@@ -5,6 +5,7 @@ import { useCreatePartner } from '@/features/customer/hooks/useCreatePartner'
 import { useUIStore } from '@/shared/stores/ui'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { useAddressAutocomplete } from '@/features/customer/hooks/useAddressAutocomplete'
+import { useConfigStore } from '@/shared/stores/config'
 import styles from './CustomerRegister.module.css'
 
 export function CustomerRegister() {
@@ -12,6 +13,7 @@ export function CustomerRegister() {
   const navigate = useNavigate()
   const { mutateAsync: createPartner, isPending } = useCreatePartner()
   const pushToast = useUIStore(s => s.pushToast)
+  const branchState = useConfigStore(s => s.branchState)
 
   useEffect(() => {
     if (!context.pendingVat) {
@@ -22,7 +24,7 @@ export function CustomerRegister() {
   const [form, setForm] = useState({
     name: '',
     phone: '',
-    estado: '',
+    estado: branchState,
     street: ''
   })
 
