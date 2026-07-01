@@ -330,7 +330,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1.25rem;
   overflow-y: auto;
   padding-bottom: 1.5rem;
@@ -904,3 +904,131 @@
   margin-top: 0.1em;
   font-variant-numeric: tabular-nums;
 }
+
+/* --- MODAL BÚSQUEDA MANUAL --- */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: appleFadeIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.modalContent {
+  background: var(--color-bg);
+  width: 94vw;
+  height: 92vh;
+  border-radius: 24px;
+  border: 1px solid var(--color-surface-border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  padding: 2.25rem;
+  position: relative;
+  overflow: hidden;
+  animation: modalScaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.modalCloseBtn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-text);
+  padding: 0.6rem 1.4rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &:hover {
+    background: var(--color-surface-hover);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.modalSearchContainer {
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+  
+  .search {
+    width: 100%;
+    font-size: 1.2rem;
+    padding: 1rem 1.5rem;
+    border-radius: 16px;
+  }
+}
+
+/* --- TOAST ERROR (PRODUCTO NO ENCONTRADO) --- */
+.toastError {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 1rem 2rem;
+  border-radius: 14px;
+  box-shadow: 0 15px 30px -5px rgba(153, 27, 27, 0.15), 0 8px 10px -6px rgba(153, 27, 27, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 2000;
+  font-weight: 700;
+  font-size: 1.15rem;
+  animation: toastSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+@keyframes toastSlideDown {
+  from {
+    transform: translate(-50%, -2rem);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
