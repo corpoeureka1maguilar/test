@@ -82,10 +82,13 @@ export function ProductCatalog() {
     setLastScannedProduct(product) // Store as last scanned for easy visual editing
     triggerCartAnimation()
 
-    // Auto-agregar productos fijos si no están ya en el carrito
+    // Auto-agregar productos fijos si no están ya en el carrito.
+    // Leer el estado fresco del store: el closure `items` es anterior al addItem
+    // y duplicaría el fijo cuando el producto agregado ES el fijo.
     if (fixedProductIds.length > 0) {
+      const currentItems = useCartStore.getState().items
       fixedProductIds.forEach((fixedId: number) => {
-        const isAlreadyInCart = items.some(item => item.productId === fixedId)
+        const isAlreadyInCart = currentItems.some(item => item.productId === fixedId)
         if (!isAlreadyInCart) {
           const fixedProduct = products.find(p => p.id === fixedId)
           if (fixedProduct) {

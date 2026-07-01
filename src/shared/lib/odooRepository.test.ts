@@ -66,7 +66,7 @@ describe('fetchPaymentMethods', () => {
 
     expect(callMethod).toHaveBeenCalledWith(
       'x.pos.payment.method', 'search_read',
-      [[['use_for_payment', '=', true], ['caja_autoservicio', '=', true]]],
+      [[['use_for_payment', '=', true], ['caja_autoservicio', '=', true], ['active', '=', true]]],
       { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change'] }
     )
 
@@ -75,6 +75,23 @@ describe('fetchPaymentMethods', () => {
       journalId: 5, currencyId: 2, useForChange: true,
       currencyName: 'USD', currencySymbol: '$', currencyRate: 36.5
     }])
+  })
+
+  it('filters by branch (own branch or global methods) when a branchId is provided', async () => {
+    callMethod.mockResolvedValueOnce([])
+
+    await fetchPaymentMethods(7)
+
+    expect(callMethod).toHaveBeenCalledWith(
+      'x.pos.payment.method', 'search_read',
+      [[
+        ['use_for_payment', '=', true],
+        ['caja_autoservicio', '=', true],
+        ['active', '=', true],
+        '|', ['branch_id', '=', 7], ['branch_id', '=', false]
+      ]],
+      { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change'] }
+    )
   })
 
   it('maps a method with no currency_id to currencyId 0 and skips the currency lookup', async () => {
@@ -119,6 +136,40 @@ describe('fetchProducts', () => {
 
     expect(products[0].price).toBe(20)
     expect(products[0].taxRate).toBe(0.16)
+  })
+
+  it('fetches branch fixed products by id when the catalog domain left them out', async () => {
+    callMethod
+      .mockResolvedValueOnce([
+        { id: 1, name: 'Producto A', default_code: 'P-A', barcode: false, list_price: 10, taxes_id: [], categ_id: [1, 'General'], uom_id: [1, 'Unidad'] }
+      ])
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce([
+        { id: 50, name: 'Bolsa', default_code: 'BOLSA', barcode: false, list_price: 0.5, taxes_id: [], categ_id: [2, 'Empaque'], uom_id: [1, 'Unidad'] }
+      ])
+
+    const products = await fetchProducts([50])
+
+    expect(callMethod).toHaveBeenCalledWith(
+      'product.product', 'search_read',
+      [[['id', 'in', [50]]]],
+      { fields: ['id', 'name', 'default_code', 'barcode', 'list_price', 'taxes_id', 'categ_id', 'uom_id'] }
+    )
+    expect(products.map(p => p.id)).toEqual([1, 50])
+  })
+
+  it('does not re-fetch fixed products already present in the catalog result', async () => {
+    callMethod
+      .mockResolvedValueOnce([
+        { id: 1, name: 'Producto A', default_code: 'P-A', barcode: false, list_price: 10, taxes_id: [], categ_id: [1, 'General'], uom_id: [1, 'Unidad'] }
+      ])
+      .mockResolvedValueOnce(1)
+
+    const products = await fetchProducts([1])
+
+    expect(products).toHaveLength(1)
+    // 1: catálogo, 2: tasa de cambio — sin llamada extra por fijos
+    expect(callMethod).toHaveBeenCalledTimes(2)
   })
 })
 

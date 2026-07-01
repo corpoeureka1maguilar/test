@@ -34,6 +34,7 @@ interface ConfigState {
   adminPinHash: string
   stationId: number
   stationName: string
+  branchId: number
   branchState: string
   fixedProductIds: number[]
   appToken: string
@@ -70,6 +71,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       adminPinHash: '',
       stationId: 0,
       stationName: '',
+      branchId: 0,
       branchState: '',
       fixedProductIds: [],
       appToken: '',
@@ -111,6 +113,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             adminPinHash: pinHash,
             stationId: station.id,
             stationName: station.name,
+            branchId: station.branchId || 0,
             branchState,
             fixedProductIds,
             appToken,
@@ -119,7 +122,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             isConnectionReady: true
           })
         } else {
-          const { stationId, stationName, branchState, fixedProductIds, appToken: existingToken } = get()
+          const { stationId, stationName, branchId, branchState, fixedProductIds, appToken: existingToken } = get()
           set({
             odooUrl: data.odooUrl,
             odooDb: data.odooDb,
@@ -130,6 +133,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             adminPinHash: pinHash,
             stationId,
             stationName,
+            branchId,
             branchState,
             fixedProductIds,
             appToken: existingToken,
@@ -152,6 +156,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           adminPinHash: '',
           stationId: 0,
           stationName: '',
+          branchId: 0,
           branchState: '',
           fixedProductIds: [],
           appToken: '',
@@ -183,7 +188,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const fixedProductIds = station.branchId
             ? await fetchBranchFixedProducts(station.branchId).catch(() => get().fixedProductIds)
             : get().fixedProductIds
-          set({ isConnectionReady: true, companyLogo, branchState, fixedProductIds })
+          set({ isConnectionReady: true, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds })
         } catch (err) {
           set({ isConnectionReady: false })
           throw err
@@ -202,6 +207,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         adminPinHash: state.adminPinHash,
         stationId: state.stationId,
         stationName: state.stationName,
+        branchId: state.branchId,
         branchState: state.branchState,
         fixedProductIds: state.fixedProductIds,
         appToken: state.appToken,

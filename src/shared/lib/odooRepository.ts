@@ -131,10 +131,20 @@ export async function createPartner(data: CreatePartnerInput): Promise<KioskPart
 
 // ─── Payment methods ──────────────────────────────────────────────────────────
 
-export async function fetchPaymentMethods(): Promise<KioskPaymentMethod[]> {
+export async function fetchPaymentMethods(branchId?: number): Promise<KioskPaymentMethod[]> {
+  const domain: unknown[] = [
+    ['use_for_payment', '=', true],
+    ['caja_autoservicio', '=', true],
+    ['active', '=', true]
+  ]
+  if (branchId) {
+    // Mismo criterio que el backend: métodos de la sucursal o globales (sin sucursal)
+    domain.push('|', ['branch_id', '=', branchId], ['branch_id', '=', false])
+  }
+
   const raw = await odooEnv.callMethod<RawMethod[]>(
     'x.pos.payment.method', 'search_read',
-    [[['use_for_payment', '=', true], ['caja_autoservicio', '=', true]]],
+    [domain],
     { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change'] }
   )
 
@@ -172,18 +182,36 @@ export async function fetchPaymentMethods(): Promise<KioskPaymentMethod[]> {
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 
-export async function fetchProducts(): Promise<KioskProduct[]> {
+const PRODUCT_FIELDS = ['id', 'name', 'default_code', 'barcode', 'list_price', 'taxes_id', 'categ_id', 'uom_id']
+
+export async function fetchProducts(fixedProductIds: number[] = []): Promise<KioskProduct[]> {
   const [raw, rate] = await Promise.all([
     odooEnv.callMethod<RawProduct[]>(
       'product.product', 'search_read',
       [[['sale_ok', '=', true], ['active', '=', true], ['invoice_policy', '=', 'order']]],
-      { fields: ['id', 'name', 'default_code', 'barcode', 'list_price', 'taxes_id', 'categ_id', 'uom_id'], limit: 200 }
+      { fields: PRODUCT_FIELDS, limit: 200 }
     ),
     odooEnv.callMethod<number>('res.currency', 'action_get_rate').catch((err) => {
       console.error('[fetchProducts] Error fetching currency rate:', err)
       return 1
     })
   ])
+
+  // Los productos fijos de la sucursal deben estar siempre disponibles,
+  // aunque el dominio o el límite del catálogo los haya dejado fuera
+  const missingFixedIds = fixedProductIds.filter(id => !raw.some(r => r.id === id))
+  if (missingFixedIds.length > 0) {
+    try {
+      const fixedRaw = await odooEnv.callMethod<RawProduct[]>(
+        'product.product', 'search_read',
+        [[['id', 'in', missingFixedIds]]],
+        { fields: PRODUCT_FIELDS }
+      )
+      raw.push(...fixedRaw)
+    } catch (err) {
+      console.error('[fetchProducts] Error fetching branch fixed products:', err)
+    }
+  }
 
   // Batch-fetch tax rates for all unique tax IDs
   const taxRateMap = new Map<number, number>()
