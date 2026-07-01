@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { odooEnv } from '@/shared/lib/odooEnv'
-import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState } from '@/shared/lib/odooRepository'
+import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState, fetchBranchFixedProducts } from '@/shared/lib/odooRepository'
 
 // En dev: proxy de Vite en la misma origin
 // En prod con app central: proxy local en localhost:9191
@@ -35,6 +35,7 @@ interface ConfigState {
   stationId: number
   stationName: string
   branchState: string
+  fixedProductIds: number[]
   appToken: string
   companyLogo: string
   isConfigured: boolean
@@ -70,6 +71,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       stationId: 0,
       stationName: '',
       branchState: '',
+      fixedProductIds: [],
       appToken: '',
       companyLogo: '',
       isConfigured: false,
@@ -96,6 +98,9 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const branchState = station.branchId
             ? await fetchBranchState(station.branchId).catch(() => '')
             : ''
+          const fixedProductIds = station.branchId
+            ? await fetchBranchFixedProducts(station.branchId).catch(() => [])
+            : []
           set({
             odooUrl: data.odooUrl,
             odooDb: data.odooDb,
@@ -107,13 +112,14 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             stationId: station.id,
             stationName: station.name,
             branchState,
+            fixedProductIds,
             appToken,
             companyLogo,
             isConfigured: true,
             isConnectionReady: true
           })
         } else {
-          const { stationId, stationName, branchState, appToken: existingToken } = get()
+          const { stationId, stationName, branchState, fixedProductIds, appToken: existingToken } = get()
           set({
             odooUrl: data.odooUrl,
             odooDb: data.odooDb,
@@ -125,6 +131,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             stationId,
             stationName,
             branchState,
+            fixedProductIds,
             appToken: existingToken,
             companyLogo,
             isConfigured: true,
@@ -146,6 +153,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           stationId: 0,
           stationName: '',
           branchState: '',
+          fixedProductIds: [],
           appToken: '',
           companyLogo: '',
           isConfigured: false,
@@ -172,7 +180,10 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const branchState = station.branchId
             ? await fetchBranchState(station.branchId).catch(() => get().branchState)
             : get().branchState
-          set({ isConnectionReady: true, companyLogo, branchState })
+          const fixedProductIds = station.branchId
+            ? await fetchBranchFixedProducts(station.branchId).catch(() => get().fixedProductIds)
+            : get().fixedProductIds
+          set({ isConnectionReady: true, companyLogo, branchState, fixedProductIds })
         } catch (err) {
           set({ isConnectionReady: false })
           throw err
@@ -192,6 +203,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         stationId: state.stationId,
         stationName: state.stationName,
         branchState: state.branchState,
+        fixedProductIds: state.fixedProductIds,
         appToken: state.appToken,
         companyLogo: state.companyLogo,
         isConfigured: state.isConfigured

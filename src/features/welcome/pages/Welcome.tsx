@@ -4,8 +4,8 @@ import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { AppPinModal } from '@/features/payment/components/AppPinModal'
 import { SpeakerSimpleHigh, SpeakerSimpleSlash, List } from '@phosphor-icons/react'
 import { WelcomeAd } from '../components/WelcomeAd'
+import { useAdvertisements } from '../hooks/useAdvertisements'
 import type { AdConfig } from '@/shared/types/types'
-import { fetchAdvertisements } from '@/shared/lib/odooRepository'
 import { useConfigStore } from '@/shared/stores/config'
 import { useSessionStore } from '@/shared/stores/session'
 import styles from './Welcome.module.css'
@@ -31,8 +31,8 @@ export function Welcome() {
     return isConfigured && !isConnectionReady
   })
 
-  // Configuración de publicidad simulada con fallback local
-  const [adConfigs, setAdConfigs] = useState<AdConfig[]>([
+  // Configuración de publicidad de respaldo (se usa mientras carga o si el backend no devuelve anuncios)
+  const fallbackAdConfigs: AdConfig[] = [
     {
       type: 'image',
       url: '/ad_banner.png',
@@ -56,7 +56,10 @@ export function Welcome() {
       description: 'Comenzá ahora escaneando el código de barra de tu factura.',
       active: true
     }
-  ])
+  ]
+
+  const { data: backendAdConfigs, isLoading: isLoadingAds } = useAdvertisements(isConnectionReady)
+  const adConfigs = backendAdConfigs && backendAdConfigs.length > 0 ? backendAdConfigs : fallbackAdConfigs
 
   useEffect(() => {
     if (!isConnectionReady) {
@@ -65,35 +68,14 @@ export function Welcome() {
       }
       return
     }
-    
-    let active = true
-    setIsLoading(true)
 
     // Verificar estado de sesión en Odoo
     if (stationId) {
       checkSession(stationId)
     }
 
-    fetchAdvertisements()
-      .then((backendAds) => {
-        if (!active) return
-        if (backendAds && backendAds.length > 0) {
-          setAdConfigs(backendAds)
-        }
-      })
-      .catch((err) => {
-        console.warn('No se pudieron cargar los anuncios del backend, usando locales:', err)
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [isConnectionReady, isConfigured, stationId, checkSession])
+    setIsLoading(isLoadingAds)
+  }, [isConnectionReady, isConfigured, isLoadingAds, stationId, checkSession])
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
 

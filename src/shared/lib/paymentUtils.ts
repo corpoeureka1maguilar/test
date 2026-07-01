@@ -69,3 +69,34 @@ export function getPaymentFormFields(paymentType: PaymentType): ('reference' | '
       return []
   }
 }
+
+/** Valida si un número telefónico es un número móvil o fijo de Venezuela válido */
+export function isValidVenezuelanPhone(phone: string): boolean {
+  const clean = phone.replace(/\D/g, '')
+  let digits = clean
+  if (digits.startsWith('58') && digits.length === 12) {
+    digits = digits.slice(2)
+  }
+  if (digits.length === 10 && (digits.startsWith('4') || digits.startsWith('2'))) {
+    digits = '0' + digits
+  }
+  return /^(0412|0414|0424|0416|0426|02\d{2})\d{7}$/.test(digits)
+}
+
+/** Compara un código de barras escaneado con los códigos de barras del producto (soporta múltiples códigos separados por espacios/comas/comas/barras) */
+export function matchBarcode(productBarcode: string | undefined, query: string): boolean {
+  if (!productBarcode) return false
+  const q = query.trim().toLowerCase()
+  if (!q) return false
+  const barcodes = productBarcode.split(/[\s,|;]+/).map(b => b.trim().toLowerCase()).filter(Boolean)
+  return barcodes.includes(q)
+}
+
+/** Compara de forma parcial un código de barras escaneado con los del producto */
+export function matchBarcodeIncludes(productBarcode: string | undefined, query: string): boolean {
+  if (!productBarcode) return false
+  const q = query.trim().toLowerCase()
+  if (!q) return false
+  const barcodes = productBarcode.split(/[\s,|;]+/).map(b => b.trim().toLowerCase()).filter(Boolean)
+  return barcodes.some(b => b.includes(q))
+}

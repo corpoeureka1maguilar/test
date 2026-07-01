@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcIgtf, getPaymentLabel, getPaymentFormFields } from './paymentUtils'
+import { calcIgtf, getPaymentLabel, getPaymentFormFields, isValidVenezuelanPhone, matchBarcode, matchBarcodeIncludes } from './paymentUtils'
 import type { KioskPaymentMethod } from '@/shared/types/types'
 
 function makeMethod(overrides: Partial<KioskPaymentMethod> = {}): KioskPaymentMethod {
@@ -55,5 +55,46 @@ describe('getPaymentFormFields', () => {
 
   it('requires no extra fields for cash', () => {
     expect(getPaymentFormFields('cash')).toEqual([])
+  })
+})
+
+describe('isValidVenezuelanPhone', () => {
+  it('validates correct formats', () => {
+    expect(isValidVenezuelanPhone('0414-1234567')).toBe(true)
+    expect(isValidVenezuelanPhone('04121234567')).toBe(true)
+    expect(isValidVenezuelanPhone('0424 123 4567')).toBe(true)
+    expect(isValidVenezuelanPhone('584161234567')).toBe(true)
+    expect(isValidVenezuelanPhone('4261234567')).toBe(true)
+    expect(isValidVenezuelanPhone('02121234567')).toBe(true)
+  })
+
+  it('invalidates wrong formats', () => {
+    expect(isValidVenezuelanPhone('123456')).toBe(false)
+    expect(isValidVenezuelanPhone('0414-123456')).toBe(false)
+    expect(isValidVenezuelanPhone('05121234567')).toBe(false)
+    expect(isValidVenezuelanPhone('0414-12345678')).toBe(false)
+  })
+})
+
+describe('matchBarcode', () => {
+  it('matches single barcode', () => {
+    expect(matchBarcode('123456', '123456')).toBe(true)
+    expect(matchBarcode('123456', ' 123456 ')).toBe(true)
+    expect(matchBarcode('123456', '999999')).toBe(false)
+  })
+
+  it('matches multiple barcodes with different separators', () => {
+    expect(matchBarcode('123,456,789', '456')).toBe(true)
+    expect(matchBarcode('123; 456 | 789', '789')).toBe(true)
+    expect(matchBarcode('123 456', '123')).toBe(true)
+    expect(matchBarcode('123,456', '999')).toBe(false)
+  })
+})
+
+describe('matchBarcodeIncludes', () => {
+  it('matches partially inside multiple barcodes', () => {
+    expect(matchBarcodeIncludes('123456, 789012', '456')).toBe(true)
+    expect(matchBarcodeIncludes('123456, 789012', '7890')).toBe(true)
+    expect(matchBarcodeIncludes('123456, 789012', '999')).toBe(false)
   })
 })

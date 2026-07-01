@@ -134,7 +134,7 @@ export async function createPartner(data: CreatePartnerInput): Promise<KioskPart
 export async function fetchPaymentMethods(): Promise<KioskPaymentMethod[]> {
   const raw = await odooEnv.callMethod<RawMethod[]>(
     'x.pos.payment.method', 'search_read',
-    [[['use_for_payment', '=', true]]],
+    [[['use_for_payment', '=', true], ['caja_autoservicio', '=', true]]],
     { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change'] }
   )
 
@@ -416,6 +416,14 @@ export async function fetchBranchState(branchId: number): Promise<string> {
     { fields: ['id', 'state_id'] }
   )
   return branch?.state_id ? branch.state_id[1] : ''
+}
+
+export async function fetchBranchFixedProducts(branchId: number): Promise<number[]> {
+  const [branch] = await odooEnv.callMethod<{ id: number; x_autopay_fixed_product_ids: number[] | false }[]>(
+    'res.branch', 'read', [[branchId]],
+    { fields: ['id', 'x_autopay_fixed_product_ids'] }
+  )
+  return branch?.x_autopay_fixed_product_ids || []
 }
 
 

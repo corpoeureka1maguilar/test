@@ -9,6 +9,8 @@ import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phospho
 
 import { formatBs, formatUSD } from '@/shared/lib/money'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
+import { useConfigStore } from '@/shared/stores/config'
+import { matchBarcode, matchBarcodeIncludes } from '@/shared/lib/paymentUtils'
 import styles from './ProductCatalog.module.css'
 
 export function ProductCatalog() {
@@ -20,6 +22,7 @@ export function ProductCatalog() {
   const taxTotal = useCartTaxTotal()
   const count = useCartCount()
   const rate = useExchangeRateStore((s) => s.rate)
+  const fixedProductIds = useConfigStore((s) => s.fixedProductIds) || []
 
   const searchRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState('')
@@ -52,27 +55,50 @@ export function ProductCatalog() {
     addItem(product)
     setLastScannedProduct(product) // Store as last scanned for easy visual editing
     triggerCartAnimation()
+
+    // Auto-agregar productos fijos si no están ya en el carrito
+    if (fixedProductIds.length > 0) {
+      fixedProductIds.forEach((fixedId: number) => {
+        const isAlreadyInCart = items.some(item => item.productId === fixedId)
+        if (!isAlreadyInCart) {
+          const fixedProduct = products.find(p => p.id === fixedId)
+          if (fixedProduct) {
+            addItem(fixedProduct)
+          }
+        }
+      })
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      const q = search.trim().toLowerCase()
-      if (!q) return
+      const originalQ = search.trim().toLowerCase()
+      if (!originalQ) return
 
-      // Find exact match by default code (ref) or barcode Technical Field
-      const exactMatch = products.find(p =>
-        p.defaultCode?.toLowerCase() === q ||
-        p.barcode?.toLowerCase() === q
+      // Intentar coincidencia exacta con el código original
+      let exactMatch = products.find(p =>
+        p.defaultCode?.toLowerCase() === originalQ ||
+        matchBarcode(p.barcode, originalQ)
       )
+
+      // Si no encuentra, verificar si es un código de barras duplicado/doble (bounce del scanner)
+      if (!exactMatch && originalQ.length % 2 === 0) {
+        const half = originalQ.length / 2
+        const cleanedQ = originalQ.slice(0, half)
+        if (originalQ.slice(half) === cleanedQ) {
+          exactMatch = products.find(p =>
+            p.defaultCode?.toLowerCase() === cleanedQ ||
+            matchBarcode(p.barcode, cleanedQ)
+          )
+        }
+      }
 
       if (exactMatch) {
         handleAddItem(exactMatch)
-        setSearch('') // Clear search input for next scan
+        setSearch('') // Limpiar input para el próximo escaneo
       }
     }
   }
-
-
 
   const categories = useMemo(() => {
     const map = new Map<number, string>()
@@ -87,11 +113,21 @@ export function ProductCatalog() {
     let list = products
     if (activeCategoryId !== null) list = list.filter(p => p.categId === activeCategoryId)
     if (debouncedSearch.trim()) {
-      const q = debouncedSearch.toLowerCase()
+      const originalQ = debouncedSearch.trim().toLowerCase()
+
+      // También limpiamos rebotes al buscar/filtrar
+      let cleanedQ = originalQ
+      if (originalQ.length % 2 === 0) {
+        const half = originalQ.length / 2
+        if (originalQ.slice(half) === originalQ.slice(0, half)) {
+          cleanedQ = originalQ.slice(0, half)
+        }
+      }
+
       list = list.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.defaultCode.toLowerCase().includes(q) ||
-        p.barcode?.toLowerCase().includes(q)
+        p.name.toLowerCase().includes(cleanedQ) ||
+        p.defaultCode.toLowerCase().includes(cleanedQ) ||
+        matchBarcodeIncludes(p.barcode, cleanedQ)
       )
     }
     return list
@@ -142,7 +178,6 @@ export function ProductCatalog() {
       </div>
 
       {/* SECCIÓN IZQUIERDA: ZONA DE OPERACIÓN (ESCANEO / BÚSQUEDA) */}
-     
       <div className={styles.leftSection}>
       {!isManualMode ? (
           <div className={styles.scannerContainer}>
@@ -266,9 +301,6 @@ export function ProductCatalog() {
                       <div onClick={(e) => e.stopPropagation()}>
                         <span className={styles.price}>{formatBs(product.price)}</span>
                         <span className={styles.amountUsd}>{formatUSD(product.priceUsd)}</span>
-                        {/* <div className={styles.uom} style={{ marginBottom: '0.5rem' }}>
-                          {product.uomName}
-                        </div> */}
                         {qty === 0 ? (
                           <button
                             type="button"
@@ -479,4 +511,3 @@ export function ProductCatalog() {
     </div>
   )
 }
-

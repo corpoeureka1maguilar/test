@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCartTotal } from '@/features/cart/stores/cart'
-import { getPaymentFormFields, getPaymentLabel } from '@/shared/lib/paymentUtils'
+import { getPaymentFormFields, getPaymentLabel, isValidVenezuelanPhone } from '@/shared/lib/paymentUtils'
 import { formatBs, formatUSD } from '@/shared/lib/money'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
+import { useUIStore } from '@/shared/stores/ui'
 import styles from './PaymentForm.module.css'
 
 export function PaymentForm() {
@@ -12,6 +13,7 @@ export function PaymentForm() {
   const navigate = useNavigate()
   const total = useCartTotal()
   const globalRate = useExchangeRateStore((s) => s.rate)
+  const pushToast = useUIStore((s) => s.pushToast)
 
   const method = context.selectedMethod
   const [reference, setReference] = useState('')
@@ -42,6 +44,11 @@ export function PaymentForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (fields.includes('phone') && !isValidVenezuelanPhone(phone)) {
+      pushToast('error', 'El número de teléfono ingresado no es válido')
+      return
+    }
 
     const paymentAmount = isForeign ? (totalWithIgtfUSD ?? 0) : totalWithIgtfBs
     const paymentIgtf = isForeign ? (igtfUSD ?? 0) : igtfBs

@@ -18,10 +18,28 @@ export function AppPinModal({ title = 'Acceso de administrador', onConfirmed, on
   const [pin, setPin] = useState('')
   const [attempts, setAttempts] = useState(0)
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const [remaining, setRemaining] = useState(0)
   const [shake, setShake] = useState(false)
 
   const isLocked = lockedUntil !== null && Date.now() < lockedUntil
-  const remaining = lockedUntil ? Math.ceil((lockedUntil - Date.now()) / 1000) : 0
+
+  useEffect(() => {
+    if (!lockedUntil) return
+
+    const updateRemaining = () => {
+      const rem = Math.ceil((lockedUntil - Date.now()) / 1000)
+      if (rem <= 0) {
+        setLockedUntil(null)
+        setRemaining(0)
+      } else {
+        setRemaining(rem)
+      }
+    }
+
+    updateRemaining()
+    const interval = setInterval(updateRemaining, 1000)
+    return () => clearInterval(interval)
+  }, [lockedUntil])
 
   useEffect(() => {
     scannerRef.current?.focus()

@@ -84,9 +84,7 @@ export function PaymentResult() {
       )}
 
       <div className={styles.actions}>
-        <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
-          Imprimir comprobante
-        </button>
+     
         <button type="button" className="btn btn-primary" onClick={() => { send({ type: 'RESET' }); navigate('/') }}>
           Finalizar
         </button>

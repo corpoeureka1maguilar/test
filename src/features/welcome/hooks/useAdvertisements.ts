@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchProducts } from '@/shared/lib/odooRepository'
+import { fetchAdvertisements } from '@/shared/lib/odooRepository'
 
 const POLL_INTERVAL_MS = 10 * 60 * 1000
 
-export function useProducts() {
+export function useAdvertisements(enabled: boolean) {
   return useQuery({
-    queryKey: ['products'],
-    queryFn: fetchProducts,
+    queryKey: ['advertisements'],
+    queryFn: fetchAdvertisements,
+    enabled,
     staleTime: 5 * 60 * 1000,
     refetchInterval: POLL_INTERVAL_MS,
     refetchIntervalInBackground: true

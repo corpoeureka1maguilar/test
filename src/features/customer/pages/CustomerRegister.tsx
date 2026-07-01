@@ -6,6 +6,7 @@ import { useUIStore } from '@/shared/stores/ui'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { useAddressAutocomplete } from '@/features/customer/hooks/useAddressAutocomplete'
 import { useConfigStore } from '@/shared/stores/config'
+import { isValidVenezuelanPhone } from '@/shared/lib/paymentUtils'
 import styles from './CustomerRegister.module.css'
 
 export function CustomerRegister() {
@@ -66,6 +67,10 @@ export function CustomerRegister() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name.trim()) { pushToast('error', 'El nombre es requerido'); return }
+    if (form.phone.trim() && !isValidVenezuelanPhone(form.phone)) {
+      pushToast('error', 'El número de teléfono ingresado no es válido')
+      return
+    }
 
     try {
       const streetParts = [form.estado.trim(), form.street.trim()].filter(Boolean)

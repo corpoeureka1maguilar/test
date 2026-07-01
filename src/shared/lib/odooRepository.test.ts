@@ -64,6 +64,12 @@ describe('fetchPaymentMethods', () => {
 
     const methods = await fetchPaymentMethods()
 
+    expect(callMethod).toHaveBeenCalledWith(
+      'x.pos.payment.method', 'search_read',
+      [[['use_for_payment', '=', true], ['caja_autoservicio', '=', true]]],
+      { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change'] }
+    )
+
     expect(methods).toEqual([{
       id: 1, name: 'Efectivo', paymentType: 'cash', applyIgtf: false, igtfPercent: 0,
       journalId: 5, currencyId: 2, useForChange: true,
