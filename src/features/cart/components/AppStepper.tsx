@@ -15,8 +15,8 @@ export function AppStepper() {
   const { context } = useSaleMachine()
   const rate = useExchangeRateStore((s) => s.rate)
   
-  // Don't show stepper on home, setup or devolucion
-  const noStepperPaths = ['/', '/setup', '/devolucion']
+  // Don't show stepper on home, setup or advanced
+  const noStepperPaths = ['/', '/setup', '/advanced']
   if (noStepperPaths.includes(location.pathname)) return null
 
   // Find current step index

@@ -65,7 +65,7 @@ export function Setup() {
       pushToast('error', 'Primero debés verificar la conexión con Odoo')
       return
     }
-    if (!form.configToken.trim()) {
+    if (!config.isConfigured && !form.configToken.trim()) {
       pushToast('error', 'Ingresá el token de configuración generado en Odoo')
       return
     }
@@ -117,13 +117,19 @@ export function Setup() {
               2. Vincular Estación
             </h3>
 
-            <label>Token de configuración
+            {config.isConfigured && config.stationName && (
+              <div className={styles.stationBadge}>
+                Caja vinculada: <strong>{config.stationName}</strong>
+              </div>
+            )}
+
+            <label>Token de configuración {config.isConfigured && '(opcional, para re-vincular a otra caja)'}
               <input
                 type="text"
                 value={form.configToken}
                 onChange={set('configToken')}
                 placeholder="Token generado en Odoo (válido 30 min)"
-                required
+                required={!config.isConfigured}
               />
             </label>
 

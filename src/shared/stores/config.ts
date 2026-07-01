@@ -96,7 +96,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         if (data.configToken) {
           const station = await linkStation(data.configToken, appToken)
           const branchState = station.branchId
-            ? await fetchBranchState(station.branchId).catch(() => '')
+            ? await fetchBranchState().catch(() => '')
             : ''
           const fixedProductIds = station.branchId
             ? await fetchBranchFixedProducts(station.branchId).catch(() => [])
@@ -178,7 +178,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             fetchCompanyLogo().catch(() => get().companyLogo)
           ])
           const branchState = station.branchId
-            ? await fetchBranchState(station.branchId).catch(() => get().branchState)
+            ? await fetchBranchState().catch(() => get().branchState)
             : get().branchState
           const fixedProductIds = station.branchId
             ? await fetchBranchFixedProducts(station.branchId).catch(() => get().fixedProductIds)

@@ -198,7 +198,7 @@ export function Welcome() {
           onConfirmed={() => {
             setShowPinModal(false)
             // Si la caja está cerrada, navegamos indicando que vaya directo a la pestaña de cierres/sesión
-            navigate('/devolucion', { 
+            navigate('/advanced', {
               state: { defaultTab: sessionState === 'closed' ? 'cierres' : 'devoluciones' } 
             })
           }}

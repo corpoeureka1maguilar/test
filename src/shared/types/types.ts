@@ -88,7 +88,7 @@ export interface Toast {
   sticky?: boolean
 }
 
-// Mantenidos para Devolucion.tsx
+// Mantenidos para AdvancedMenu.tsx
 export interface KioskOrderLine {
   id: number
   productId: [number, string]

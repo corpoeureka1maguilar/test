@@ -410,12 +410,13 @@ export async function fetchCashier(uid: number, stationId: number): Promise<{ id
   return result && result.cashierId ? { id: result.cashierId, name: result.name } : null
 }
 
-export async function fetchBranchState(branchId: number): Promise<string> {
-  const [branch] = await odooEnv.callMethod<{ id: number; state_id: [number, string] | false }[]>(
-    'res.branch', 'read', [[branchId]],
-    { fields: ['id', 'state_id'] }
-  )
-  return branch?.state_id ? branch.state_id[1] : ''
+export async function fetchBranchState(): Promise<string> {
+  // const [branch] = await odooEnv.callMethod<{ id: number; state_id: [number, string] | false }[]>(
+  //   'res.branch', 'read', [[branchId]],
+  //   { fields: ['id', 'state_id'] }
+  // )
+  // return branch?.state_id ? branch.state_id[1] : ''
+  return ''
 }
 
 export async function fetchBranchFixedProducts(branchId: number): Promise<number[]> {

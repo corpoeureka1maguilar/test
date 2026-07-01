@@ -11,7 +11,7 @@ import { CartReview } from '@/features/cart/pages/CartReview'
 import { PaymentSelect } from '@/features/payment/pages/PaymentSelect'
 import { PaymentForm } from '@/features/payment/pages/PaymentForm'
 import { PaymentResult } from '@/features/payment/pages/PaymentResult'
-import { Devolucion } from '@/features/refund/pages/Devolucion'
+import { AdvancedMenu } from '@/features/advanced/pages/AdvancedMenu'
 
 function RequireConfig({ children }: { children: React.ReactNode }) {
   const isConfigured = useConfigStore(s => s.isConfigured)
@@ -38,7 +38,7 @@ export const router = createBrowserRouter([
       { path: '/pago', element: <RequireConfig><PaymentSelect /></RequireConfig> },
       { path: '/pago/:methodId', element: <RequireConfig><PaymentForm /></RequireConfig> },
       { path: '/resultado', element: <RequireConfig><PaymentResult /></RequireConfig> },
-      { path: '/devolucion', element: <RequireConfig><Devolucion /></RequireConfig> },
+      { path: '/advanced', element: <RequireConfig><AdvancedMenu /></RequireConfig> },
       { path: '*', element: <Navigate to="/" replace /> }
     ]
   }

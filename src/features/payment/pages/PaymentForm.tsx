@@ -29,7 +29,6 @@ export function PaymentForm() {
   const fields = getPaymentFormFields(method.paymentType)
   const isForeign = !!method.currencyRate && method.currencyRate > 1
   const currencySymbol = method.currencySymbol || '$'
-  const currencyName = method.currencyName || 'USD'
   const rate = method.currencyRate ?? 0
   const hasRate = rate > 0
 
@@ -38,7 +37,6 @@ export function PaymentForm() {
   const totalWithIgtfBs = total + igtfBs
 
   // USD = Bs / tasa (base en dólares, se aplica en Bs por la tasa del día)
-  const subtotalUSD = hasRate ? total / rate : null
   const igtfUSD = hasRate ? igtfBs / rate : null
   const totalWithIgtfUSD = hasRate ? totalWithIgtfBs / rate : null
 
