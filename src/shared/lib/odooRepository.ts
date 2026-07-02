@@ -41,6 +41,7 @@ interface RawOrderHeader {
   x_fex_id: string
   order_line: number[]
   state: string
+  x_printer_number: string | false
 }
 
 interface RawOrderLine {
@@ -95,7 +96,8 @@ function mapOrderHeader(r: RawOrderHeader): KioskOrder {
     amountTotal: r.amount_total,
     xFexId: r.x_fex_id,
     orderLine: r.order_line,
-    state: r.state
+    state: r.state,
+    printerNumber: r.x_printer_number || undefined
   }
 }
 
@@ -184,15 +186,23 @@ export async function fetchPaymentMethods(branchId?: number): Promise<KioskPayme
 
 const PRODUCT_FIELDS = ['id', 'name', 'default_code', 'barcode', 'list_price', 'taxes_id', 'categ_id', 'uom_id']
 
+// Sin catch: quien la llama decide qué hacer con el fallo (no todo fallo debe
+// pisar la última tasa buena conocida — ver fetchProducts más abajo)
+export async function fetchExchangeRate(): Promise<number> {
+  return odooEnv.callMethod<number>('res.currency', 'action_get_rate')
+}
+
 export async function fetchProducts(fixedProductIds: number[] = []): Promise<KioskProduct[]> {
+  let rateFetchFailed = false
   const [raw, rate] = await Promise.all([
     odooEnv.callMethod<RawProduct[]>(
       'product.product', 'search_read',
       [[['sale_ok', '=', true], ['active', '=', true], ['invoice_policy', '=', 'order']]],
       { fields: PRODUCT_FIELDS, limit: 200 }
     ),
-    odooEnv.callMethod<number>('res.currency', 'action_get_rate').catch((err) => {
+    fetchExchangeRate().catch((err) => {
       console.error('[fetchProducts] Error fetching currency rate:', err)
+      rateFetchFailed = true
       return 1
     })
   ])
@@ -231,9 +241,13 @@ export async function fetchProducts(fixedProductIds: number[] = []): Promise<Kio
     }
   }
 
-  // Persist rate globally so the header can display it
-  const { useExchangeRateStore } = await import('@/shared/stores/exchangeRate')
-  useExchangeRateStore.getState().setRate(rate)
+  // Persistir la tasa globalmente (para otras pantallas como /advanced), pero
+  // solo si el fetch fue exitoso: nunca pisar la última tasa buena conocida
+  // con el fallback de 1 usado solo para no romper el cálculo de precios acá
+  if (!rateFetchFailed) {
+    const { useExchangeRateStore } = await import('@/shared/stores/exchangeRate')
+    useExchangeRateStore.getState().setRate(rate)
+  }
 
   return raw.map(r => {
     const p = mapProduct(r, taxRateMap)
@@ -254,7 +268,7 @@ export async function createSaleOrder(payload: unknown): Promise<unknown> {
 export async function fetchOrder(id: number): Promise<KioskOrder> {
   const [rawOrder] = await odooEnv.callMethod<RawOrderHeader[]>(
     'sale.order', 'read', [[id]],
-    { fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state'] }
+    { fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state', 'x_printer_number'] }
   )
   const rawLines = await odooEnv.callMethod<RawOrderLine[]>(
     'sale.order.line', 'read', [rawOrder.order_line],
@@ -284,7 +298,7 @@ export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
     'sale.order', 'search_read',
     [domain],
     {
-      fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state'],
+      fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state', 'x_printer_number'],
       limit: 10,
       order: 'id desc'
     }
@@ -294,6 +308,49 @@ export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
 
 export async function returnOrder(orderId: number, reason: string): Promise<void> {
   await odooEnv.callMethod('sale.order', 'action_return_order_total', [orderId, reason, [], null])
+}
+
+// Registra en la orden el número fiscal devuelto por la impresora tras la
+// venta (x_printer_number); sin esto la orden no se puede reimprimir después
+export async function setOrderPrinterData(orderId: number, code: string, date: string, serial: string): Promise<void> {
+  await odooEnv.callMethod('sale.order', 'action_set_printer_data', [orderId, code, date, serial])
+}
+
+// ─── Validación de administrador del kiosco ───────────────────────────────────
+
+// xml ids de x.pos.audit.operation: las tres primeras son propias del
+// autoservicio (data de eu_autopay_bridge); las demás se comparten con el POS
+// para que el permiso se configure una sola vez por cajero
+export const KIOSK_OPERATIONS = {
+  advancedAccess: 'eu_autopay_bridge.x_pos_audit_autoservicio_advanced_access',
+  openSession: 'eu_autopay_bridge.x_pos_audit_autoservicio_open_session',
+  terminalConfig: 'eu_autopay_bridge.x_pos_audit_autoservicio_terminal_config',
+  saleReturn: 'eu_pos_permission_levels.x_pos_audit_sale_return',
+  invoiceReprint: 'eu_pos_permission_levels.x_pos_audit_invoice_reprint',
+  shiftClose: 'eu_pos_permission_levels.x_pos_audit_midday_close',
+  sessionClose: 'eu_pos_permission_levels.x_pos_audit_session_close'
+} as const
+
+export type KioskOperationRef = (typeof KIOSK_OPERATIONS)[keyof typeof KIOSK_OPERATIONS]
+
+export interface KioskAdminCheck {
+  ok: boolean
+  approverCashierId?: number
+  approverName?: string
+  error?: 'operation_not_found' | 'admin_not_found' | 'no_allowed'
+}
+
+export async function checkKioskAdmin(
+  password: string,
+  operationRef: KioskOperationRef,
+  branchId: number,
+  sessionId: number | null = null,
+  message = ''
+): Promise<KioskAdminCheck> {
+  return odooEnv.callMethod<KioskAdminCheck>(
+    'x.pos.cashier', 'action_check_kiosk_admin',
+    [password, operationRef, branchId, sessionId, message]
+  )
 }
 
 export async function fetchCompanyLogo(): Promise<string> {

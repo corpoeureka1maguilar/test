@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { AppPinModal } from '@/features/payment/components/AppPinModal'
+import { KIOSK_OPERATIONS } from '@/shared/lib/odooRepository'
 import { SpeakerSimpleHigh, SpeakerSimpleSlash, List } from '@phosphor-icons/react'
 import { WelcomeAd } from '../components/WelcomeAd'
 import { useAdvertisements } from '../hooks/useAdvertisements'
@@ -195,6 +196,7 @@ export function Welcome() {
 
       {showPinModal && (
         <AppPinModal
+          operationRef={KIOSK_OPERATIONS.advancedAccess}
           onConfirmed={() => {
             setShowPinModal(false)
             // Si la caja está cerrada, navegamos indicando que vaya directo a la pestaña de cierres/sesión

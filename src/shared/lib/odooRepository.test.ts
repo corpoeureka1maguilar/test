@@ -14,7 +14,9 @@ import {
   fetchActiveSession,
   openOdooSession,
   closeOdooSession,
-  fetchCashier
+  fetchCashier,
+  checkKioskAdmin,
+  KIOSK_OPERATIONS
 } from './odooRepository'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 
@@ -219,5 +221,25 @@ describe('session and cashier flow', () => {
   it('fetchCashier maps the cashier when found', async () => {
     callMethod.mockResolvedValueOnce({ cashierId: 9, name: 'Cajero Kiosco' })
     expect(await fetchCashier(1, 1)).toEqual({ id: 9, name: 'Cajero Kiosco' })
+  })
+})
+
+describe('checkKioskAdmin', () => {
+  it('calls action_check_kiosk_admin with the operation ref, branch, session and message', async () => {
+    callMethod.mockResolvedValueOnce({ ok: true, approverCashierId: 5, approverName: 'Admin' })
+
+    const res = await checkKioskAdmin('1234', KIOSK_OPERATIONS.saleReturn, 7, 42, 'Devolución SO001')
+
+    expect(callMethod).toHaveBeenCalledWith(
+      'x.pos.cashier', 'action_check_kiosk_admin',
+      ['1234', 'eu_pos_permission_levels.x_pos_audit_sale_return', 7, 42, 'Devolución SO001']
+    )
+    expect(res.ok).toBe(true)
+  })
+
+  it('propagates the backend error code when the check fails', async () => {
+    callMethod.mockResolvedValueOnce({ ok: false, error: 'no_allowed' })
+    const res = await checkKioskAdmin('1234', KIOSK_OPERATIONS.openSession, 7)
+    expect(res).toEqual({ ok: false, error: 'no_allowed' })
   })
 })

@@ -1,6 +1,6 @@
 import { setup, assign, fromPromise, fromCallback } from 'xstate'
 import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, PrinterInvoiceData } from '@/shared/types/types'
-import { createSaleOrder } from '@/shared/lib/odooRepository'
+import { createSaleOrder, setOrderPrinterData } from '@/shared/lib/odooRepository'
 import { FiscalPrinterAdapter } from '@/shared/lib/fiscalPrinter'
 import { buildFacturaPayload } from '@/shared/lib/printPayload'
 import { buildSaleOrderPayload } from '@/shared/lib/saleOrderPayload'
@@ -14,6 +14,7 @@ export interface SaleContext {
   cart: CartItem[]
   selectedMethod: KioskPaymentMethod | null
   activePayment: ActivePayment | null
+  odooOrderId: number | null        // id de la orden creada en Odoo, para registrar el n° fiscal
   printerResult: PrinterInvoiceData | null
   errorMessage: string | null
   printError: string | null
@@ -104,10 +105,24 @@ export const saleMachine = setup({
       activePayment: ({ event }) =>
         (event as Extract<SaleEvent, { type: 'SUBMIT_PAYMENT' }>).payment
     }),
+    setOdooOrderId: assign({
+      odooOrderId: ({ event }) => {
+        const output = (event as { type: string; output?: { id?: number } }).output
+        return typeof output?.id === 'number' ? output.id : null
+      }
+    }),
     setPrinterResult: assign({
       printerResult: ({ event }) =>
         (event as { type: string; output: PrinterInvoiceData }).output ?? null
     }),
+    // Fire-and-forget: la venta ya está impresa; si el registro falla solo se
+    // pierde la posibilidad de reimprimir esa orden desde la memoria fiscal
+    persistPrinterData: ({ context, event }) => {
+      const result = (event as { type: string; output?: PrinterInvoiceData }).output
+      if (!context.odooOrderId || !result?.code) return
+      setOrderPrinterData(context.odooOrderId, result.code, result.date, result.serial)
+        .catch((err) => console.error('[saleMachine] Error registrando n° fiscal en la orden:', err))
+    },
     setPaymentError: assign({
       errorMessage: ({ event }) => {
         const e = event as { type: string; error?: unknown }
@@ -129,6 +144,7 @@ export const saleMachine = setup({
       cart: [],
       selectedMethod: null,
       activePayment: null,
+      odooOrderId: null,
       printerResult: null,
       errorMessage: null,
       printError: null,
@@ -144,6 +160,7 @@ export const saleMachine = setup({
     cart: [],
     selectedMethod: null,
     activePayment: null,
+    odooOrderId: null,
     printerResult: null,
     errorMessage: null,
     printError: null,
@@ -213,7 +230,7 @@ export const saleMachine = setup({
             method: context.selectedMethod
           }
         },
-        onDone: { target: 'printing', actions: 'clearError' },
+        onDone: { target: 'printing', actions: ['clearError', 'setOdooOrderId'] },
         onError: { target: 'paymentError', actions: 'setPaymentError' }
       }
     },
@@ -234,7 +251,7 @@ export const saleMachine = setup({
             printerModel: useConfigStore.getState().printerModel
           }
         },
-        onDone: { target: 'success', actions: 'setPrinterResult' },
+        onDone: { target: 'success', actions: ['setPrinterResult', 'persistPrinterData'] },
         onError: { target: 'success', actions: 'setPrintError' }
       }
     },

@@ -1,23 +1,44 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useInactivityTimer } from '@/shared/hooks/useInactivityTimer'
 import { AppStepper } from '@/features/cart/components/AppStepper'
+import { AppInactivityModal } from '@/shared/components/AppInactivityModal'
+import { useCartStore } from '@/features/cart/stores/cart'
 import { trackView, trackViewDuration } from '@/shared/lib/metrics'
+
+const INACTIVITY_WARNING_MS = 60_000
+const INACTIVITY_COUNTDOWN_S = 30
 
 export function RootLayout() {
   const { state, send } = useSaleMachine()
   const navigate = useNavigate()
   const location = useLocation()
-  
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false)
+
   const currentAudioRef = useRef<HTMLAudioElement | null>(null)
 
-  const handleInactive = useCallback(() => {
+  const resetKiosk = useCallback(() => {
+    setShowInactivityWarning(false)
+    // El carrito está persistido en localStorage: si no se limpia acá, el
+    // próximo cliente heredaría los productos de la compra abandonada
+    useCartStore.getState().clearCart()
     send({ type: 'RESET' })
     navigate('/')
   }, [send, navigate])
 
-  useInactivityTimer(90_000, handleInactive)
+  const handleInactive = useCallback(() => {
+    if (showInactivityWarning) return
+
+    // Solo tiene sentido preguntar si hay una compra en curso; en el home
+    // idle no hay nada que perder y el modal molestaría al próximo cliente
+    const purchaseInProgress = state !== 'idle' || useCartStore.getState().items.length > 0
+    if (purchaseInProgress) {
+      setShowInactivityWarning(true)
+    }
+  }, [state, showInactivityWarning])
+
+  useInactivityTimer(INACTIVITY_WARNING_MS, handleInactive)
 
   const playSound = (src: string) => {
     const isMuted = localStorage.getItem('autopay_muted') === 'true'
@@ -83,6 +104,13 @@ export function RootLayout() {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <Outlet />
       </div>
+      {showInactivityWarning && (
+        <AppInactivityModal
+          seconds={INACTIVITY_COUNTDOWN_S}
+          onContinue={() => setShowInactivityWarning(false)}
+          onTimeout={resetKiosk}
+        />
+      )}
     </div>
   )
 }

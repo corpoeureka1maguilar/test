@@ -1,0 +1,42 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 2.5rem;
+  width: min(480px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+}
+
+.message {
+  font-size: 1.1rem;
+  text-align: center;
+  color: #666;
+  margin: 0;
+}
+
+.countdown {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--app-color-danger);
+  font-variant-numeric: tabular-nums;
+}

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useSearchOrders } from '@/features/advanced/hooks/useSearchOrders'
 import { useOrder } from '@/features/cart/hooks/useOrder'
 import { AppOrderSummary } from '@/features/cart/components/AppOrderSummary'
-import { returnOrder } from '@/shared/lib/odooRepository'
+import { returnOrder, fetchExchangeRate, KIOSK_OPERATIONS, type KioskOperationRef } from '@/shared/lib/odooRepository'
 import { useUIStore } from '@/shared/stores/ui'
 import { useConfigStore } from '@/shared/stores/config'
 import { useSessionStore } from '@/shared/stores/session'
@@ -15,6 +15,15 @@ import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import { getMetrics, resetMetrics, trackRefund } from '@/shared/lib/metrics'
 import styles from './AdvancedMenu.module.css'
 
+// Toda acción administrativa pasa por el PIN modal con su operación de
+// auditoría: la validación (y el permiso por cajero) la resuelve Odoo
+interface PendingAdminAction {
+  title: string
+  operationRef: KioskOperationRef
+  auditMessage?: string
+  run: () => void
+}
+
 export function AdvancedMenu() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -22,14 +31,28 @@ export function AdvancedMenu() {
   const config = useConfigStore()
 
   const defaultTab = (location.state as any)?.defaultTab || 'devoluciones'
-  const [activeTab, setActiveTab] = useState<'devoluciones' | 'cierres' | 'terminal' | 'metrics'>(defaultTab)
+  const [activeTab, setActiveTab] = useState<'devoluciones' | 'reimpresion' | 'cierres' | 'terminal' | 'metrics'>(defaultTab)
   const [pattern, setPattern] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<KioskOrder | null>(null)
   const [reason, setReason] = useState('')
   const [done, setDone] = useState(false)
   const [metrics, setMetrics] = useState(() => getMetrics())
-  const [pendingSessionAction, setPendingSessionAction] = useState<'open' | 'close' | null>(null)
+  const [pendingAction, setPendingAction] = useState<PendingAdminAction | null>(null)
   const rate = useExchangeRateStore((s) => s.rate)
+  const setRate = useExchangeRateStore((s) => s.setRate)
+  const isConnectionReady = config.isConnectionReady
+
+  // Esta pantalla puede abrirse directo (sin haber pasado por el catálogo de
+  // productos), que es donde normalmente se obtiene la tasa. Refrescarla acá
+  // asegura que las métricas y órdenes siempre puedan mostrar el equivalente en $.
+  // Se espera a isConnectionReady para no pedirla antes de que reauthenticate()
+  // termine, y en error se conserva la última tasa buena conocida (no se pisa con 1).
+  useEffect(() => {
+    if (!isConnectionReady) return
+    fetchExchangeRate().then(setRate).catch((err) => {
+      console.error('Error fetching exchange rate for /advanced:', err)
+    })
+  }, [isConnectionReady, setRate])
 
   const sessionState = useSessionStore((s) => s.sessionState)
   const sessionId = useSessionStore((s) => s.sessionId)
@@ -73,11 +96,15 @@ export function AdvancedMenu() {
   }, [activeTab])
 
   const handleResetMetrics = () => {
-    if (window.confirm('¿Estás seguro de que querés restablecer todas las métricas a cero?')) {
-      resetMetrics()
-      setMetrics(getMetrics())
-      pushToast('success', 'Métricas restablecidas')
-    }
+    setPendingAction({
+      title: 'Confirmá tu PIN para restablecer las métricas',
+      operationRef: KIOSK_OPERATIONS.terminalConfig,
+      run: () => {
+        resetMetrics()
+        setMetrics(getMetrics())
+        pushToast('success', 'Métricas restablecidas')
+      }
+    })
   }
 
   // Formulario para la parametrización de la terminal
@@ -96,11 +123,21 @@ export function AdvancedMenu() {
 
   const order = orderDetail ?? selectedOrder
 
-  const handleReturn = async () => {
+  const requestReturn = () => {
     if (!order || !reason.trim()) {
       pushToast('error', 'Indicá el motivo de la devolución')
       return
     }
+    setPendingAction({
+      title: 'Confirmá tu PIN para procesar la devolución',
+      operationRef: KIOSK_OPERATIONS.saleReturn,
+      auditMessage: `Devolución de la orden ${order.name} (${reason})`,
+      run: handleReturn
+    })
+  }
+
+  const handleReturn = async () => {
+    if (!order || !reason.trim()) return
 
     setLoading(true)
     try {
@@ -113,6 +150,51 @@ export function AdvancedMenu() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const requestReprint = () => {
+    if (!order) return
+    if (!order.printerNumber) {
+      pushToast('error', 'La orden no tiene número fiscal registrado; no se puede reimprimir')
+      return
+    }
+    setPendingAction({
+      title: 'Confirmá tu PIN para reimprimir la factura',
+      operationRef: KIOSK_OPERATIONS.invoiceReprint,
+      auditMessage: `Reimpresión de la factura ${order.printerNumber} (orden ${order.name})`,
+      run: handleReprint
+    })
+  }
+
+  const handleReprint = async () => {
+    if (!order?.printerNumber) return
+
+    // La impresora fiscal reimprime desde su memoria por n° de factura:
+    // mismo formato que el POS, numérico con padding a 7 dígitos
+    let code = order.printerNumber
+    if (/^\d+$/.test(code)) code = String(Number(code)).padStart(7, '0')
+    code = code.slice(0, 7)
+
+    setLoading(true)
+    try {
+      const printer = new FiscalPrinterAdapter(config.printerUrl, config.printerModel)
+      await printer.checkConnection()
+      await printer.sendRequest('PrintReimpresion', { tipo: 'F', desde: code, hasta: code })
+      pushToast('success', `Factura ${order.printerNumber} reimpresa con éxito`)
+    } catch (err) {
+      pushToast('error', `Error al reimprimir: ${(err as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const requestPrintReport = (tipo: 'X' | 'Z', reportName: string) => {
+    setPendingAction({
+      title: `Confirmá tu PIN para imprimir: ${reportName}`,
+      operationRef: tipo === 'Z' ? KIOSK_OPERATIONS.sessionClose : KIOSK_OPERATIONS.shiftClose,
+      auditMessage: `Impresión de reporte ${tipo}: ${reportName}`,
+      run: () => handlePrintReport(tipo, reportName)
+    })
   }
 
   const handlePrintReport = async (tipo: 'X' | 'Z', reportName: string) => {
@@ -135,13 +217,20 @@ export function AdvancedMenu() {
     }
   }
 
-  const handleSaveConfig = async (e: React.FormEvent) => {
+  const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault()
     if (form.adminPin.length < 4) {
       pushToast('error', 'El PIN de administrador debe tener al menos 4 dígitos')
       return
     }
+    setPendingAction({
+      title: 'Confirmá tu PIN para guardar la configuración',
+      operationRef: KIOSK_OPERATIONS.terminalConfig,
+      run: doSaveConfig
+    })
+  }
 
+  const doSaveConfig = async () => {
     setLoading(true)
     try {
       await config.saveConfig(form)
@@ -180,6 +269,13 @@ export function AdvancedMenu() {
           onClick={() => setActiveTab('devoluciones')}
         >
           Devoluciones
+        </button>
+        <button
+          type="button"
+          className={`${styles.tab} ${activeTab === 'reimpresion' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('reimpresion')}
+        >
+          Reimpresión
         </button>
         <button
           type="button"
@@ -245,8 +341,56 @@ export function AdvancedMenu() {
                 </select>
               </label>
               <div className={styles.actions}>
-                <button type="button" className="btn btn-danger" onClick={handleReturn}>
+                <button type="button" className="btn btn-danger" onClick={requestReturn}>
                   Confirmar devolución
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setSelectedOrder(null)}>
+                  Buscar otra orden
+                </button>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {activeTab === 'reimpresion' && (
+        <>
+          {!selectedOrder ? (
+            <>
+              <input
+                type="text"
+                className={styles.search}
+                value={pattern}
+                onChange={(e) => setPattern(e.target.value)}
+                placeholder="Buscá la orden a reimprimir"
+                autoFocus
+              />
+              {isFetching && <p className={styles.info}>Buscando...</p>}
+              <div className={styles.results}>
+                {results.map((o) => (
+                  <button key={o.id} type="button" className={styles.resultCard} onClick={() => setSelectedOrder(o)}>
+                    <span className={styles.orderName}>{o.name}</span>
+                    <span>{o.partnerId[1]}</span>
+                    <span className={styles.amount}>{formatBs(o.amountTotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(o.amountTotal / rate)}</span>}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {order && (
+                <div className="card">
+                  <AppOrderSummary order={order} />
+                  <p className={styles.info}>
+                    {order.printerNumber
+                      ? `N° de factura fiscal: ${order.printerNumber}`
+                      : 'Esta orden no tiene número fiscal registrado; no se puede reimprimir'}
+                  </p>
+                </div>
+              )}
+              <div className={styles.actions}>
+                <button type="button" className="btn btn-primary" onClick={requestReprint} disabled={!order?.printerNumber}>
+                  Reimprimir factura
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={() => setSelectedOrder(null)}>
                   Buscar otra orden
@@ -280,12 +424,30 @@ export function AdvancedMenu() {
 
             <div className={styles.sessionActions}>
               {sessionState === 'closed' && (
-                <button type="button" className="btn btn-primary" onClick={() => setPendingSessionAction('open')} style={{ width: '100%' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setPendingAction({
+                    title: 'Confirmá tu PIN para aperturar caja',
+                    operationRef: KIOSK_OPERATIONS.openSession,
+                    run: handleOpenSession
+                  })}
+                  style={{ width: '100%' }}
+                >
                   Aperturar Caja
                 </button>
               )}
               {sessionState === 'opened' && (
-                <button type="button" className="btn btn-danger" onClick={() => setPendingSessionAction('close')} style={{ width: '100%' }}>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => setPendingAction({
+                    title: 'Confirmá tu PIN para cerrar caja',
+                    operationRef: KIOSK_OPERATIONS.sessionClose,
+                    run: handleCloseSession
+                  })}
+                  style={{ width: '100%' }}
+                >
                   Cerrar Caja
                 </button>
               )}
@@ -297,7 +459,7 @@ export function AdvancedMenu() {
               <button
                 type="button"
                 className={`${styles.cierreCard} ${styles.cierreTurno}`}
-                onClick={() => handlePrintReport('X', 'Cierre de Turno')}
+                onClick={() => requestPrintReport('X', 'Cierre de Turno')}
               >
                 <div className={styles.cierreIcon}>⏱</div>
                 <div className={styles.cierreTitle}>Cierre de Turno</div>
@@ -307,7 +469,7 @@ export function AdvancedMenu() {
               <button
                 type="button"
                 className={`${styles.cierreCard} ${styles.cierreCaja}`}
-                onClick={() => handlePrintReport('X', 'Cierre de Caja')}
+                onClick={() => requestPrintReport('X', 'Cierre de Caja')}
               >
                 <div className={styles.cierreIcon}>💵</div>
                 <div className={styles.cierreTitle}>Cierre de Caja</div>
@@ -317,7 +479,7 @@ export function AdvancedMenu() {
               <button
                 type="button"
                 className={`${styles.cierreCard} ${styles.cierreZ}`}
-                onClick={() => handlePrintReport('Z', 'Cierre de Reporte Z')}
+                onClick={() => requestPrintReport('Z', 'Cierre de Reporte Z')}
               >
                 <div className={styles.cierreIcon}>📊</div>
                 <div className={styles.cierreTitle}>Cierre de Reporte Z</div>
@@ -365,18 +527,23 @@ export function AdvancedMenu() {
           <div className={styles.metricsGrid}>
             <div className={`${styles.metricCard} ${styles.salesCard}`}>
               <span className={styles.metricLabel}>Ventas Totales</span>
-              <span className={styles.metricValue}>{formatBs(metrics.sales.totalAmount)}</span>
-              <span className={styles.metricSubvalue}>Volumen acumulado</span>
+              <span className={styles.metricValue}>
+                {rate > 0 ? formatUSD(metrics.sales.totalAmount / rate) : formatBs(metrics.sales.totalAmount)}
+              </span>
+              <span className={styles.metricSubvalue}>
+                {rate > 0 ? formatBs(metrics.sales.totalAmount) : 'Volumen acumulado'}
+              </span>
             </div>
 
             <div className={`${styles.metricCard} ${styles.ticketCard}`}>
               <span className={styles.metricLabel}>Ticket Promedio</span>
               <span className={styles.metricValue}>
-                {formatBs(
-                  metrics.sales.orderCount > 0
+                {(() => {
+                  const avg = metrics.sales.orderCount > 0
                     ? metrics.sales.totalAmount / metrics.sales.orderCount
                     : 0
-                )}
+                  return rate > 0 ? formatUSD(avg / rate) : formatBs(avg)
+                })()}
               </span>
               <span className={styles.metricSubvalue}>Por transacción</span>
             </div>
@@ -516,16 +683,17 @@ export function AdvancedMenu() {
         </div>
       )}
 
-      {pendingSessionAction && (
+      {pendingAction && (
         <AppPinModal
-          title={pendingSessionAction === 'open' ? 'Confirmá tu PIN para aperturar caja' : 'Confirmá tu PIN para cerrar caja'}
+          title={pendingAction.title}
+          operationRef={pendingAction.operationRef}
+          auditMessage={pendingAction.auditMessage}
           onConfirmed={() => {
-            const action = pendingSessionAction
-            setPendingSessionAction(null)
-            if (action === 'open') handleOpenSession()
-            else handleCloseSession()
+            const action = pendingAction
+            setPendingAction(null)
+            action.run()
           }}
-          onCancel={() => setPendingSessionAction(null)}
+          onCancel={() => setPendingAction(null)}
         />
       )}
 

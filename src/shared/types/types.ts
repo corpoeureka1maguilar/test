@@ -107,6 +107,8 @@ export interface KioskOrder {
   orderLine: number[]
   lines?: KioskOrderLine[]
   state: string
+  /** N° de la factura fiscal (x_printer_number); sin él no hay reimpresión */
+  printerNumber?: string
 }
 
 export interface AdConfig {

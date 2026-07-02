@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { CartItem, KioskProduct } from '@/shared/types/types'
 import { ves, addVES, toFloat, mulVES } from '@/shared/lib/money'
 
@@ -13,7 +14,9 @@ interface CartActions {
   clearCart(): void
 }
 
-export const useCartStore = create<CartState & CartActions>((set) => ({
+// Persistido para que una compra no finalizada sobreviva recargas del kiosco;
+// solo se vacía con clearCart() tras un pago exitoso
+export const useCartStore = create<CartState & CartActions>()(persist((set) => ({
   items: [],
 
   addItem(product) {
@@ -64,7 +67,7 @@ export const useCartStore = create<CartState & CartActions>((set) => ({
   clearCart() {
     set({ items: [] })
   }
-}))
+}), { name: 'autopay-cart' }))
 
 export function useCartTotal() {
   return useCartStore(s => {
