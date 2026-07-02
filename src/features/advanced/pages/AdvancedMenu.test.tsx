@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router-dom'
 vi.mock('@/shared/lib/odooRepository', () => ({
   searchOrders: vi.fn().mockResolvedValue([]),
   returnOrder: vi.fn(),
+  setRefundCodeToInvoices: vi.fn(),
   fetchExchangeRate: vi.fn().mockResolvedValue(0),
   checkKioskAdmin: vi.fn().mockResolvedValue({ ok: true }),
   KIOSK_OPERATIONS: {

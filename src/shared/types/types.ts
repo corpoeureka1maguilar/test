@@ -95,6 +95,8 @@ export interface KioskOrderLine {
   productUomQty: number
   priceUnit: number
   priceSubtotal: number
+  /** Tasa de IVA del producto (0.16, 0.08...); sin ella la nota de crédito sale con la tasa general */
+  taxRate?: number
 }
 
 export interface KioskOrder {
@@ -109,6 +111,10 @@ export interface KioskOrder {
   state: string
   /** N° de la factura fiscal (x_printer_number); sin él no hay reimpresión */
   printerNumber?: string
+  /** Serial de la máquina fiscal que emitió la factura (x_printer_serial_number) */
+  printerSerial?: string
+  /** Fecha/hora en que la impresora emitió la factura (x_printer_date, "YYYY-MM-DD HH:MM:SS") */
+  printerDate?: string
 }
 
 export interface AdConfig {

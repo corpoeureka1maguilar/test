@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sanitize, buildFacturaPayload } from './printPayload'
+import { sanitize, buildFacturaPayload, buildNotaCreditoPayload } from './printPayload'
 import type { KioskPaymentMethod } from '@/shared/types/types'
 
 describe('sanitize', () => {
@@ -76,5 +76,55 @@ describe('buildFacturaPayload', () => {
     const igtfMethod: KioskPaymentMethod = { ...method, applyIgtf: true, igtfPercent: 3 }
     const payload = buildFacturaPayload('Juan', 'V-1', [{ name: 'A', qty: 1, price: 100 }], igtfMethod, 100)
     expect(payload.montoigtf).toBe('300')
+  })
+})
+
+describe('buildNotaCreditoPayload', () => {
+  const method: KioskPaymentMethod = {
+    id: 1, name: 'Efectivo', paymentType: 'cash', applyIgtf: false, igtfPercent: 0,
+    journalId: 1, currencyId: 1, useForChange: false
+  }
+
+  const build = (invoiceNumber?: string, maquina?: string) =>
+    buildNotaCreditoPayload(
+      invoiceNumber,
+      '01072026',
+      '1430',
+      'María Pérez',
+      'V-12345678',
+      [{ name: 'Producto A', qty: 2, price: 50, taxRate: 0.16 }],
+      method,
+      100,
+      maquina
+    )
+
+  it('references the original invoice: number padded to 7 digits, date, time and machine serial', () => {
+    const payload = build('1234', 'Z1B1234567')
+
+    expect(payload.factura).toBe('0001234')
+    expect(payload.fecha).toBe('01072026')
+    expect(payload.hora).toBe('1430')
+    expect(payload.maquina).toBe('Z1B1234567')
+  })
+
+  it('normalizes numeric invoice numbers with leading zeros like the reprint flow', () => {
+    expect(build('00001234').factura).toBe('0001234')
+  })
+
+  it('falls back to all zeros when the order has no fiscal invoice number', () => {
+    const payload = build(undefined)
+    expect(payload.factura).toBe('0000000')
+    expect(payload.maquina).toBe('')
+  })
+
+  it('exposes the lines as ItemsNota (not Items) and forces montoigtf to zero', () => {
+    const payload = build('1234')
+
+    expect(payload.ItemsNota).toEqual([{
+      codigo: '', descripcion: 'Producto A', impuesto: '1', tasa: '1', cantidad: '2000', precio: '5000', descuentop: '0'
+    }])
+    expect(payload).not.toHaveProperty('Items')
+    expect(payload.montoigtf).toBe('0')
+    expect(payload['pago01']).toBe('10000')
   })
 })

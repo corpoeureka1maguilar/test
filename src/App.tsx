@@ -35,6 +35,19 @@ function AppInit() {
       try {
         await reauthenticate()
         failures = 0
+
+        // Fetch exchange rate on connection ready (e.g. reload or interval tick)
+        try {
+          const { fetchExchangeRate } = await import('@/shared/lib/odooRepository')
+          const rate = await fetchExchangeRate()
+          if (!cancelled && rate > 0) {
+            const { useExchangeRateStore } = await import('@/shared/stores/exchangeRate')
+            useExchangeRateStore.getState().setRate(rate)
+          }
+        } catch (rateErr) {
+          console.error('[AppInit] Error updating exchange rate:', rateErr)
+        }
+
         if (!cancelled) timer = window.setTimeout(run, REAUTH_INTERVAL_MS)
       } catch (err) {
         console.error('[AppInit] Reautenticación fallida:', err)

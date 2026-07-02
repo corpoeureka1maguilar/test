@@ -27,7 +27,7 @@ export function AppInactivityModal({ seconds, onContinue, onCancel, onTimeout }:
   return (
     <div className={styles.overlay}>
       <div className={styles.modal} role="alertdialog" aria-labelledby="inactivity-title">
-        <h2 id="inactivity-title" className={styles.title}>¿Seguís ahí?</h2>
+        <h2 id="inactivity-title" className={styles.title}>¿Sigues allí?</h2>
         <p className={styles.message}>Tu compra se cancelará por inactividad en</p>
         <span className={styles.countdown}>{Math.max(remaining, 0)}</span>
         <div className={styles.actions}>

@@ -221,6 +221,10 @@ class JSONRpcEnv implements OdooEnvService {
 
     if (response.error) throw new Error(this.#extractRpcError(response.error, 'Error de inicio de sesión'))
 
+    if (!response.result) {
+      throw new OdooServerError('Access Denied (Credenciales incorrectas o base de datos no configurada)', 'odoo.exceptions.AccessDenied')
+    }
+
     this.#uid = response.result as number
     console.info(`[OdooEnv] Autenticado, uid=${this.#uid}`)
     return this.#uid

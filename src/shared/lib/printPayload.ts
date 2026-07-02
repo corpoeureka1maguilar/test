@@ -62,6 +62,56 @@ export interface PrintLine {
   taxRate?: number
 }
 
+export interface NotaCreditoPayload {
+  ItemsNota: FacturaItem[]
+  factura: string
+  fecha: string
+  hora: string
+  maquina: string
+  condicion: string
+  codigobarra: string
+  montoigtf: string
+  direccion: string
+  documento: string
+  nombre: string
+  referencia: string
+  rif: string
+  [key: string]: unknown
+}
+
+// La impresora fiscal exige referenciar la factura afectada: su n° (padded a
+// 7 dígitos, igual que la reimpresión), su fecha/hora de emisión y el serial
+// de la máquina que la emitió; con datos que no coincidan rechaza la nota
+export function buildNotaCreditoPayload(
+  invoiceNumber: string | undefined,
+  fecha: string,
+  hora: string,
+  partnerName: string,
+  partnerVat: string,
+  lines: PrintLine[],
+  method: KioskPaymentMethod,
+  totalAmount: number,
+  maquina = ''
+): NotaCreditoPayload {
+  let factura = invoiceNumber || ''
+  if (/^\d+$/.test(factura)) factura = String(Number(factura))
+  factura = factura.padStart(7, '0').slice(0, 7)
+
+  // Sin stationLabel: la nota de crédito no reporta la caja de origen
+  const { Items, ...rest } = buildFacturaPayload(partnerName, partnerVat, lines, method, totalAmount, '')
+
+  return {
+    ...rest,
+    montoigtf: '0',
+    codigobarra: '',
+    ItemsNota: Items,
+    factura,
+    fecha,
+    hora,
+    maquina
+  }
+}
+
 export function buildFacturaPayload(
   partnerName: string,
   partnerVat: string,
