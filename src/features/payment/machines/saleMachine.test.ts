@@ -3,10 +3,12 @@ import { createActor, fromPromise } from 'xstate'
 import { saleMachine } from './saleMachine'
 import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, PrinterInvoiceData } from '@/shared/types/types'
 
-const submitPaymentRejecting = fromPromise<unknown, { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod }>(
+type SubmitInput = { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string }
+
+const submitPaymentRejecting = fromPromise<unknown, SubmitInput>(
   async () => { throw new Error('Odoo no disponible') }
 )
-const submitPaymentResolving = fromPromise<unknown, { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod }>(
+const submitPaymentResolving = fromPromise<unknown, SubmitInput>(
   async () => ({ ok: true })
 )
 const printResolving = fromPromise<PrinterInvoiceData, { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }>(
@@ -136,7 +138,7 @@ describe('saleMachine — payment processing', () => {
   })
 
   it('RESET while processing cancels the in-flight submission and returns to idle', async () => {
-    const neverResolving = fromPromise<unknown, { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod }>(
+    const neverResolving = fromPromise<unknown, SubmitInput>(
       () => new Promise(() => {})
     )
     const stuckMachine = saleMachine.provide({
@@ -174,7 +176,7 @@ describe('saleMachine — payment processing', () => {
     expect(actor.getSnapshot().context.cart).toEqual([])
   })
 
-  it('still reaches success (degraded) when printing fails after a successful payment', async () => {
+  it('moves to printingError (not success) when printing fails after a successful payment', async () => {
     const degradedMachine = saleMachine.provide({
       actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: printRejecting }
     })
@@ -184,8 +186,84 @@ describe('saleMachine — payment processing', () => {
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('success')
+      expect(actor.getSnapshot().value).toBe('printingError')
     })
     expect(actor.getSnapshot().context.printError).toBe('Impresora no responde')
+  })
+
+  it('RETRY from printingError re-runs the print job and reaches success when it recovers', async () => {
+    let attempts = 0
+    const flakyPrint = fromPromise<PrinterInvoiceData, { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }>(
+      async () => {
+        attempts++
+        if (attempts === 1) throw new Error('Impresora no responde')
+        return { code: '002', date: '2026-06-30 10:05', serial: 'A1' }
+      }
+    )
+    const machine = saleMachine.provide({
+      actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: flakyPrint }
+    })
+    const actor = createActor(machine)
+    actor.start()
+    runToEnteringDetails(actor)
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+    await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('printingError'))
+
+    actor.send({ type: 'RETRY' })
+    await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('success'))
+    expect(actor.getSnapshot().context.printError).toBeNull()
+    expect(actor.getSnapshot().context.printerResult?.code).toBe('002')
+  })
+
+  it('CONTINUE from printingError reaches success keeping the print error visible', async () => {
+    const machine = saleMachine.provide({
+      actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: printRejecting }
+    })
+    const actor = createActor(machine)
+    actor.start()
+    runToEnteringDetails(actor)
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+    await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('printingError'))
+
+    actor.send({ type: 'CONTINUE' })
+    expect(actor.getSnapshot().value).toBe('success')
+    expect(actor.getSnapshot().context.printError).toBe('Impresora no responde')
+  })
+})
+
+describe('saleMachine — sale attempt dedup id', () => {
+  it('assigns saleAttemptId when entering enteringDetails and keeps it across RETRY', async () => {
+    const failingMachine = saleMachine.provide({
+      actors: { submitPaymentToOdoo: submitPaymentRejecting }
+    })
+    const actor = createActor(failingMachine)
+    actor.start()
+    runToEnteringDetails(actor)
+
+    const firstId = actor.getSnapshot().context.saleAttemptId
+    expect(firstId).toBeTruthy()
+
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+    await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('paymentError'))
+
+    // El reintento del MISMO intento de venta debe conservar el x_fex_id para
+    // que Odoo deduplique si la orden ya se creó pese al error/timeout
+    actor.send({ type: 'RETRY' })
+    expect(actor.getSnapshot().context.saleAttemptId).toBe(firstId)
+  })
+
+  it('generates a fresh saleAttemptId after RESET (new sale)', () => {
+    const actor = createActor(saleMachine)
+    actor.start()
+    runToEnteringDetails(actor)
+    const firstId = actor.getSnapshot().context.saleAttemptId
+
+    actor.send({ type: 'RESET' })
+    expect(actor.getSnapshot().context.saleAttemptId).toBeNull()
+
+    runToEnteringDetails(actor)
+    const secondId = actor.getSnapshot().context.saleAttemptId
+    expect(secondId).toBeTruthy()
+    expect(secondId).not.toBe(firstId)
   })
 })

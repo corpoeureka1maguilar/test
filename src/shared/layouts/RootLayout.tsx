@@ -101,7 +101,7 @@ export function RootLayout() {
   useEffect(() => {
     if (state === 'success') {
       playSound('/voices/4.exito.mp3')
-    } else if (state === 'paymentError') {
+    } else if (state === 'paymentError' || state === 'printingError') {
       playSound('/voices/4.2.pago_rechazado.mp3')
     }
   }, [state])

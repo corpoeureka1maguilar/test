@@ -28,34 +28,43 @@ const payment: ActivePayment = {
   igtfAmount: 0
 }
 
+const attemptId = 'a1b2c3d4-0000-4000-8000-000000000000'
+
 beforeEach(() => {
   useSessionStore.setState({ sessionId: 11, cashierId: 22 })
 })
 
 describe('buildSaleOrderPayload', () => {
   it('maps customer, session and cashier into the payload', () => {
-    const payload = buildSaleOrderPayload(customer, cart, payment, method)
+    const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
     expect(payload.partner).toBe(42)
     expect(payload.session).toBe(11)
     expect(payload.cashier).toBe(22)
     expect(payload.isCreditOrder).toBe(false)
   })
 
+  it('uses the attempt id as the dedup id (x_fex_id) instead of generating one per call', () => {
+    const first = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
+    const second = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
+    expect(first.id).toBe(attemptId)
+    expect(second.id).toBe(attemptId)
+  })
+
   it('uses the method currency rate, falling back to 1 when absent', () => {
-    const payload = buildSaleOrderPayload(customer, cart, payment, method)
+    const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
     expect(payload.rate).toBe(1.5)
 
-    const payloadNoRate = buildSaleOrderPayload(customer, cart, payment, { ...method, currencyRate: undefined })
+    const payloadNoRate = buildSaleOrderPayload(customer, cart, payment, { ...method, currencyRate: undefined }, attemptId)
     expect(payloadNoRate.rate).toBe(1)
   })
 
   it('maps each cart item to a sale order line', () => {
-    const payload = buildSaleOrderPayload(customer, cart, payment, method)
+    const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
     expect(payload.lines).toEqual([{ product: 1, quantity: 2, priceUnit: 50 }])
   })
 
   it('maps the payment with reference, amount, journal and IGTF', () => {
-    const payload = buildSaleOrderPayload(customer, cart, { ...payment, igtfAmount: 3.5 }, method)
+    const payload = buildSaleOrderPayload(customer, cart, { ...payment, igtfAmount: 3.5 }, method, attemptId)
     expect(payload.payments).toHaveLength(1)
     expect(payload.payments[0]).toMatchObject({
       ref: 'REF-001',
@@ -69,12 +78,12 @@ describe('buildSaleOrderPayload', () => {
   })
 
   it('defaults the payment reference to an empty string when missing', () => {
-    const payload = buildSaleOrderPayload(customer, cart, { ...payment, reference: '' }, method)
+    const payload = buildSaleOrderPayload(customer, cart, { ...payment, reference: '' }, method, attemptId)
     expect(payload.payments[0].ref).toBe('')
   })
 
   it('always includes an empty transactions array required by Odoo post-processing', () => {
-    const payload = buildSaleOrderPayload(customer, cart, payment, method)
+    const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
     expect(payload.transactions).toEqual([])
   })
 })

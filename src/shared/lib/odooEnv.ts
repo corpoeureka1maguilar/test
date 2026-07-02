@@ -21,8 +21,40 @@ export interface OdooEnvService {
 const PROXY_BASE = import.meta.env.VITE_PROXY_BASE ?? ''
 const TIMEOUT = 36_000
 
+// Cancelación deliberada (abortAll / navegación). Es un Error real para no
+// romper los handlers que hacen `instanceof Error` sobre lo que reciben.
+export class RpcAbortedError extends Error {
+  constructor() {
+    super('Operación cancelada')
+    this.name = 'RpcAbortedError'
+  }
+}
+
+// Error devuelto por el servidor de Odoo. Conserva el nombre de la excepción
+// Python (p. ej. 'odoo.exceptions.MissingError') para que los callers puedan
+// distinguir errores permanentes (registro borrado) de transitorios (red).
+export class OdooServerError extends Error {
+  readonly odooException: string
+  constructor(message: string, odooException = '') {
+    super(message)
+    this.name = 'OdooServerError'
+    this.odooException = odooException
+  }
+}
+
+// Un MissingError significa que el registro fue eliminado en Odoo: reintentar
+// jamás lo va a resucitar. El fallback por texto cubre servidores que no
+// mandan data.name (mensaje en inglés o español según el idioma del server).
+export function isMissingRecordError(err: unknown): boolean {
+  if (!(err instanceof OdooServerError)) return false
+  return (
+    err.odooException.includes('MissingError') ||
+    /record does not exist|registro no existe/i.test(err.message)
+  )
+}
+
 interface RpcError {
-  data?: { message?: string }
+  data?: { message?: string; name?: string }
   message?: string
 }
 
@@ -76,7 +108,8 @@ class JSONRpcEnv implements OdooEnvService {
 
   async #post(params: object, abortable = true): Promise<unknown> {
     const controller = new AbortController()
-    const id = setTimeout(() => controller.abort(), TIMEOUT)
+    let timedOut = false
+    const id = setTimeout(() => { timedOut = true; controller.abort() }, TIMEOUT)
     if (abortable) this.#controllers.add(controller)
 
     try {
@@ -101,7 +134,15 @@ class JSONRpcEnv implements OdooEnvService {
       return res.json()
     } catch (error: unknown) {
       clearTimeout(id)
-      if (error === 'ABORTED' || (error as Error)?.name === 'AbortError') throw 'ABORTED'
+      if (error instanceof RpcAbortedError || (error as Error)?.name === 'AbortError') {
+        // El timeout también aborta el fetch: distinguirlo para que el usuario
+        // vea un mensaje útil y no una "cancelación" que nunca pidió
+        if (timedOut) {
+          console.error(`[OdooEnv] Timeout tras ${TIMEOUT / 1000}s`)
+          throw new Error('El servidor no respondió a tiempo. Verifique la conexión e intente de nuevo.')
+        }
+        throw new RpcAbortedError()
+      }
       const msg = error instanceof Error ? error.message : 'No se pudo contactar al servidor'
       console.error('[OdooEnv] Network error:', msg)
       throw new Error(msg)
@@ -121,7 +162,10 @@ class JSONRpcEnv implements OdooEnvService {
 
     if (response.error) {
       console.error(`[OdooRPC] Error en ${model}.${method}`, response.error)
-      throw new Error(this.#extractRpcError(response.error, 'Error interno de Odoo (RPC)'))
+      throw new OdooServerError(
+        this.#extractRpcError(response.error, 'Error interno de Odoo (RPC)'),
+        response.error.data?.name ?? ''
+      )
     }
 
     return response.result as T

@@ -5,6 +5,11 @@ import type { PrinterApiResponse } from '@/shared/types/types'
 // - Prod (Vercel): http://localhost:9191 → agente local en la máquina del cajero.
 const PRINTER_PROXY_BASE = import.meta.env.VITE_PRINTER_PROXY_BASE ?? ''
 
+// Sin timeout, una impresora colgada deja al kiosko esperando para siempre
+// (el estado `printing` de la saleMachine nunca resuelve). Imprimir una
+// factura larga puede tardar, por eso es más generoso que el de checkConnection.
+const PRINT_TIMEOUT_MS = 60_000
+
 const getPrinterErrorMessage = (errorCode: string | object): string => {
   if (!errorCode) return 'Error desconocido de la impresora'
   if (typeof errorCode === 'object') return `Error de impresora: ${JSON.stringify(errorCode)}`
@@ -114,13 +119,21 @@ export class FiscalPrinterAdapter {
 
     console.debug(`[FiscalPrinter] POST ${url}`, data)
 
+    // Timeout propio combinado con la señal externa (cancelación desde la
+    // state machine): cualquiera de los dos aborta el fetch
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), PRINT_TIMEOUT_MS)
+    const onExternalAbort = () => controller.abort()
+    if (signal?.aborted) controller.abort()
+    signal?.addEventListener('abort', onExternalAbort)
+
     try {
       const payload = this.modelo ? { modelo: this.modelo, ...data } : data
       const response = await window.fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
-        signal
+        signal: controller.signal
       })
 
       if (!response.ok) {
@@ -138,28 +151,36 @@ export class FiscalPrinterAdapter {
 
       return status
     } catch (e: unknown) {
-      if ((e as Error)?.name === 'AbortError') throw e
+      if ((e as Error)?.name === 'AbortError') {
+        // Cancelación pedida desde afuera se propaga tal cual; si nadie la
+        // pidió, el que abortó fue el timeout interno
+        if (signal?.aborted) throw e
+        throw new Error('La impresora no respondió. Tiempo de espera agotado.')
+      }
       if (e instanceof TypeError && e.message === 'Failed to fetch') {
         throw new Error('No se pudo conectar al servicio de impresión. Verifique la conexión.')
       }
       throw new Error((e as Error)?.message ?? 'Error al comunicarse con la impresora.')
+    } finally {
+      clearTimeout(timeoutId)
+      signal?.removeEventListener('abort', onExternalAbort)
     }
   }
 
-  async printFactura(data: Record<string, unknown>): Promise<PrinterApiResponse> {
-    return this.sendRequest('PrintFactura', data)
+  async printFactura(data: Record<string, unknown>, signal?: AbortSignal): Promise<PrinterApiResponse> {
+    return this.sendRequest('PrintFactura', data, signal)
   }
 
-  async printNotaCredito(data: Record<string, unknown>): Promise<PrinterApiResponse> {
-    return this.sendRequest('PrintNotadeCredito', data)
+  async printNotaCredito(data: Record<string, unknown>, signal?: AbortSignal): Promise<PrinterApiResponse> {
+    return this.sendRequest('PrintNotadeCredito', data, signal)
   }
 
-  async printNotaDebito(data: Record<string, unknown>): Promise<PrinterApiResponse> {
-    return this.sendRequest('PrintNotadeDebito', data)
+  async printNotaDebito(data: Record<string, unknown>, signal?: AbortSignal): Promise<PrinterApiResponse> {
+    return this.sendRequest('PrintNotadeDebito', data, signal)
   }
 
-  async printNoFiscal(items: NoFiscalItem[]): Promise<PrinterApiResponse> {
-    return this.sendRequest('PrintDocumentoNoFiscal', { Items: items })
+  async printNoFiscal(items: NoFiscalItem[], signal?: AbortSignal): Promise<PrinterApiResponse> {
+    return this.sendRequest('PrintDocumentoNoFiscal', { Items: items }, signal)
   }
 
   private normalizeResponse(response: Record<string, unknown>): PrinterApiResponse {

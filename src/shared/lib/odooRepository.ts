@@ -252,7 +252,9 @@ export async function fetchProducts(fixedProductIds: number[] = []): Promise<Kio
   return raw.map(r => {
     const p = mapProduct(r, taxRateMap)
     p.priceUsd = p.price
-    if (rate > 1) {
+    // Cualquier tasa positiva es válida (una tasa legítima puede ser ≤ 1);
+    // solo se omite el 0/negativo que indicaría un dato corrupto del backend
+    if (rate > 0) {
       p.price = p.price * rate
     }
     return p
@@ -285,7 +287,7 @@ export async function fetchOrder(id: number): Promise<KioskOrder> {
 }
 
 export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
-  const domain: any[] = [['x_is_paid', '=', false]]
+  const domain: unknown[] = [['x_is_paid', '=', false]]
   if (pattern.trim()) {
     domain.push(
       '|', ['name', 'ilike', pattern],
@@ -440,7 +442,7 @@ export async function pingStation(stationId: number): Promise<LinkedStation> {
 }
 
 export async function fetchActiveSession(stationId: number): Promise<{ id: number; openingDate: string } | null> {
-  const sessions = await odooEnv.callMethod<any[]>(
+  const sessions = await odooEnv.callMethod<{ id: number; opening_date: string }[]>(
     'x.pos.session',
     'search_read',
     [[['station_id', '=', stationId], ['state', '=', 'active']]],
@@ -487,7 +489,7 @@ export async function closeOdooSession(sessionId: number): Promise<void> {
 }
 
 export async function fetchCashier(uid: number, stationId: number): Promise<{ id: number; name: string } | null> {
-  const result = await odooEnv.callMethod<any>(
+  const result = await odooEnv.callMethod<{ cashierId: number | false; name: string } | false>(
     'x.pos.cashier',
     'action_get_cashier_by_user',
     [uid, stationId]

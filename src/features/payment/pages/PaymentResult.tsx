@@ -12,6 +12,7 @@ export function PaymentResult() {
 
   const isSuccess = state === 'success'
   const isError = state === 'paymentError'
+  const isPrintError = state === 'printingError'
   const isProcessing = state === 'processing' || state === 'printing'
 
   useEffect(() => {
@@ -28,10 +29,10 @@ export function PaymentResult() {
   }, [isSuccess, clearCart, context])
 
   useEffect(() => {
-    if (!isSuccess && !isError && !isProcessing) {
+    if (!isSuccess && !isError && !isPrintError && !isProcessing) {
       navigate('/')
     }
-  }, [isSuccess, isError, isProcessing, navigate])
+  }, [isSuccess, isError, isPrintError, isProcessing, navigate])
 
   if (isProcessing) {
     return (
@@ -40,6 +41,28 @@ export function PaymentResult() {
         <p className={styles.processingText}>
           {state === 'printing' ? 'Imprimiendo factura...' : 'Procesando pago...'}
         </p>
+      </div>
+    )
+  }
+
+  // El pago YA se registró en Odoo pero la factura fiscal no salió: hay que
+  // ofrecer reintento de impresión antes de dar la venta por cerrada
+  if (isPrintError) {
+    return (
+      <div className={`kiosk-container ${styles.center}`}>
+        <div className={styles.iconError}>⚠</div>
+        <h2 className={styles.title}>Pago registrado, factura pendiente</h2>
+        <p className={styles.message}>
+          {context.printError ?? 'No se pudo imprimir la factura fiscal.'}
+        </p>
+        <div className={styles.actions}>
+          <button type="button" className="btn btn-primary" onClick={() => send({ type: 'RETRY' })}>
+            Reintentar impresión
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => send({ type: 'CONTINUE' })}>
+            Continuar sin factura
+          </button>
+        </div>
       </div>
     )
   }

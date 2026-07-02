@@ -17,6 +17,7 @@ const STATE_INDEX: Record<string, number> = {
   enteringDetails: 3,
   processing: 4,
   printing: 4,
+  printingError: 4,
   success: 5,
   paymentError: 3
 }

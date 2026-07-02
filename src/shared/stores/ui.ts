@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Toast } from '@/shared/types/types'
+import { randomUUID } from '@/shared/lib/cryptoUtils'
 
 interface UIState {
   loading: boolean
@@ -22,7 +23,7 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   },
 
   pushToast(type, message, sticky = false) {
-    const id = crypto.randomUUID()
+    const id = randomUUID()
     set((s) => ({ toasts: [...s.toasts, { id, type, message, sticky }] }))
 
     if (!sticky) {

@@ -5,6 +5,7 @@ import { FiscalPrinterAdapter } from '@/shared/lib/fiscalPrinter'
 import { buildFacturaPayload } from '@/shared/lib/printPayload'
 import { buildSaleOrderPayload } from '@/shared/lib/saleOrderPayload'
 import { useConfigStore } from '@/shared/stores/config'
+import { randomUUID } from '@/shared/lib/cryptoUtils'
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -14,6 +15,7 @@ export interface SaleContext {
   cart: CartItem[]
   selectedMethod: KioskPaymentMethod | null
   activePayment: ActivePayment | null
+  saleAttemptId: string | null      // x_fex_id: estable durante todo el intento de venta (dedup en Odoo)
   odooOrderId: number | null        // id de la orden creada en Odoo, para registrar el n° fiscal
   printerResult: PrinterInvoiceData | null
   errorMessage: string | null
@@ -34,6 +36,7 @@ export type SaleEvent =
   | { type: 'SUBMIT_PAYMENT'; payment: ActivePayment }
   | { type: 'TICK' }
   | { type: 'RETRY' }
+  | { type: 'CONTINUE' }
   | { type: 'BACK' }
   | { type: 'RESET' }
 
@@ -46,20 +49,20 @@ const countdownTick = fromCallback(({ sendBack }) => {
 
 const submitPaymentToOdoo = fromPromise<
   unknown,
-  { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod }
+  { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string }
 >(async ({ input }) => {
-  const { customer, cart, payment, method } = input
-  const payload = buildSaleOrderPayload(customer, cart, payment, method)
+  const { customer, cart, payment, method, attemptId } = input
+  const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
   return createSaleOrder(payload)
 })
 
 const printFiscalInvoice = fromPromise<
   PrinterInvoiceData,
   { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }
->(async ({ input }) => {
+>(async ({ input, signal }) => {
   const { customer, cart, method, printerUrl, printerModel } = input
   const printer = new FiscalPrinterAdapter(printerUrl, printerModel)
-  
+
   const totalBs = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const igtfBs = method.applyIgtf ? totalBs * (method.igtfPercent / 100) : 0
   const totalAmountBs = totalBs + igtfBs
@@ -71,7 +74,7 @@ const printFiscalInvoice = fromPromise<
     method,
     totalAmountBs
   )
-  const response = await printer.printFactura(payload as Record<string, unknown>)
+  const response = await printer.printFactura(payload as Record<string, unknown>, signal)
   return {
     code: String(response.numfactura || response.numNota || ''),
     date: `${response.fecha} ${response.hora}`.trim(),
@@ -105,6 +108,13 @@ export const saleMachine = setup({
       activePayment: ({ event }) =>
         (event as Extract<SaleEvent, { type: 'SUBMIT_PAYMENT' }>).payment
     }),
+    // Genera el x_fex_id UNA sola vez por intento de venta y lo conserva en
+    // los reintentos: si Odoo creó la orden pero el timeout se comió la
+    // respuesta, el retry repite el mismo id y el backend deduplica en vez de
+    // duplicar la venta. Solo se limpia en resetContext (venta nueva).
+    ensureSaleAttemptId: assign({
+      saleAttemptId: ({ context }) => context.saleAttemptId ?? randomUUID()
+    }),
     setOdooOrderId: assign({
       odooOrderId: ({ event }) => {
         const output = (event as { type: string; output?: { id?: number } }).output
@@ -136,6 +146,7 @@ export const saleMachine = setup({
       }
     }),
     clearError: assign({ errorMessage: null }),
+    clearPrintError: assign({ printError: null }),
     startCountdown: assign({ countdown: 10 }),
     decrementCountdown: assign({ countdown: ({ context }) => context.countdown - 1 }),
     resetContext: assign({
@@ -144,6 +155,7 @@ export const saleMachine = setup({
       cart: [],
       selectedMethod: null,
       activePayment: null,
+      saleAttemptId: null,
       odooOrderId: null,
       printerResult: null,
       errorMessage: null,
@@ -160,6 +172,7 @@ export const saleMachine = setup({
     cart: [],
     selectedMethod: null,
     activePayment: null,
+    saleAttemptId: null,
     odooOrderId: null,
     printerResult: null,
     errorMessage: null,
@@ -208,6 +221,7 @@ export const saleMachine = setup({
     },
  
     enteringDetails: {
+      entry: 'ensureSaleAttemptId',
       on: {
         SUBMIT_PAYMENT: { target: 'processing', actions: 'setPayment' },
         SELECT_METHOD: { target: 'enteringDetails', actions: 'setMethod' },
@@ -215,19 +229,20 @@ export const saleMachine = setup({
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
- 
+
     processing: {
       invoke: {
         src: 'submitPaymentToOdoo',
         input: ({ context }) => {
-          if (!context.customer || !context.activePayment || !context.selectedMethod) {
-            throw new Error('Estado inválido: falta customer, payment o method')
+          if (!context.customer || !context.activePayment || !context.selectedMethod || !context.saleAttemptId) {
+            throw new Error('Estado inválido: falta customer, payment, method o attemptId')
           }
           return {
             customer: context.customer,
             cart: context.cart,
             payment: context.activePayment,
-            method: context.selectedMethod
+            method: context.selectedMethod,
+            attemptId: context.saleAttemptId
           }
         },
         onDone: { target: 'printing', actions: ['clearError', 'setOdooOrderId'] },
@@ -255,9 +270,21 @@ export const saleMachine = setup({
           }
         },
         onDone: { target: 'success', actions: ['setPrinterResult', 'persistPrinterData'] },
-        onError: { target: 'success', actions: 'setPrintError' }
+        // La venta ya se cobró en Odoo pero la factura fiscal no salió: no se
+        // puede dar por exitosa sin ofrecer reintento (obligación fiscal).
+        onError: { target: 'printingError', actions: 'setPrintError' }
       },
       on: {
+        RESET: { target: 'idle', actions: 'resetContext' }
+      }
+    },
+
+    printingError: {
+      on: {
+        RETRY: { target: 'printing', actions: 'clearPrintError' },
+        // El operador decide continuar sin factura: printError queda en el
+        // context para que la pantalla de éxito muestre la advertencia
+        CONTINUE: 'success',
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },

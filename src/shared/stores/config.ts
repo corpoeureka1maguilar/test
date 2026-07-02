@@ -1,7 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { odooEnv } from '@/shared/lib/odooEnv'
+import { odooEnv, isMissingRecordError } from '@/shared/lib/odooEnv'
+import { useUIStore } from '@/shared/stores/ui'
 import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState, fetchBranchFixedProducts } from '@/shared/lib/odooRepository'
+import { hashPin, verifyPinHash, isLegacyPinHash, randomUUID } from '@/shared/lib/cryptoUtils'
+import { saveSecret, loadSecret, deleteSecret } from '@/shared/lib/secureStorage'
+
+// La password del usuario de servicio vive cifrada (ver secureStorage), nunca
+// en el JSON plano de zustand/persist
+const SERVICE_PASSWORD_SECRET = 'service-password'
 
 // En dev: proxy de Vite en la misma origin
 // En prod con app central: proxy local en localhost:9191
@@ -17,11 +24,6 @@ async function setProxyTarget(url: string) {
   } catch {
     // ignorar si el proxy no está corriendo
   }
-}
-
-async function sha256(data: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data))
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 interface ConfigState {
@@ -80,8 +82,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       isConnectionReady: false,
 
       async saveConfig(data) {
-        const pinHash = await sha256(data.adminPin)
-        const appToken = crypto.randomUUID()
+        const pinHash = hashPin(data.adminPin)
+        const appToken = randomUUID()
 
         await setProxyTarget(data.odooUrl)
 
@@ -92,6 +94,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         })
 
         await odooEnv.authenticate(data.serviceUser)
+
+        await saveSecret(SERVICE_PASSWORD_SECRET, data.servicePassword)
 
         const companyLogo = await fetchCompanyLogo().catch(() => '')
 
@@ -146,6 +150,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
 
       clearConfig() {
         odooEnv.disconnect()
+        deleteSecret(SERVICE_PASSWORD_SECRET)
         set({
           odooUrl: '',
           odooDb: '',
@@ -167,13 +172,31 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       },
 
       async verifyPin(pin) {
-        const hash = await sha256(pin)
-        return hash === get().adminPinHash
+        const stored = get().adminPinHash
+        const ok = verifyPinHash(pin, stored)
+        // Upgrade transparente: configs viejas guardaban SHA-256 plano sin salt
+        if (ok && isLegacyPinHash(stored)) {
+          set({ adminPinHash: hashPin(pin) })
+        }
+        return ok
       },
 
       async reauthenticate() {
-        const { odooUrl, odooDb, serviceUser, servicePassword, stationId, isConfigured } = get()
+        const { odooUrl, odooDb, serviceUser, stationId, isConfigured } = get()
         if (!isConfigured) return
+
+        // La password vive cifrada fuera del estado persistido; tras un reload
+        // hay que recuperarla. Configs viejas la tenían en texto plano dentro
+        // del JSON de persist: se migra al almacenamiento cifrado y el próximo
+        // write de persist la elimina del JSON (ya no está en partialize).
+        let servicePassword = get().servicePassword
+        if (!servicePassword) {
+          servicePassword = await loadSecret(SERVICE_PASSWORD_SECRET)
+          if (servicePassword) set({ servicePassword })
+        } else if (!(await loadSecret(SERVICE_PASSWORD_SECRET))) {
+          await saveSecret(SERVICE_PASSWORD_SECRET, servicePassword)
+        }
+
         try {
           await setProxyTarget(odooUrl)
           odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })
@@ -190,6 +213,21 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             : get().fixedProductIds
           set({ isConnectionReady: true, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds })
         } catch (err) {
+          // La estación fue borrada en Odoo (p. ej. la duplicaron y eliminaron
+          // la original): error PERMANENTE, reintentar deja la caja bloqueada
+          // para siempre. Se desvincula la estación para que el kiosko caiga a
+          // /setup (el token vuelve a ser obligatorio) conservando credenciales
+          // e impresora, y se corta el loop de reintentos (no se relanza).
+          if (isMissingRecordError(err)) {
+            console.error('[config] La estación ya no existe en Odoo; se requiere re-vinculación:', err)
+            set({ isConfigured: false, isConnectionReady: false, stationId: 0, stationName: '' })
+            useUIStore.getState().pushToast(
+              'error',
+              'La estación de este kiosko fue eliminada en Odoo. Vincúlela nuevamente con un token de configuración.',
+              true
+            )
+            return
+          }
           set({ isConnectionReady: false })
           throw err
         }
@@ -197,11 +235,11 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
     }),
     {
       name: 'autopay-config',
+      // servicePassword NO se persiste acá: va cifrada vía secureStorage
       partialize: (state) => ({
         odooUrl: state.odooUrl,
         odooDb: state.odooDb,
         serviceUser: state.serviceUser,
-        servicePassword: state.servicePassword,
         printerUrl: state.printerUrl,
         printerModel: state.printerModel,
         adminPinHash: state.adminPinHash,

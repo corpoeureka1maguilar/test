@@ -38,6 +38,7 @@ export function AdvancedMenu() {
   const [done, setDone] = useState(false)
   const [metrics, setMetrics] = useState(() => getMetrics())
   const [pendingAction, setPendingAction] = useState<PendingAdminAction | null>(null)
+  const [isTerminalUnlocked, setIsTerminalUnlocked] = useState(false)
   const rate = useExchangeRateStore((s) => s.rate)
   const setRate = useExchangeRateStore((s) => s.setRate)
   const isConnectionReady = config.isConnectionReady
@@ -117,6 +118,24 @@ export function AdvancedMenu() {
     printerModel: config.printerModel,
     adminPin: ''
   })
+
+  // La pestaña Terminal es de solo lectura por defecto: hay que confirmar el
+  // PIN de administrador para desbloquear la edición. Se vuelve a bloquear
+  // al salir de la pestaña para no dejarla editable si alguien la abandona.
+  useEffect(() => {
+    if (activeTab !== 'terminal') {
+      setIsTerminalUnlocked(false)
+      setForm((f) => ({ ...f, adminPin: '' }))
+    }
+  }, [activeTab])
+
+  const requestUnlockTerminal = () => {
+    setPendingAction({
+      title: 'Confirmá tu PIN para modificar la configuración',
+      operationRef: KIOSK_OPERATIONS.terminalConfig,
+      run: () => setIsTerminalUnlocked(true)
+    })
+  }
 
   const { data: results = [], isFetching } = useSearchOrders(pattern)
   const { data: orderDetail } = useOrder(selectedOrder?.id ?? null)
@@ -241,25 +260,18 @@ export function AdvancedMenu() {
     }
   }
 
-  const handleSaveConfig = (e: React.FormEvent) => {
+  const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault()
     if (form.adminPin.length < 4) {
       pushToast('error', 'El PIN de administrador debe tener al menos 4 dígitos')
       return
     }
-    setPendingAction({
-      title: 'Confirmá tu PIN para guardar la configuración',
-      operationRef: KIOSK_OPERATIONS.terminalConfig,
-      run: doSaveConfig
-    })
-  }
-
-  const doSaveConfig = async () => {
     setLoading(true)
     try {
       await config.saveConfig(form)
       pushToast('success', 'Configuración de la terminal guardada y sincronizada')
-      setForm(f => ({ ...f, adminPin: '' })) // Limpiar el pin por seguridad
+      setForm((f) => ({ ...f, adminPin: '' })) // Limpiar el pin por seguridad
+      setIsTerminalUnlocked(false) // Vuelve a modo solo lectura tras guardar
     } catch (err) {
       pushToast('error', `Error al guardar configuración: ${(err as Error).message}`)
     } finally {
@@ -518,30 +530,38 @@ export function AdvancedMenu() {
         <form className={styles.configForm} onSubmit={handleSaveConfig}>
           <div className={styles.formGrid}>
             <label className={styles.fieldLabel}>URL de Odoo
-              <input type="text" value={form.odooUrl} onChange={setFormField('odooUrl')} placeholder="https://mi-empresa.odoo.com" required />
+              <input type="text" value={form.odooUrl} onChange={setFormField('odooUrl')} placeholder="https://mi-empresa.odoo.com" required disabled={!isTerminalUnlocked} />
             </label>
             <label className={styles.fieldLabel}>Base de datos
-              <input type="text" value={form.odooDb} onChange={setFormField('odooDb')} placeholder="mi_base" required />
+              <input type="text" value={form.odooDb} onChange={setFormField('odooDb')} placeholder="mi_base" required disabled={!isTerminalUnlocked} />
             </label>
             <label className={styles.fieldLabel}>Usuario de servicio
-              <input type="text" value={form.serviceUser} onChange={setFormField('serviceUser')} placeholder="kiosco@empresa.com" required />
+              <input type="text" value={form.serviceUser} onChange={setFormField('serviceUser')} placeholder="kiosco@empresa.com" required disabled={!isTerminalUnlocked} />
             </label>
             <label className={styles.fieldLabel}>Contraseña de Odoo
-              <input type="password" value={form.servicePassword} onChange={setFormField('servicePassword')} required />
+              <input type="password" value={form.servicePassword} onChange={setFormField('servicePassword')} required disabled={!isTerminalUnlocked} />
             </label>
             <label className={styles.fieldLabel}>URL Impresora Fiscal
-              <input type="text" value={form.printerUrl} onChange={setFormField('printerUrl')} required />
+              <input type="text" value={form.printerUrl} onChange={setFormField('printerUrl')} required disabled={!isTerminalUnlocked} />
             </label>
             <label className={styles.fieldLabel}>Modelo Impresora Fiscal
-              <input type="text" value={form.printerModel} onChange={setFormField('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." />
+              <input type="text" value={form.printerModel} onChange={setFormField('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." disabled={!isTerminalUnlocked} />
             </label>
-            <label className={styles.fieldLabel}>PIN de Administrador (para confirmar)
-              <input type="password" value={form.adminPin} onChange={setFormField('adminPin')} maxLength={6} required placeholder="PIN de 4 a 6 dígitos" />
-            </label>
+            {isTerminalUnlocked && (
+              <label className={styles.fieldLabel}>PIN de Administrador (nuevo)
+                <input type="password" value={form.adminPin} onChange={setFormField('adminPin')} maxLength={6} required placeholder="PIN de 4 a 6 dígitos" />
+              </label>
+            )}
           </div>
-          <button type="submit" className="btn btn-accent" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }}>
-            Guardar Configuración
-          </button>
+          {isTerminalUnlocked ? (
+            <button type="submit" className="btn btn-accent" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }}>
+              Guardar Configuración
+            </button>
+          ) : (
+            <button type="button" className="btn btn-secondary" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }} onClick={requestUnlockTerminal}>
+              Modificar Configuración
+            </button>
+          )}
         </form>
       )}
 
