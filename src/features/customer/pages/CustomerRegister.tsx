@@ -10,17 +10,18 @@ import { isValidVenezuelanPhone } from '@/shared/lib/paymentUtils'
 import styles from './CustomerRegister.module.css'
 
 export function CustomerRegister() {
-  const { send, context } = useSaleMachine()
+  const { send, context, matches } = useSaleMachine()
   const navigate = useNavigate()
   const { mutateAsync: createPartner, isPending } = useCreatePartner()
   const pushToast = useUIStore(s => s.pushToast)
   const branchState = useConfigStore(s => s.branchState)
 
   useEffect(() => {
-    if (!context.pendingVat) {
+    const isRegisterState = matches('registeringCustomer') || matches('enteringCedula')
+    if (!isRegisterState || (matches('registeringCustomer') && !context.pendingVat)) {
       navigate('/cedula')
     }
-  }, [context.pendingVat, navigate])
+  }, [context.pendingVat, matches, navigate])
 
   const [form, setForm] = useState({
     name: '',
@@ -35,7 +36,26 @@ export function CustomerRegister() {
 
   const vat = context.pendingVat ?? ''
   console.log('DEBUG CustomerRegister: context.pendingVat =', context.pendingVat, 'vat =', vat)
-  const formattedVat = vat.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')
+  const formatVatForUI = (v: string) => {
+    const parts = v.split('-')
+    if (parts.length === 2 && parts[0] === 'V') {
+      const digits = parts[1].replace(/^0+/, '')
+      const formattedDigits = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+      return `V-${formattedDigits || '0'}`
+    }
+    return v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')
+  }
+  const formattedVat = formatVatForUI(vat)
+
+  useEffect(() => {
+    setForm({
+      name: '',
+      phone: '',
+      estado: branchState,
+      street: ''
+    })
+  }, [vat, branchState])
+
   const set = (field: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm(f => ({ ...f, [field]: e.target.value }))

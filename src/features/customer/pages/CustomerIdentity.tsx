@@ -19,7 +19,20 @@ export function CustomerIdentity() {
   const [prefix, setPrefix] = useState<Prefix>('V')
   const [digits, setDigits] = useState('')
 
-  const formatDigits = (d: string) => d.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const formatDigits = (d: string) => {
+    let cleanDigits = d
+    if (prefix === 'V') {
+      cleanDigits = d.replace(/^0+/, '')
+    }
+    return cleanDigits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  }
+
+  useEffect(() => {
+    if (!matches('enteringCedula') && !matches('idle')) {
+      send({ type: 'RESET' })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (matches('idle')) {
@@ -43,7 +56,7 @@ export function CustomerIdentity() {
     }
 
     const limit = (p === 'V' || p === 'E') ? 8 : 9
-    const padded = d.padEnd(limit, '0')
+    const padded = p === 'V' ? d.padStart(limit, '0') : d.padEnd(limit, '0')
     const partner = await search(`${p}-${padded}`)
     if (partner) {
       send({ type: 'FOUND', customer: partner })
