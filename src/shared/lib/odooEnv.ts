@@ -129,6 +129,12 @@ class JSONRpcEnv implements OdooEnvService {
       if (!res.ok) {
         const msg = `${res.status} ${res.statusText}`
         console.error('[OdooEnv] HTTP error:', msg)
+        // 5xx errors typically mean the server is down or misconfigured
+        if (res.status >= 500) {
+          import('@/shared/stores/config').then(({ useConfigStore }) => {
+            useConfigStore.setState({ isConnectionReady: false, isOffline: true })
+          }).catch(console.error)
+        }
         throw new Error(msg)
       }
       return res.json()
@@ -139,12 +145,18 @@ class JSONRpcEnv implements OdooEnvService {
         // vea un mensaje útil y no una "cancelación" que nunca pidió
         if (timedOut) {
           console.error(`[OdooEnv] Timeout tras ${TIMEOUT / 1000}s`)
+          import('@/shared/stores/config').then(({ useConfigStore }) => {
+            useConfigStore.setState({ isConnectionReady: false, isOffline: true })
+          }).catch(console.error)
           throw new Error('El servidor no respondió a tiempo. Verifique la conexión e intente de nuevo.')
         }
         throw new RpcAbortedError()
       }
       const msg = error instanceof Error ? error.message : 'No se pudo contactar al servidor'
       console.error('[OdooEnv] Network error:', msg)
+      import('@/shared/stores/config').then(({ useConfigStore }) => {
+        useConfigStore.setState({ isConnectionReady: false, isOffline: true })
+      }).catch(console.error)
       throw new Error(msg)
     } finally {
       if (abortable) this.#controllers.delete(controller)

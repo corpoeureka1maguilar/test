@@ -9,6 +9,7 @@ import { useCartStore } from '@/features/cart/stores/cart'
 import { getMetrics, trackView, trackViewDuration } from '@/shared/lib/metrics'
 import { syncMetrics } from '@/shared/lib/odooRepository'
 import { useConfigStore } from '@/shared/stores/config'
+import { OfflineOverlay } from '@/shared/components/OfflineOverlay'
 
 const INACTIVITY_WARNING_MS = 60_000
 const INACTIVITY_COUNTDOWN_S = 30
@@ -136,6 +137,7 @@ export function RootLayout() {
           onTimeout={resetKiosk}
         />
       )}
+      <OfflineOverlay />
     </div>
   )
 }

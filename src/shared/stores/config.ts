@@ -43,6 +43,7 @@ interface ConfigState {
   companyLogo: string
   isConfigured: boolean
   isConnectionReady: boolean
+  isOffline: boolean
 }
 
 interface ConfigActions {
@@ -80,6 +81,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       companyLogo: '',
       isConfigured: false,
       isConnectionReady: false,
+      isOffline: false,
 
       async saveConfig(data) {
         const pinHash = hashPin(data.adminPin)
@@ -123,7 +125,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             appToken,
             companyLogo,
             isConfigured: true,
-            isConnectionReady: true
+            isConnectionReady: true,
+            isOffline: false
           })
         } else {
           const { stationId, stationName, branchId, branchState, fixedProductIds, appToken: existingToken } = get()
@@ -143,7 +146,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             appToken: existingToken,
             companyLogo,
             isConfigured: true,
-            isConnectionReady: true
+            isConnectionReady: true,
+            isOffline: false
           })
         }
       },
@@ -167,7 +171,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           appToken: '',
           companyLogo: '',
           isConfigured: false,
-          isConnectionReady: false
+          isConnectionReady: false,
+          isOffline: false
         })
       },
 
@@ -211,7 +216,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const fixedProductIds = station.branchId
             ? await fetchBranchFixedProducts(station.branchId).catch(() => get().fixedProductIds)
             : get().fixedProductIds
-          set({ isConnectionReady: true, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds })
+          set({ isConnectionReady: true, isOffline: false, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds })
         } catch (err) {
           // La estación fue borrada en Odoo (p. ej. la duplicaron y eliminaron
           // la original): error PERMANENTE, reintentar deja la caja bloqueada
@@ -220,7 +225,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           // e impresora, y se corta el loop de reintentos (no se relanza).
           if (isMissingRecordError(err)) {
             console.error('[config] La estación ya no existe en Odoo; se requiere re-vinculación:', err)
-            set({ isConfigured: false, isConnectionReady: false, stationId: 0, stationName: '' })
+            set({ isConfigured: false, isConnectionReady: false, isOffline: false, stationId: 0, stationName: '' })
             useUIStore.getState().pushToast(
               'error',
               'La estación de este kiosko fue eliminada en Odoo. Vincúlela nuevamente con un token de configuración.',
@@ -228,7 +233,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             )
             return
           }
-          set({ isConnectionReady: false })
+          set({ isConnectionReady: false, isOffline: true })
           throw err
         }
       }
