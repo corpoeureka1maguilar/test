@@ -135,6 +135,45 @@ describe('saleMachine — payment processing', () => {
     expect(actor.getSnapshot().context.printerResult).toEqual({ code: '001', date: '2026-06-30 10:00', serial: 'A1' })
   })
 
+  it('RESET while processing cancels the in-flight submission and returns to idle', async () => {
+    const neverResolving = fromPromise<unknown, { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod }>(
+      () => new Promise(() => {})
+    )
+    const stuckMachine = saleMachine.provide({
+      actors: { submitPaymentToOdoo: neverResolving }
+    })
+    const actor = createActor(stuckMachine)
+    actor.start()
+    runToEnteringDetails(actor)
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+    expect(actor.getSnapshot().value).toBe('processing')
+
+    actor.send({ type: 'RESET' })
+    expect(actor.getSnapshot().value).toBe('idle')
+    expect(actor.getSnapshot().context.cart).toEqual([])
+  })
+
+  it('RESET while printing cancels the in-flight print job and returns to idle', async () => {
+    const neverResolving = fromPromise<PrinterInvoiceData, { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }>(
+      () => new Promise(() => {})
+    )
+    const stuckMachine = saleMachine.provide({
+      actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: neverResolving }
+    })
+    const actor = createActor(stuckMachine)
+    actor.start()
+    runToEnteringDetails(actor)
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('printing')
+    })
+
+    actor.send({ type: 'RESET' })
+    expect(actor.getSnapshot().value).toBe('idle')
+    expect(actor.getSnapshot().context.cart).toEqual([])
+  })
+
   it('still reaches success (degraded) when printing fails after a successful payment', async () => {
     const degradedMachine = saleMachine.provide({
       actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: printRejecting }

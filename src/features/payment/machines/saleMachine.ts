@@ -232,9 +232,12 @@ export const saleMachine = setup({
         },
         onDone: { target: 'printing', actions: ['clearError', 'setOdooOrderId'] },
         onError: { target: 'paymentError', actions: 'setPaymentError' }
+      },
+      on: {
+        RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
- 
+
     printing: {
       invoke: {
         src: 'printFiscalInvoice',
@@ -253,6 +256,9 @@ export const saleMachine = setup({
         },
         onDone: { target: 'success', actions: ['setPrinterResult', 'persistPrinterData'] },
         onError: { target: 'success', actions: 'setPrintError' }
+      },
+      on: {
+        RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
 

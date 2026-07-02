@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useInactivityTimer } from '@/shared/hooks/useInactivityTimer'
 import { AppStepper } from '@/features/cart/components/AppStepper'
 import { AppInactivityModal } from '@/shared/components/AppInactivityModal'
 import { useCartStore } from '@/features/cart/stores/cart'
-import { trackView, trackViewDuration } from '@/shared/lib/metrics'
+import { getMetrics, trackView, trackViewDuration } from '@/shared/lib/metrics'
+import { syncMetrics } from '@/shared/lib/odooRepository'
+import { useConfigStore } from '@/shared/stores/config'
 
 const INACTIVITY_WARNING_MS = 60_000
 const INACTIVITY_COUNTDOWN_S = 30
+const METRICS_SYNC_INTERVAL_MS = 10 * 60 * 1000
 
 export function RootLayout() {
   const { state, send } = useSaleMachine()
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
   const [showInactivityWarning, setShowInactivityWarning] = useState(false)
 
   const currentAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -24,8 +29,11 @@ export function RootLayout() {
     // próximo cliente heredaría los productos de la compra abandonada
     useCartStore.getState().clearCart()
     send({ type: 'RESET' })
+    // La compra cancelada puede haber dejado precios/stock cacheados; el
+    // próximo cliente debe arrancar con datos frescos, no con lo que quedó en caché
+    queryClient.invalidateQueries({ queryKey: ['products'] })
     navigate('/')
-  }, [send, navigate])
+  }, [send, navigate, queryClient])
 
   const handleInactive = useCallback(() => {
     if (showInactivityWarning) return
@@ -98,6 +106,22 @@ export function RootLayout() {
     }
   }, [state])
 
+  // Sincroniza periódicamente el snapshot de métricas locales con Odoo, para
+  // no perderlas si el kiosco se resetea o queda sin memoria persistente
+  useEffect(() => {
+    const syncNow = () => {
+      const { stationId, branchId, isConnectionReady } = useConfigStore.getState()
+      if (!isConnectionReady || !stationId) return
+      syncMetrics(stationId, branchId, getMetrics()).catch((err) => {
+        console.error('Error sincronizando métricas con Odoo:', err)
+      })
+    }
+
+    syncNow()
+    const interval = setInterval(syncNow, METRICS_SYNC_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <AppStepper />
@@ -108,6 +132,7 @@ export function RootLayout() {
         <AppInactivityModal
           seconds={INACTIVITY_COUNTDOWN_S}
           onContinue={() => setShowInactivityWarning(false)}
+          onCancel={resetKiosk}
           onTimeout={resetKiosk}
         />
       )}

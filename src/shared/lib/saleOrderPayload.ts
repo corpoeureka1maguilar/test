@@ -1,5 +1,6 @@
 import type { KioskPartner, CartItem, ActivePayment, KioskPaymentMethod } from '@/shared/types/types'
 import { useSessionStore } from '@/shared/stores/session'
+import { useConfigStore } from '@/shared/stores/config'
 import { odooEnv } from '@/shared/lib/odooEnv'
 
 export function buildSaleOrderPayload(
@@ -10,6 +11,7 @@ export function buildSaleOrderPayload(
 ) {
   const sessionId = useSessionStore.getState().sessionId
   const cashierId = useSessionStore.getState().cashierId
+  const stationId = useConfigStore.getState().stationId
   const uid = odooEnv.uid
 
   return {
@@ -21,11 +23,12 @@ export function buildSaleOrderPayload(
     isCreditOrder: false,
     rate: method.currencyRate || 1,
     date: new Date().toISOString(),
-    
-    // Sesión y Cajero
+
+    // Sesión, Cajero y Estación
     user: uid || undefined,
     cashier: cashierId || undefined,
     session: sessionId || undefined,
+    station: stationId || undefined,
 
     // Líneas — field names que lee _action_parse_pos_data de sale.order.line
     lines: cart.map(item => ({

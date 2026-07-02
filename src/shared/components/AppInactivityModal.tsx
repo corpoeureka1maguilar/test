@@ -4,10 +4,11 @@ import styles from './AppInactivityModal.module.css'
 interface Props {
   seconds: number
   onContinue: () => void
+  onCancel: () => void
   onTimeout: () => void
 }
 
-export function AppInactivityModal({ seconds, onContinue, onTimeout }: Props) {
+export function AppInactivityModal({ seconds, onContinue, onCancel, onTimeout }: Props) {
   const [remaining, setRemaining] = useState(seconds)
 
   useEffect(() => {
@@ -29,9 +30,14 @@ export function AppInactivityModal({ seconds, onContinue, onTimeout }: Props) {
         <h2 id="inactivity-title" className={styles.title}>¿Seguís ahí?</h2>
         <p className={styles.message}>Tu compra se cancelará por inactividad en</p>
         <span className={styles.countdown}>{Math.max(remaining, 0)}</span>
-        <button className="btn btn-primary" onClick={onContinue}>
-          Sí, continuar con mi compra
-        </button>
+        <div className={styles.actions}>
+          <button className="btn btn-primary" onClick={onContinue}>
+            Sí, continuar con mi compra
+          </button>
+          <button className="btn btn-secondary" onClick={onCancel}>
+            No, cancelar compra
+          </button>
+        </div>
       </div>
     </div>
   )

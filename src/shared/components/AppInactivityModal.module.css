@@ -40,3 +40,10 @@
   color: var(--app-color-danger);
   font-variant-numeric: tabular-nums;
 }
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}

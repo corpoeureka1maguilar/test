@@ -21,6 +21,31 @@ const getPrinterErrorMessage = (errorCode: string | object): string => {
   return errorMessages[code] ?? `Error de impresora: ${errorCode}`
 }
 
+// Estilos de texto para el documento no fiscal: N = negrita, C = centrado,
+// NC = negrita centrado, E = expandido, B = código de barras
+type NoFiscalStyle = 'N' | 'E' | 'C' | 'NC' | '' | 'B'
+
+export interface NoFiscalItem {
+  Texto: string
+  efecto: NoFiscalStyle
+}
+
+const ACCENTED_CHARS: Record<string, string> = {
+  Ñ: 'N', ñ: 'n', Á: 'A', á: 'a', É: 'E', é: 'e', Í: 'I', í: 'i', Ó: 'O', ó: 'o', Ú: 'U', ú: 'u'
+}
+
+// La impresora fiscal sólo acepta un set reducido de caracteres; sin este
+// saneo, tildes u otros símbolos hacen que rechace el documento completo
+const sanitizeForPrinter = (text: string): string =>
+  text
+    .replace(/[ÑñÁáÉéÍíÓóÚú]/g, (c) => ACCENTED_CHARS[c] ?? c)
+    .replace(/[^\w[\]/&|, ._+-]/g, '')
+    .slice(0, 100)
+
+export function noFiscalItem(text: string, efecto: NoFiscalStyle = ''): NoFiscalItem {
+  return { Texto: sanitizeForPrinter((text || '').slice(0, 75)), efecto }
+}
+
 export class FiscalPrinterAdapter {
   constructor(private readonly printerUrl: string, private readonly modelo?: string) {}
 
@@ -131,6 +156,10 @@ export class FiscalPrinterAdapter {
 
   async printNotaDebito(data: Record<string, unknown>): Promise<PrinterApiResponse> {
     return this.sendRequest('PrintNotadeDebito', data)
+  }
+
+  async printNoFiscal(items: NoFiscalItem[]): Promise<PrinterApiResponse> {
+    return this.sendRequest('PrintDocumentoNoFiscal', { Items: items })
   }
 
   private normalizeResponse(response: Record<string, unknown>): PrinterApiResponse {

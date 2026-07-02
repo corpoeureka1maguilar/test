@@ -7,7 +7,7 @@ import { returnOrder, fetchExchangeRate, KIOSK_OPERATIONS, type KioskOperationRe
 import { useUIStore } from '@/shared/stores/ui'
 import { useConfigStore } from '@/shared/stores/config'
 import { useSessionStore } from '@/shared/stores/session'
-import { FiscalPrinterAdapter } from '@/shared/lib/fiscalPrinter'
+import { FiscalPrinterAdapter, noFiscalItem } from '@/shared/lib/fiscalPrinter'
 import { AppPinModal } from '@/features/payment/components/AppPinModal'
 import type { KioskOrder } from '@/shared/types/types'
 import { formatBs, formatUSD } from '@/shared/lib/money'
@@ -154,33 +154,57 @@ export function AdvancedMenu() {
 
   const requestReprint = () => {
     if (!order) return
-    if (!order.printerNumber) {
-      pushToast('error', 'La orden no tiene número fiscal registrado; no se puede reimprimir')
-      return
-    }
     setPendingAction({
       title: 'Confirmá tu PIN para reimprimir la factura',
       operationRef: KIOSK_OPERATIONS.invoiceReprint,
-      auditMessage: `Reimpresión de la factura ${order.printerNumber} (orden ${order.name})`,
+      auditMessage: order.printerNumber
+        ? `Reimpresión de la factura ${order.printerNumber} (orden ${order.name})`
+        : `Reimpresión no fiscal de la orden ${order.name} (sin número fiscal registrado)`,
       run: handleReprint
     })
   }
 
-  const handleReprint = async () => {
-    if (!order?.printerNumber) return
+  // Si la orden no tiene número fiscal registrado en Odoo (x_printer_number),
+  // se reimprime una copia no fiscal en vez de bloquear la operación
+  const buildNoFiscalReceipt = (o: KioskOrder) => {
+    const separator = noFiscalItem('-'.repeat(30), 'NC')
+    const items = [
+      noFiscalItem(o.name, 'N'),
+      noFiscalItem(o.partnerId[1]),
+      separator
+    ]
+    o.lines?.forEach((line) => {
+      items.push(
+        noFiscalItem(line.productId[1]),
+        noFiscalItem(`${formatBs(line.priceUnit)} x ${line.productUomQty}`),
+        noFiscalItem(`Subtotal: ${formatBs(line.priceSubtotal)}`),
+        separator
+      )
+    })
+    items.push(noFiscalItem(`TOTAL: ${formatBs(o.amountTotal)}`, 'NC'))
+    return items
+  }
 
-    // La impresora fiscal reimprime desde su memoria por n° de factura:
-    // mismo formato que el POS, numérico con padding a 7 dígitos
-    let code = order.printerNumber
-    if (/^\d+$/.test(code)) code = String(Number(code)).padStart(7, '0')
-    code = code.slice(0, 7)
+  const handleReprint = async () => {
+    if (!order) return
 
     setLoading(true)
     try {
       const printer = new FiscalPrinterAdapter(config.printerUrl, config.printerModel)
       await printer.checkConnection()
-      await printer.sendRequest('PrintReimpresion', { tipo: 'F', desde: code, hasta: code })
-      pushToast('success', `Factura ${order.printerNumber} reimpresa con éxito`)
+
+      if (order.printerNumber) {
+        // La impresora fiscal reimprime desde su memoria por n° de factura:
+        // mismo formato que el POS, numérico con padding a 7 dígitos
+        let code = order.printerNumber
+        if (/^\d+$/.test(code)) code = String(Number(code)).padStart(7, '0')
+        code = code.slice(0, 7)
+        await printer.sendRequest('PrintReimpresion', { tipo: 'F', desde: code, hasta: code })
+        pushToast('success', `Factura ${order.printerNumber} reimpresa con éxito`)
+      } else {
+        await printer.printNoFiscal(buildNoFiscalReceipt(order))
+        pushToast('success', 'Copia no fiscal de la orden impresa con éxito')
+      }
     } catch (err) {
       pushToast('error', `Error al reimprimir: ${(err as Error).message}`)
     } finally {
@@ -384,12 +408,12 @@ export function AdvancedMenu() {
                   <p className={styles.info}>
                     {order.printerNumber
                       ? `N° de factura fiscal: ${order.printerNumber}`
-                      : 'Esta orden no tiene número fiscal registrado; no se puede reimprimir'}
+                      : 'Esta orden no tiene número fiscal registrado; se reimprimirá como copia no fiscal'}
                   </p>
                 </div>
               )}
               <div className={styles.actions}>
-                <button type="button" className="btn btn-primary" onClick={requestReprint} disabled={!order?.printerNumber}>
+                <button type="button" className="btn btn-primary" onClick={requestReprint}>
                   Reimprimir factura
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={() => setSelectedOrder(null)}>
