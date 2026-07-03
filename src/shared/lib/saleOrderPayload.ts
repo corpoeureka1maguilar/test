@@ -17,10 +17,19 @@ export function buildSaleOrderPayload(
   const stationId = useConfigStore.getState().stationId
   const uid = odooEnv.uid
 
-  const isForeign = !!method.currencyRate && method.currencyRate > 1
   const globalRate = useExchangeRateStore.getState().rate || 1
-  const paymentAmountUsd = isForeign ? payment.amount : payment.amount / globalRate
-  const paymentIgtfUsd = isForeign ? payment.igtfAmount : payment.igtfAmount / globalRate
+
+  // Calcular el total con IVA en bolívares
+  const totalBs = cart.reduce((sum, item) => sum + (item.subtotal * (1 + item.taxRate)), 0)
+
+  // Calcular IGTF en bolívares si aplica
+  const igtfPercent = method.igtfPercent || 0
+  const igtfBs = method.applyIgtf ? totalBs * (igtfPercent / 100) : 0
+  const totalWithIgtfBs = totalBs + igtfBs
+
+  // El pago siempre se envía en dólares como moneda principal, convertido por la tasa global
+  const paymentAmountUsd = totalWithIgtfBs / globalRate
+  const paymentIgtfUsd = igtfBs / globalRate
 
   return {
     // UUID string → x_fex_id para deduplicar. Se genera UNA vez por intento de

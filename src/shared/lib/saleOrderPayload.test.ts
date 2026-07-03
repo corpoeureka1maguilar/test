@@ -67,17 +67,25 @@ describe('buildSaleOrderPayload', () => {
   })
 
   it('maps the payment with reference, amount, journal and IGTF', () => {
-    const payload = buildSaleOrderPayload(customer, cart, { ...payment, igtfAmount: 3.5 }, method, attemptId)
+    // Para cart totalBs = 100 * 1.16 = 116 Bs.
+    // Con applyIgtf: true y igtfPercent: 3% (igtfBs = 3.48 Bs, totalWithIgtfBs = 119.48 Bs).
+    // Dividido por globalRate 40 da: amount = 2.987 USD, igtf = 0.087 USD.
+    const payload = buildSaleOrderPayload(
+      customer,
+      cart,
+      payment,
+      { ...method, applyIgtf: true, igtfPercent: 3 },
+      attemptId
+    )
     expect(payload.payments).toHaveLength(1)
-    expect(payload.payments[0]).toMatchObject({
-      ref: 'REF-001',
-      amount: 100,
-      currency: 2,
-      rate: 40,
-      journal: 3,
-      method: 7,
-      montoIgtf: 3.5
-    })
+    const p = payload.payments[0]
+    expect(p.ref).toBe('REF-001')
+    expect(p.amount).toBeCloseTo(2.987, 4)
+    expect(p.currency).toBe(2)
+    expect(p.rate).toBe(40)
+    expect(p.journal).toBe(3)
+    expect(p.method).toBe(7)
+    expect(p.montoIgtf).toBeCloseTo(0.087, 4)
   })
 
   it('defaults the payment reference to an empty string when missing', () => {
@@ -86,23 +94,19 @@ describe('buildSaleOrderPayload', () => {
   })
 
   it('converts national currency payments to USD in the payload', () => {
-    // Un método nacional en bolívares (VES) tiene tasa de Odoo = 1.
-    // Simulamos un pago ingresado de 400 bolívares con IGTF de 12 Bs.
-    // Como rate es 1 (isForeign es falso), el payload debe dividir el monto en Bs por la tasa global (40)
-    // dando como resultado amount = 10 USD e igtfAmount = 0.3 USD.
+    // Para cart totalBs = 116 Bs. Dividido por globalRate 40 da: amount = 2.9 USD.
     const payload = buildSaleOrderPayload(
       customer,
       cart,
-      { ...payment, amount: 400, igtfAmount: 12 },
+      payment,
       { ...method, currencyRate: 1, currencyId: 3 }, // currencyId 3 = VES, rate = 1
       attemptId
     )
     
-    expect(payload.payments[0]).toMatchObject({
-      amount: 10,
-      montoIgtf: 0.3,
-      rate: 40
-    })
+    const p = payload.payments[0]
+    expect(p.amount).toBeCloseTo(2.9, 4)
+    expect(p.montoIgtf).toBe(0)
+    expect(p.rate).toBe(40)
   })
 
   it('always includes an empty transactions array required by Odoo post-processing', () => {
