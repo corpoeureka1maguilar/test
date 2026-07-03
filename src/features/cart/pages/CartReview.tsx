@@ -49,7 +49,10 @@ export function CartReview() {
                 {items.map(item => (
                   <tr key={item.productId}>
                     <td>
-                      <div className={styles.productName}>{item.name}</div>
+                      <div className={styles.productName}>
+                        {item.name}
+                        {item.taxRate === 0 && <span style={{ opacity: 0.6, marginLeft: '0.25rem', fontWeight: 'normal' }}>(E)</span>}
+                      </div>
                       {item.defaultCode && <div className={styles.code}>{item.defaultCode}</div>}
                     </td>
                     <td>{formatBs(item.price)}<span className={styles.amountUsd}>{formatUSD(item.priceUsd)}</span></td>

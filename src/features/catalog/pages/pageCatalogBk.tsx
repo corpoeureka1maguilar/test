@@ -239,6 +239,7 @@ export function ProductCatalog() {
                       </span>
                       <h3 className={styles.lastScannedName}>
                         {lastScannedProduct.name}
+                        {lastScannedProduct.taxRate === 0 && <span style={{ opacity: 0.6, marginLeft: '0.25rem', fontWeight: 'normal' }}>(E)</span>}
                       </h3>
                     </div>
                     <div className={styles.lastScannedPrice}>
@@ -325,7 +326,10 @@ export function ProductCatalog() {
                     >
                       <div>
                         {product.defaultCode && <span className={styles.code}>{product.defaultCode}</span>}
-                        <h4 className={styles.name}>{product.name}</h4>
+                        <h4 className={styles.name}>
+                          {product.name}
+                          {product.taxRate === 0 && <span style={{ opacity: 0.6, marginLeft: '0.25rem', fontWeight: 'normal' }}>(E)</span>}
+                        </h4>
                       </div>
                       <div onClick={(e) => e.stopPropagation()}>
                         <span className={styles.price}>Bs. {product.price.toFixed(2)}</span>
@@ -385,7 +389,10 @@ export function ProductCatalog() {
             {items.map(item => (
               <div key={item.productId} className={styles.cartItemCard}>
                 <div className={styles.cartItemInfo}>
-                  <div className={styles.cartItemName}>{item.name}</div>
+                  <div className={styles.cartItemName}>
+                    {item.name}
+                    {item.taxRate === 0 && <span style={{ opacity: 0.6, marginLeft: '0.25rem', fontWeight: 'normal' }}>(E)</span>}
+                  </div>
                   <div className={styles.cartItemMeta}>
                     {item.defaultCode && <span>{item.defaultCode}</span>}
                     <span>•</span>
