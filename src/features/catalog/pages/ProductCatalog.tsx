@@ -100,36 +100,40 @@ export function ProductCatalog() {
     }
   }
 
+  const processSearchSubmit = () => {
+    const originalQ = search.trim().toLowerCase()
+    if (!originalQ) return
+
+    // Intentar coincidencia exacta con el código original
+    let exactMatch = products.find(p =>
+      p.defaultCode?.toLowerCase() === originalQ ||
+      matchBarcode(p.barcode, originalQ)
+    )
+
+    // Si no encuentra, verificar si es un código de barras duplicado/doble (bounce del scanner)
+    if (!exactMatch && originalQ.length % 2 === 0) {
+      const half = originalQ.length / 2
+      const cleanedQ = originalQ.slice(0, half)
+      if (originalQ.slice(half) === cleanedQ) {
+        exactMatch = products.find(p =>
+          p.defaultCode?.toLowerCase() === cleanedQ ||
+          matchBarcode(p.barcode, cleanedQ)
+        )
+      }
+    }
+
+    if (exactMatch) {
+      handleAddItem(exactMatch)
+    } else {
+      setNotFoundCode(originalQ)
+      setShowNotFoundAlert(true)
+    }
+    setSearch('') // Limpiar siempre el input para el próximo escaneo
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      const originalQ = search.trim().toLowerCase()
-      if (!originalQ) return
-
-      // Intentar coincidencia exacta con el código original
-      let exactMatch = products.find(p =>
-        p.defaultCode?.toLowerCase() === originalQ ||
-        matchBarcode(p.barcode, originalQ)
-      )
-
-      // Si no encuentra, verificar si es un código de barras duplicado/doble (bounce del scanner)
-      if (!exactMatch && originalQ.length % 2 === 0) {
-        const half = originalQ.length / 2
-        const cleanedQ = originalQ.slice(0, half)
-        if (originalQ.slice(half) === cleanedQ) {
-          exactMatch = products.find(p =>
-            p.defaultCode?.toLowerCase() === cleanedQ ||
-            matchBarcode(p.barcode, cleanedQ)
-          )
-        }
-      }
-
-      if (exactMatch) {
-        handleAddItem(exactMatch)
-      } else {
-        setNotFoundCode(originalQ)
-        setShowNotFoundAlert(true)
-      }
-      setSearch('') // Limpiar siempre el input para el próximo escaneo
+      processSearchSubmit()
     }
   }
 
@@ -560,7 +564,10 @@ export function ProductCatalog() {
           value={search}
           onChange={setSearch}
           onClose={() => setShowKeyboard(false)}
-          onEnter={() => setShowKeyboard(false)}
+          onEnter={() => {
+            processSearchSubmit()
+            setShowKeyboard(false)
+          }}
         />
       )}
 

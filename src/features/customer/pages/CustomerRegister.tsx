@@ -73,19 +73,12 @@ export function CustomerRegister() {
   }
 
   const handleKeyboardEnter = () => {
-    if (activeField === 'name') {
-      setActiveField('phone')
-    } else if (activeField === 'phone') {
-      setActiveField('estado')
-    } else if (activeField === 'estado') {
-      setActiveField('street')
-    } else {
-      setActiveField(null)
-    }
+    setActiveField(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setActiveField(null)
     if (!form.name.trim()) { pushToast('error', 'El nombre es requerido'); return }
     if (form.phone.trim() && !isValidVenezuelanPhone(form.phone)) {
       pushToast('error', 'El número de teléfono ingresado no es válido')

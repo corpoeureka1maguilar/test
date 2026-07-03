@@ -37,10 +37,13 @@ export function AppVirtualKeyboard({
       return
     }
     if (key === 'ENTER') {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
       if (onEnter) onEnter()
+      if (onClose) onClose()
       return
     }
     if (key === 'CLOSE') {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
       if (onClose) onClose()
       return
     }
@@ -80,15 +83,20 @@ export function AppVirtualKeyboard({
     ? telLayout 
     : (isAlt ? textLayoutAlt : textLayoutNormal)
 
+  const handleHide = () => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    if (onClose) onClose()
+  }
+
   return (
     <div className={styles.wrapper} data-layout={layoutType}>
       {/* Sleek top header handle bar for quick minimizing */}
-      <div className={styles.headerBar} onClick={onClose} title="Ocultar teclado">
+      <div className={styles.headerBar} onClick={handleHide} title="Ocultar teclado">
         <div className={styles.handle} />
         <span className={styles.headerTitle}>
           {layoutType === 'tel' ? 'Teclado Numérico' : 'Teclado Alfanumérico'}
         </span>
-        <button type="button" className={styles.closeHeaderBtn} onClick={(e) => { e.stopPropagation(); if (onClose) onClose(); }}>
+        <button type="button" className={styles.closeHeaderBtn} onClick={(e) => { e.stopPropagation(); handleHide(); }}>
           ✕ Ocultar
         </button>
       </div>
