@@ -192,10 +192,6 @@ export function Welcome() {
             <span className={styles.logoText}>FEX</span>
             <span className={styles.logoSub}>Autopago</span>
           </button>
-          <div className={styles.partners}>
-            <span className={styles.partnerLabel}>Desarrollado por</span>
-            <span className={styles.partnerName}>CorpoEureka</span>
-          </div>
         </div>
       </div>
 

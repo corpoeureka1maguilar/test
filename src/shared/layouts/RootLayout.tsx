@@ -129,6 +129,18 @@ export function RootLayout() {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <Outlet />
       </div>
+      <div
+        style={{
+          flexShrink: 0,
+          textAlign: 'center',
+          padding: '0.4rem 0',
+          fontSize: '0.9rem',
+          color: 'var(--color-text-muted)',
+          opacity: 0.6,
+        }}
+      >
+        Desarrollado por <strong>CorpoEureka</strong>
+      </div>
       {showInactivityWarning && (
         <AppInactivityModal
           seconds={INACTIVITY_COUNTDOWN_S}
