@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount, useCartSubtotal } from './cart'
+import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount, useCartSubtotal, useCartTaxBreakdown } from './cart'
 import type { KioskProduct } from '@/shared/types/types'
 
 function makeProduct(overrides: Partial<KioskProduct> = {}): KioskProduct {
@@ -90,6 +90,22 @@ describe('cart totals', () => {
     const { result } = renderHook(() => useCartTotal())
     // 100 * 1.16 + 50 * 1.08 = 116 + 54 = 170
     expect(result.current).toBe(170)
+  })
+
+  it('generates a detailed tax breakdown by rate', () => {
+    act(() => {
+      useCartStore.getState().addItem(makeProduct({ id: 1, price: 100, taxRate: 0.16 }))
+      useCartStore.getState().addItem(makeProduct({ id: 2, price: 50, taxRate: 0.08 }))
+      useCartStore.getState().addItem(makeProduct({ id: 3, price: 10, taxRate: 0 }))
+      useCartStore.getState().addItem(makeProduct({ id: 4, price: 200, taxRate: 0.31 }))
+    })
+    const { result } = renderHook(() => useCartTaxBreakdown())
+    expect(result.current).toEqual([
+      { rate: 0.31, label: 'IVA Importado (31%)', amount: 62 },
+      { rate: 0.16, label: 'IVA General (16%)', amount: 16 },
+      { rate: 0.08, label: 'IVA (8%)', amount: 4 },
+      { rate: 0, label: 'Exento', amount: 0 }
+    ])
   })
 
   it('counts total units across items', () => {

@@ -3,7 +3,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
-import { useCartStore, useCartTotal, useCartCount, useCartSubtotal, useCartTaxTotal } from '@/features/cart/stores/cart'
+import { useCartStore, useCartTotal, useCartCount, useCartSubtotal, useCartTaxTotal, useCartTaxBreakdown } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phosphor-icons/react'
 
@@ -20,6 +20,7 @@ export function ProductCatalog() {
   const count = useCartCount()
   const subtotal = useCartSubtotal()
   const taxTotal = useCartTaxTotal()
+  const taxBreakdown = useCartTaxBreakdown()
   const fixedProductIds = useConfigStore((s) => s.fixedProductIds) || []
 
   const searchRef = useRef<HTMLInputElement>(null)
@@ -456,10 +457,12 @@ export function ProductCatalog() {
               <span>Subtotal</span>
               <span>Bs. {subtotal.toFixed(2)}</span>
             </div>
-            <div className={styles.totalRow}>
-              <span>Impuestos estimados</span>
-              <span>Bs. {taxTotal.toFixed(2)}</span>
-            </div>
+            {taxBreakdown.map((tax) => (
+              <div key={tax.rate} className={styles.totalRow}>
+                <span>{tax.label}</span>
+                <span>Bs. {tax.amount.toFixed(2)}</span>
+              </div>
+            ))}
             <div className={styles.totalRowBig}>
               <span>Total</span>
               <span className={styles.totalAmount}>Bs. {total.toFixed(2)}</span>

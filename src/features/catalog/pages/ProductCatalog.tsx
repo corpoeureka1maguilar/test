@@ -3,7 +3,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
-import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount, useCartSubtotal } from '@/features/cart/stores/cart'
+import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount, useCartSubtotal, useCartTaxBreakdown } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash, WarningCircle } from '@phosphor-icons/react'
 
@@ -21,6 +21,7 @@ export function ProductCatalog() {
   const total = useCartTotal()
   const taxTotal = useCartTaxTotal()
   const subtotal = useCartSubtotal()
+  const taxBreakdown = useCartTaxBreakdown()
   const count = useCartCount()
   const rate = useExchangeRateStore((s) => s.rate)
   const fixedProductIds = useConfigStore((s) => s.fixedProductIds) || []
@@ -490,10 +491,12 @@ export function ProductCatalog() {
               <span>Subtotal</span>
               <span>{formatBs(subtotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(subtotal / rate)}</span>}</span>
             </div>
-            <div className={styles.totalRow}>
-              <span>Impuestos estimados</span>
-              <span>{formatBs(taxTotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(taxTotal / rate)}</span>}</span>
-            </div>
+            {taxBreakdown.map((tax) => (
+              <div key={tax.rate} className={styles.totalRow}>
+                <span>{tax.label}</span>
+                <span>{formatBs(tax.amount)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(tax.amount / rate)}</span>}</span>
+              </div>
+            ))}
             <div className={styles.totalRowBig}>
               <span>Total</span>
               <span className={styles.totalAmount}>{formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}</span>

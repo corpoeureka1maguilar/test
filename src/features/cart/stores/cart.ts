@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useMemo } from 'react'
 import type { CartItem, KioskProduct } from '@/shared/types/types'
 import { ves, addVES, toFloat, mulVES } from '@/shared/lib/money'
 
@@ -94,6 +95,43 @@ export function useCartTaxTotal() {
     )
     return toFloat(taxD)
   })
+}
+
+export interface CartTaxBreakdownItem {
+  rate: number
+  label: string
+  amount: number
+}
+
+export function useCartTaxBreakdown(): CartTaxBreakdownItem[] {
+  const items = useCartStore(s => s.items)
+  return useMemo(() => {
+    const breakdown: Record<number, number> = {}
+    
+    for (const item of items) {
+      const rate = item.taxRate ?? 0
+      const taxAmount = item.subtotal * rate
+      
+      const currentTaxD = ves(breakdown[rate] ?? 0)
+      const itemTaxD = ves(taxAmount)
+      breakdown[rate] = toFloat(addVES(currentTaxD, itemTaxD))
+    }
+    
+    return Object.entries(breakdown).map(([rateStr, amount]) => {
+      const rate = parseFloat(rateStr)
+      let label = `IVA (${(rate * 100).toFixed(0)}%)`
+      if (rate === 0) {
+        label = 'Exento'
+      } else if (rate === 0.16) {
+        label = 'IVA General (16%)'
+      } else if (rate === 0.15) {
+        label = 'IVA (15%)'
+      } else if (rate === 0.31) {
+        label = 'IVA Importado (31%)'
+      }
+      return { rate, label, amount }
+    }).sort((a, b) => b.rate - a.rate)
+  }, [items])
 }
 
 export function useCartCount() {
