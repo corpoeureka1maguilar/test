@@ -27,12 +27,10 @@ export function buildSaleOrderPayload(
   const igtfBs = method.applyIgtf ? totalBs * (igtfPercent / 100) : 0
   const totalWithIgtfBs = totalBs + igtfBs
 
-  // Si el método de pago es extranjero (USD), el monto del pago se envía en dólares.
-  // Si es nacional (VES), se envía en bolívares.
-  const isForeign = !!method.currencyRate && method.currencyRate > 1
   const round2 = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100
-  const paymentAmount = round2(isForeign ? (totalWithIgtfBs / globalRate) : totalWithIgtfBs)
-  const paymentIgtf = round2(isForeign ? (igtfBs / globalRate) : igtfBs)
+  // El amount va en bolívares — Odoo calcula amount_ref en USD usando la tasa
+  const paymentAmount = round2(totalWithIgtfBs)
+  const paymentIgtf = round2(igtfBs)
 
   return {
     // UUID string → x_fex_id para deduplicar. Se genera UNA vez por intento de

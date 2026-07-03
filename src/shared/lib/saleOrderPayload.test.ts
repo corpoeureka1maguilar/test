@@ -80,12 +80,12 @@ describe('buildSaleOrderPayload', () => {
     expect(payload.payments).toHaveLength(1)
     const p = payload.payments[0]
     expect(p.ref).toBe('REF-001')
-    expect(p.amount).toBe(2.99)
+    expect(p.amount).toBe(119.48)   // 116 Bs * 1.03 (3% IGTF)
     expect(p.currency).toBe(2)
     expect(p.rate).toBe(40)
     expect(p.journal).toBe(3)
     expect(p.method).toBe(7)
-    expect(p.montoIgtf).toBe(0.09)
+    expect(p.montoIgtf).toBe(3.48)  // 116 * 0.03
   })
 
   it('defaults the payment reference to an empty string when missing', () => {
@@ -105,7 +105,7 @@ describe('buildSaleOrderPayload', () => {
     )
     
     const p = payload.payments[0]
-    expect(p.amount).toBe(116)
+    expect(p.amount).toBe(116)   // totalBs en bolivares
     expect(p.montoIgtf).toBe(0)
     expect(p.rate).toBe(40)
   })
