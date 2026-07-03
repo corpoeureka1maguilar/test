@@ -3,7 +3,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
-import { useCartStore, useCartTotal, useCartCount, useCartSubtotal, useCartTaxTotal, useCartTaxBreakdown } from '@/features/cart/stores/cart'
+import { useCartStore, useCartTotal, useCartCount, useCartSubtotal, useCartTaxBreakdown } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phosphor-icons/react'
 
@@ -19,7 +19,6 @@ export function ProductCatalog() {
   const total = useCartTotal()
   const count = useCartCount()
   const subtotal = useCartSubtotal()
-  const taxTotal = useCartTaxTotal()
   const taxBreakdown = useCartTaxBreakdown()
   const fixedProductIds = useConfigStore((s) => s.fixedProductIds) || []
 
