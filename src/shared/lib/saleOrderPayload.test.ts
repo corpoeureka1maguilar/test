@@ -80,12 +80,12 @@ describe('buildSaleOrderPayload', () => {
     expect(payload.payments).toHaveLength(1)
     const p = payload.payments[0]
     expect(p.ref).toBe('REF-001')
-    expect(p.amount).toBeCloseTo(2.987, 4)
+    expect(p.amount).toBe(2.99)
     expect(p.currency).toBe(2)
     expect(p.rate).toBe(40)
     expect(p.journal).toBe(3)
     expect(p.method).toBe(7)
-    expect(p.montoIgtf).toBeCloseTo(0.087, 4)
+    expect(p.montoIgtf).toBe(0.09)
   })
 
   it('defaults the payment reference to an empty string when missing', () => {
@@ -93,8 +93,9 @@ describe('buildSaleOrderPayload', () => {
     expect(payload.payments[0].ref).toBe('')
   })
 
-  it('converts national currency payments to USD in the payload', () => {
-    // Para cart totalBs = 116 Bs. Dividido por globalRate 40 da: amount = 2.9 USD.
+  it('sends national currency payments in VES in the payload', () => {
+    // Para cart totalBs = 116 Bs. Como es nacional (VES, rate = 1),
+    // el monto debe enviarse en la moneda local (bolívares): amount = 116 Bs.
     const payload = buildSaleOrderPayload(
       customer,
       cart,
@@ -104,7 +105,7 @@ describe('buildSaleOrderPayload', () => {
     )
     
     const p = payload.payments[0]
-    expect(p.amount).toBeCloseTo(2.9, 4)
+    expect(p.amount).toBe(116)
     expect(p.montoIgtf).toBe(0)
     expect(p.rate).toBe(40)
   })

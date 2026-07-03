@@ -27,9 +27,12 @@ export function buildSaleOrderPayload(
   const igtfBs = method.applyIgtf ? totalBs * (igtfPercent / 100) : 0
   const totalWithIgtfBs = totalBs + igtfBs
 
-  // El pago siempre se envía en dólares como moneda principal, convertido por la tasa global
-  const paymentAmountUsd = totalWithIgtfBs / globalRate
-  const paymentIgtfUsd = igtfBs / globalRate
+  // Si el método de pago es extranjero (USD), el monto del pago se envía en dólares.
+  // Si es nacional (VES), se envía en bolívares.
+  const isForeign = !!method.currencyRate && method.currencyRate > 1
+  const round2 = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100
+  const paymentAmount = round2(isForeign ? (totalWithIgtfBs / globalRate) : totalWithIgtfBs)
+  const paymentIgtf = round2(isForeign ? (igtfBs / globalRate) : igtfBs)
 
   return {
     // UUID string → x_fex_id para deduplicar. Se genera UNA vez por intento de
@@ -66,12 +69,12 @@ export function buildSaleOrderPayload(
       isChange:   false,
       date:       new Date().toISOString(),
       ref:        payment.reference || '',
-      amount:    paymentAmountUsd,
+      amount:    paymentAmount,
       currency:  method.currencyId,
       rate:      globalRate,
       journal:   method.journalId,
       method:    method.id,
-      montoIgtf: paymentIgtfUsd
+      montoIgtf: paymentIgtf
     }]
   }
 }
