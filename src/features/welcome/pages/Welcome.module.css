@@ -224,6 +224,15 @@
     width: 54px;
     height: 54px;
   }
+
+  .topLogoContainer {
+    top: 1.25rem;
+  }
+
+  .companyLogo {
+    height: 65px;
+    max-width: 180px;
+  }
 }
 
 .footer {
@@ -243,11 +252,23 @@
   gap: 0.5rem;
 }
 
+.topLogoContainer {
+  position: absolute;
+  top: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
 .companyLogo {
-  width: 100px;
-  height: 100px;
+  height: 90px;
+  width: auto;
+  max-width: 250px;
   object-fit: contain;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .footer .logo {

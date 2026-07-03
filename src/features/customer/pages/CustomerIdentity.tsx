@@ -6,7 +6,7 @@ import { AppNumericKeyboard } from '@/shared/components/AppNumericKeyboard'
 import { useUIStore } from '@/shared/stores/ui'
 import styles from './CustomerIdentity.module.css'
 
-const PREFIXES = ['V', 'E', 'J', 'G'] as const
+const PREFIXES = ['V', 'E', 'J', 'G', 'P', 'C'] as const
 type Prefix = typeof PREFIXES[number]
 
 export function CustomerIdentity() {

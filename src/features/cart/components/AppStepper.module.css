@@ -11,6 +11,17 @@
 .customerInfo {
   flex: 0 0 auto;
   min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.companyLogo {
+  height: 36px;
+  width: auto;
+  max-width: 110px;
+  object-fit: contain;
+  opacity: 0.9;
 }
 
 .customerName {
@@ -69,12 +80,18 @@
 }
 
 .dot {
-  width: 12px;
-  height: 12px;
+  width: 28px;
+  height: 28px;
   background: var(--color-surface-heavy);
   border-radius: 50%;
   transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
 }
 
 .label {
@@ -89,8 +106,9 @@
 
 .active .dot {
   background: var(--color-accent);
-  transform: scale(1.4);
+  transform: scale(1.15);
   box-shadow: 0 0 15px var(--color-accent-glow);
+  color: var(--color-bg);
 }
 
 .active .label {
@@ -101,7 +119,8 @@
 
 .completed .dot {
   background: var(--color-text);
-  transform: scale(0.9);
+  transform: scale(1);
+  color: var(--color-bg);
 }
 
 .completed .label {
@@ -112,9 +131,9 @@
 /* Connecting line */
 .line {
   position: absolute;
-  top: 6px;
-  left: calc(50% + 20px);
-  right: calc(-50% + 20px);
+  top: 14px;
+  left: calc(50% + 22px);
+  right: calc(-50% + 22px);
   height: 2px;
   background: var(--color-surface-border);
   z-index: -1;

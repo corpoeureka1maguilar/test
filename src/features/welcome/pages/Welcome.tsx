@@ -139,6 +139,17 @@ export function Welcome() {
         <List size={28} />
       </button>
 
+      {/* Logo de la empresa en la parte superior central */}
+      <div className={styles.topLogoContainer}>
+        {companyLogo && (
+          <img
+            src={`data:image/png;base64,${companyLogo}`}
+            alt="Logo empresa"
+            className={styles.companyLogo}
+          />
+        )}
+      </div>
+
       {/* Botón de mute minimalista y premium en la esquina superior derecha */}
       <button
         type="button"
@@ -176,12 +187,6 @@ export function Welcome() {
       </div>
 
       <div className={styles.footer}>
-        <img
-          src={companyLogo ? `data:image/png;base64,${companyLogo}` : undefined}
-          alt="Logo empresa"
-          className={styles.companyLogo}
-          style={{ visibility: companyLogo ? 'visible' : 'hidden' }}
-        />
         <div className={styles.footerBranding}>
           <button type="button" className={styles.logo} onClick={handleLogoTap}>
             <span className={styles.logoText}>FEX</span>

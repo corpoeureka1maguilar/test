@@ -421,12 +421,12 @@ export async function checkKioskAdmin(
 }
 
 export async function fetchCompanyLogo(): Promise<string> {
-  const results = await odooEnv.callMethod<{ x_pos_logo: string | false }[]>(
-    'res.config.settings', 'search_read',
+  const results = await odooEnv.callMethod<{ x_fex_image: string | false }[]>(
+    'res.branch', 'search_read',
     [[]],
-    { fields: ['x_pos_logo'], limit: 1 }
+    { fields: ['x_fex_image'], limit: 1 }
   )
-  return results?.[0]?.x_pos_logo || ''
+  return results?.[0]?.x_fex_image || ''
 }
 
 export async function fetchAdvertisements(): Promise<AdConfig[]> {

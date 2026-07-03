@@ -1,0 +1,10 @@
+{
+  "validate-components": {
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "node .agents/hooks/validate-components.js"
+      }
+    ]
+  }
+}
