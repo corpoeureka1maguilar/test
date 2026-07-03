@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCartStore } from '@/features/cart/stores/cart'
+import { AppPinModal } from '@/features/payment/components/AppPinModal'
+import { KIOSK_OPERATIONS } from '@/shared/lib/odooRepository'
 import { trackSale } from '@/shared/lib/metrics'
 import styles from './PaymentResult.module.css'
 
@@ -9,6 +11,9 @@ export function PaymentResult() {
   const { state, context, send } = useSaleMachine()
   const navigate = useNavigate()
   const clearCart = useCartStore(s => s.clearCart)
+  // Excepciones tras un fallo de impresión: tanto reintentar como finalizar
+  // sin factura son operaciones auditadas que exigen clave de administrador
+  const [pendingPrintAction, setPendingPrintAction] = useState<'retry' | 'continue' | null>(null)
 
   const isSuccess = state === 'success'
   const isError = state === 'paymentError'
@@ -56,13 +61,33 @@ export function PaymentResult() {
           {context.printError ?? 'No se pudo imprimir la factura fiscal.'}
         </p>
         <div className={styles.actions}>
-          <button type="button" className="btn btn-primary" onClick={() => send({ type: 'RETRY' })}>
+          <button type="button" className="btn btn-primary" onClick={() => setPendingPrintAction('retry')}>
             Reintentar impresión
           </button>
-          <button type="button" className="btn btn-secondary" onClick={() => send({ type: 'CONTINUE' })}>
+          <button type="button" className="btn btn-secondary" onClick={() => setPendingPrintAction('continue')}>
             Continuar sin factura
           </button>
         </div>
+
+        {pendingPrintAction && (
+          <AppPinModal
+            title={pendingPrintAction === 'retry'
+              ? 'Confirmá tu PIN para reintentar la impresión'
+              : 'Confirmá tu PIN para finalizar sin factura'}
+            operationRef={pendingPrintAction === 'retry'
+              ? KIOSK_OPERATIONS.invoiceReprint
+              : KIOSK_OPERATIONS.continueWithoutInvoice}
+            auditMessage={pendingPrintAction === 'retry'
+              ? `Reintento de impresión fiscal (orden ${context.odooOrderId ?? 'desconocida'}): ${context.printError ?? 'error de impresión'}`
+              : `Venta finalizada sin factura fiscal (orden ${context.odooOrderId ?? 'desconocida'}): ${context.printError ?? 'error de impresión'}`}
+            onConfirmed={() => {
+              const action = pendingPrintAction
+              setPendingPrintAction(null)
+              send({ type: action === 'retry' ? 'RETRY' : 'CONTINUE' })
+            }}
+            onCancel={() => setPendingPrintAction(null)}
+          />
+        )}
       </div>
     )
   }

@@ -1,4 +1,5 @@
 import { odooEnv } from '@/shared/lib/odooEnv'
+import { useConfigStore } from '@/shared/stores/config'
 import type { KioskPartner, KioskPaymentMethod, KioskProduct, KioskOrder, KioskOrderLine, AdConfig } from '@/shared/types/types'
 
 // ─── Raw Odoo shapes ──────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ interface RawOrderHeader {
   x_printer_number: string | false
   x_printer_serial_number: string | false
   x_printer_date: string | false
+  manual_rate: number | false
 }
 
 interface RawOrderLine {
@@ -101,7 +103,8 @@ function mapOrderHeader(r: RawOrderHeader): KioskOrder {
     state: r.state,
     printerNumber: r.x_printer_number || undefined,
     printerSerial: r.x_printer_serial_number || undefined,
-    printerDate: r.x_printer_date || undefined
+    printerDate: r.x_printer_date || undefined,
+    rate: r.manual_rate || undefined
   }
 }
 
@@ -307,7 +310,7 @@ async function fetchLineTaxRates(rawLines: RawOrderLine[]): Promise<Map<number, 
 export async function fetchOrder(id: number): Promise<KioskOrder> {
   const [rawOrder] = await odooEnv.callMethod<RawOrderHeader[]>(
     'sale.order', 'read', [[id]],
-    { fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state', 'x_printer_number', 'x_printer_serial_number', 'x_printer_date'] }
+    { fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state', 'x_printer_number', 'x_printer_serial_number', 'x_printer_date', 'manual_rate'] }
   )
   const [rawLines, [rawPartner]] = await Promise.all([
     odooEnv.callMethod<RawOrderLine[]>(
@@ -333,6 +336,14 @@ export async function fetchOrder(id: number): Promise<KioskOrder> {
 
 export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
   const domain: unknown[] = [['x_is_paid', '=', false]]
+
+  // Reimpresión y devolución solo operan sobre las órdenes emitidas por esta
+  // estación: sin el filtro, el kiosco muestra (y permite tocar) ventas ajenas
+  const { stationId } = useConfigStore.getState()
+  if (stationId) {
+    domain.push(['x_station_id', '=', stationId])
+  }
+
   if (pattern.trim()) {
     domain.push(
       '|', ['name', 'ilike', pattern],
@@ -345,7 +356,7 @@ export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
     'sale.order', 'search_read',
     [domain],
     {
-      fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state', 'x_printer_number', 'x_printer_serial_number', 'x_printer_date'],
+      fields: ['id', 'name', 'partner_id', 'amount_total', 'x_fex_id', 'order_line', 'state', 'x_printer_number', 'x_printer_serial_number', 'x_printer_date', 'manual_rate'],
       limit: 10,
       order: 'id desc'
     }
@@ -392,6 +403,7 @@ export const KIOSK_OPERATIONS = {
   advancedAccess: 'eu_autopay_bridge.x_pos_audit_autoservicio_advanced_access',
   openSession: 'eu_autopay_bridge.x_pos_audit_autoservicio_open_session',
   terminalConfig: 'eu_autopay_bridge.x_pos_audit_autoservicio_terminal_config',
+  continueWithoutInvoice: 'eu_autopay_bridge.x_pos_audit_autoservicio_continue_without_invoice',
   saleReturn: 'eu_pos_permission_levels.x_pos_audit_sale_return',
   invoiceReprint: 'eu_pos_permission_levels.x_pos_audit_invoice_reprint',
   shiftClose: 'eu_pos_permission_levels.x_pos_audit_midday_close',

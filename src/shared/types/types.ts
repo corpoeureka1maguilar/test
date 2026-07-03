@@ -115,6 +115,10 @@ export interface KioskOrder {
   printerSerial?: string
   /** Fecha/hora en que la impresora emitió la factura (x_printer_date, "YYYY-MM-DD HH:MM:SS") */
   printerDate?: string
+  /** Tasa Bs/USD con la que se facturó (manual_rate): los montos de Odoo vienen
+   *  en USD y se convierten con ESTA tasa, no la actual, para calzar con la
+   *  factura fiscal original */
+  rate?: number
 }
 
 export interface AdConfig {

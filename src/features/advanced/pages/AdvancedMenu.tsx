@@ -186,10 +186,14 @@ export function AdvancedMenu() {
 
     const { fecha, hora } = getOriginalInvoiceDate(o)
 
+    // Los montos de Odoo vienen en USD; la impresora fiscal exige Bs y la nota
+    // debe calzar con la factura original, así que se usa la tasa de la orden
+    const orderRate = o.rate || rate || 1
+
     const lines = (o.lines ?? []).map((l) => ({
       name: l.productId[1],
       qty: l.productUomQty,
-      price: l.priceUnit,
+      price: l.priceUnit * orderRate,
       taxRate: l.taxRate
     }))
 
@@ -201,7 +205,7 @@ export function AdvancedMenu() {
       o.partner?.cedula ?? '',
       lines,
       NO_IGTF_METHOD,
-      o.amountTotal,
+      o.amountTotal * orderRate,
       o.printerSerial ?? ''
     )
 
@@ -259,6 +263,8 @@ export function AdvancedMenu() {
   // Si la orden no tiene número fiscal registrado en Odoo (x_printer_number),
   // se reimprime una copia no fiscal en vez de bloquear la operación
   const buildNoFiscalReceipt = (o: KioskOrder) => {
+    // Montos de Odoo en USD → Bs con la tasa histórica de la orden
+    const orderRate = o.rate || rate || 1
     const separator = noFiscalItem('-'.repeat(30), 'NC')
     const items = [
       noFiscalItem(o.name, 'N'),
@@ -268,12 +274,12 @@ export function AdvancedMenu() {
     o.lines?.forEach((line) => {
       items.push(
         noFiscalItem(line.productId[1]),
-        noFiscalItem(`${formatBs(line.priceUnit)} x ${line.productUomQty}`),
-        noFiscalItem(`Subtotal: ${formatBs(line.priceSubtotal)}`),
+        noFiscalItem(`${formatBs(line.priceUnit * orderRate)} x ${line.productUomQty}`),
+        noFiscalItem(`Subtotal: ${formatBs(line.priceSubtotal * orderRate)}`),
         separator
       )
     })
-    items.push(noFiscalItem(`TOTAL: ${formatBs(o.amountTotal)}`, 'NC'))
+    items.push(noFiscalItem(`TOTAL: ${formatBs(o.amountTotal * orderRate)}`, 'NC'))
     return items
   }
 
@@ -427,7 +433,7 @@ export function AdvancedMenu() {
                   <button key={o.id} type="button" className={styles.resultCard} onClick={() => setSelectedOrder(o)}>
                     <span className={styles.orderName}>{o.name}</span>
                     <span>{o.partnerId[1]}</span>
-                    <span className={styles.amount}>{formatBs(o.amountTotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(o.amountTotal / rate)}</span>}</span>
+                    <span className={styles.amount}>{formatBs(o.amountTotal * (o.rate || rate))}<span className={styles.amountUsd}>{formatUSD(o.amountTotal)}</span></span>
                   </button>
                 ))}
               </div>
@@ -480,7 +486,7 @@ export function AdvancedMenu() {
                   <button key={o.id} type="button" className={styles.resultCard} onClick={() => setSelectedOrder(o)}>
                     <span className={styles.orderName}>{o.name}</span>
                     <span>{o.partnerId[1]}</span>
-                    <span className={styles.amount}>{formatBs(o.amountTotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(o.amountTotal / rate)}</span>}</span>
+                    <span className={styles.amount}>{formatBs(o.amountTotal * (o.rate || rate))}<span className={styles.amountUsd}>{formatUSD(o.amountTotal)}</span></span>
                   </button>
                 ))}
               </div>

@@ -10,7 +10,11 @@ interface Props {
 
 export function AppOrderSummary({ order, showTotal = true }: Props) {
   const lines = order.lines ?? []
-  const rate = useExchangeRateStore((s) => s.rate)
+  const currentRate = useExchangeRateStore((s) => s.rate)
+
+  // Los montos de Odoo vienen en USD; los Bs se reconstruyen con la tasa
+  // histórica de la orden para calzar con la factura fiscal original
+  const rate = order.rate || currentRate
 
   return (
     <div className={styles.wrapper}>
@@ -28,8 +32,8 @@ export function AppOrderSummary({ order, showTotal = true }: Props) {
             <tr key={line.id}>
               <td>{line.productId[1]}</td>
               <td>{line.productUomQty}</td>
-              <td>{formatBs(line.priceUnit)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(line.priceUnit / rate)}</span>}</td>
-              <td>{formatBs(line.priceSubtotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(line.priceSubtotal / rate)}</span>}</td>
+              <td>{formatBs(line.priceUnit * rate)}<span className={styles.amountUsd}>{formatUSD(line.priceUnit)}</span></td>
+              <td>{formatBs(line.priceSubtotal * rate)}<span className={styles.amountUsd}>{formatUSD(line.priceSubtotal)}</span></td>
             </tr>
           ))}
           {lines.length === 0 && (
@@ -42,7 +46,7 @@ export function AppOrderSummary({ order, showTotal = true }: Props) {
       {showTotal && (
         <div className={styles.total}>
           <span>Total</span>
-          <span className={styles.totalAmount}>{formatBs(order.amountTotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(order.amountTotal / rate)}</span>}</span>
+          <span className={styles.totalAmount}>{formatBs(order.amountTotal * rate)}<span className={styles.amountUsd}>{formatUSD(order.amountTotal)}</span></span>
         </div>
       )}
     </div>
