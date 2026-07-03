@@ -1,6 +1,7 @@
 import type { KioskPartner, CartItem, ActivePayment, KioskPaymentMethod } from '@/shared/types/types'
 import { useSessionStore } from '@/shared/stores/session'
 import { useConfigStore } from '@/shared/stores/config'
+import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import { odooEnv } from '@/shared/lib/odooEnv'
 import { randomUUID } from '@/shared/lib/cryptoUtils'
 
@@ -16,6 +17,12 @@ export function buildSaleOrderPayload(
   const stationId = useConfigStore.getState().stationId
   const uid = odooEnv.uid
 
+  const rate = method.currencyRate || 1
+  const isForeign = !!method.currencyRate && method.currencyRate > 1
+  const globalRate = useExchangeRateStore.getState().rate || 1
+  const paymentAmountUsd = isForeign ? payment.amount : payment.amount / globalRate
+  const paymentIgtfUsd = isForeign ? payment.igtfAmount : payment.igtfAmount / globalRate
+
   return {
     // UUID string → x_fex_id para deduplicar. Se genera UNA vez por intento de
     // venta (en la state machine) y se reutiliza en cada reintento: si Odoo
@@ -26,7 +33,7 @@ export function buildSaleOrderPayload(
     // Campos que lee _action_parse_pos_data de sale.order
     partner: customer.id,
     isCreditOrder: false,
-    rate: method.currencyRate || 1,
+    rate: rate,
     date: new Date().toISOString(),
 
     // Sesión, Cajero y Estación
@@ -51,12 +58,12 @@ export function buildSaleOrderPayload(
       isChange:   false,
       date:       new Date().toISOString(),
       ref:        payment.reference || '',
-      amount:    payment.amount,
+      amount:    paymentAmountUsd,
       currency:  method.currencyId,
-      rate:      method.currencyRate || 1,
+      rate:      rate,
       journal:   method.journalId,
       method:    method.id,
-      montoIgtf: payment.igtfAmount
+      montoIgtf: paymentIgtfUsd
     }]
   }
 }

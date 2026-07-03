@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { buildSaleOrderPayload } from './saleOrderPayload'
 import { useSessionStore } from '@/shared/stores/session'
+import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import type { KioskPartner, CartItem, ActivePayment, KioskPaymentMethod } from '@/shared/types/types'
 
 const customer: KioskPartner = { id: 42, name: 'Juan Perez', cedula: 'V-12345678' }
@@ -32,6 +33,7 @@ const attemptId = 'a1b2c3d4-0000-4000-8000-000000000000'
 
 beforeEach(() => {
   useSessionStore.setState({ sessionId: 11, cashierId: 22 })
+  useExchangeRateStore.setState({ rate: 40 })
 })
 
 describe('buildSaleOrderPayload', () => {
@@ -80,6 +82,26 @@ describe('buildSaleOrderPayload', () => {
   it('defaults the payment reference to an empty string when missing', () => {
     const payload = buildSaleOrderPayload(customer, cart, { ...payment, reference: '' }, method, attemptId)
     expect(payload.payments[0].ref).toBe('')
+  })
+
+  it('converts national currency payments to USD in the payload', () => {
+    // Un método nacional en bolívares (VES) tiene tasa de Odoo = 1.
+    // Simulamos un pago ingresado de 400 bolívares con IGTF de 12 Bs.
+    // Como rate es 1 (isForeign es falso), el payload debe dividir el monto en Bs por la tasa global (40)
+    // dando como resultado amount = 10 USD e igtfAmount = 0.3 USD.
+    const payload = buildSaleOrderPayload(
+      customer,
+      cart,
+      { ...payment, amount: 400, igtfAmount: 12 },
+      { ...method, currencyRate: 1, currencyId: 3 }, // currencyId 3 = VES, rate = 1
+      attemptId
+    )
+    
+    expect(payload.payments[0]).toMatchObject({
+      amount: 10,
+      montoIgtf: 0.3,
+      rate: 1
+    })
   })
 
   it('always includes an empty transactions array required by Odoo post-processing', () => {
