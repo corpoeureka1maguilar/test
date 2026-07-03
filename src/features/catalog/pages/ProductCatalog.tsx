@@ -172,7 +172,7 @@ export function ProductCatalog() {
   const handleCheckout = () => {
     if (items.length === 0) return
     send({ type: 'CHECKOUT', cart: items })
-    navigate('/carrito')
+    navigate('/pago')
   }
 
   return (

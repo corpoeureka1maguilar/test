@@ -41,9 +41,9 @@ export function PaymentSelect() {
       <button
         type="button"
         className="btn  btn-secondary"
-        onClick={() => navigate('/carrito')}
+        onClick={() => navigate('/productos')}
       >
-        Volver al carrito
+        Volver a productos
       </button>
       </div>
       

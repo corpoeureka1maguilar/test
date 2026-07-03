@@ -201,11 +201,11 @@ export const saleMachine = setup({
  
     browsingProducts: {
       on: {
-        CHECKOUT: { target: 'reviewingCart', actions: 'setCart' },
+        CHECKOUT: { target: 'selectingMethod', actions: 'setCart' },
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
- 
+
     reviewingCart: {
       on: {
         PAY: 'selectingMethod',

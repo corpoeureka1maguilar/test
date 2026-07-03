@@ -39,12 +39,11 @@ function runToEnteringDetails(actor: ReturnType<typeof createActor<typeof saleMa
   actor.send({ type: 'START' })
   actor.send({ type: 'FOUND', customer })
   actor.send({ type: 'CHECKOUT', cart })
-  actor.send({ type: 'PAY' })
   actor.send({ type: 'SELECT_METHOD', method })
 }
 
 describe('saleMachine — happy path transitions', () => {
-  it('walks idle -> enteringCedula -> browsingProducts -> reviewingCart -> selectingMethod -> enteringDetails', () => {
+  it('walks idle -> enteringCedula -> browsingProducts -> selectingMethod -> enteringDetails', () => {
     const actor = createActor(saleMachine)
     actor.start()
     expect(actor.getSnapshot().value).toBe('idle')
@@ -57,11 +56,8 @@ describe('saleMachine — happy path transitions', () => {
     expect(actor.getSnapshot().context.customer).toEqual(customer)
 
     actor.send({ type: 'CHECKOUT', cart })
-    expect(actor.getSnapshot().value).toBe('reviewingCart')
-    expect(actor.getSnapshot().context.cart).toEqual(cart)
-
-    actor.send({ type: 'PAY' })
     expect(actor.getSnapshot().value).toBe('selectingMethod')
+    expect(actor.getSnapshot().context.cart).toEqual(cart)
 
     actor.send({ type: 'SELECT_METHOD', method })
     expect(actor.getSnapshot().value).toBe('enteringDetails')
