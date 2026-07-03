@@ -105,7 +105,7 @@ export function Devolucion() {
 
     setLoading(true)
     try {
-      await returnOrder(order.id, reason)
+      await returnOrder(order, reason, sessionId)
       trackRefund()
       setDone(true)
       pushToast('success', 'Devolución procesada correctamente')
