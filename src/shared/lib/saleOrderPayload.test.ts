@@ -52,11 +52,12 @@ describe('buildSaleOrderPayload', () => {
     expect(second.id).toBe(attemptId)
   })
 
-  it('uses the method currency rate, falling back to 1 when absent', () => {
+  it('uses the global currency rate, falling back to 1 when absent', () => {
     const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
-    expect(payload.rate).toBe(1.5)
+    expect(payload.rate).toBe(40)
 
-    const payloadNoRate = buildSaleOrderPayload(customer, cart, payment, { ...method, currencyRate: undefined }, attemptId)
+    useExchangeRateStore.setState({ rate: 0 })
+    const payloadNoRate = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
     expect(payloadNoRate.rate).toBe(1)
   })
 
@@ -72,7 +73,7 @@ describe('buildSaleOrderPayload', () => {
       ref: 'REF-001',
       amount: 100,
       currency: 2,
-      rate: 1.5,
+      rate: 40,
       journal: 3,
       method: 7,
       montoIgtf: 3.5
@@ -100,7 +101,7 @@ describe('buildSaleOrderPayload', () => {
     expect(payload.payments[0]).toMatchObject({
       amount: 10,
       montoIgtf: 0.3,
-      rate: 1
+      rate: 40
     })
   })
 

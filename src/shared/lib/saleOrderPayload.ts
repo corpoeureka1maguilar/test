@@ -17,7 +17,6 @@ export function buildSaleOrderPayload(
   const stationId = useConfigStore.getState().stationId
   const uid = odooEnv.uid
 
-  const rate = method.currencyRate || 1
   const isForeign = !!method.currencyRate && method.currencyRate > 1
   const globalRate = useExchangeRateStore.getState().rate || 1
   const paymentAmountUsd = isForeign ? payment.amount : payment.amount / globalRate
@@ -33,7 +32,7 @@ export function buildSaleOrderPayload(
     // Campos que lee _action_parse_pos_data de sale.order
     partner: customer.id,
     isCreditOrder: false,
-    rate: rate,
+    rate: globalRate,
     date: new Date().toISOString(),
 
     // Sesión, Cajero y Estación
@@ -60,7 +59,7 @@ export function buildSaleOrderPayload(
       ref:        payment.reference || '',
       amount:    paymentAmountUsd,
       currency:  method.currencyId,
-      rate:      rate,
+      rate:      globalRate,
       journal:   method.journalId,
       method:    method.id,
       montoIgtf: paymentIgtfUsd
