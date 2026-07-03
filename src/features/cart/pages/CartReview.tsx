@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
-import { useCartStore, useCartTotal, useCartTaxTotal } from '@/features/cart/stores/cart'
+import { useCartStore, useCartTotal, useCartTaxTotal, useCartSubtotal } from '@/features/cart/stores/cart'
 import { formatBs, formatUSD } from '@/shared/lib/money'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import styles from './CartReview.module.css'
@@ -11,6 +11,7 @@ export function CartReview() {
   const { items, setQty, removeItem } = useCartStore()
   const total = useCartTotal()
   const taxTotal = useCartTaxTotal()
+  const subtotal = useCartSubtotal()
   const rate = useExchangeRateStore((s) => s.rate)
 
   const handlePay = () => {
@@ -71,7 +72,7 @@ export function CartReview() {
           <div className={styles.totalSection}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
-              <span>{formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}</span>
+              <span>{formatBs(subtotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(subtotal / rate)}</span>}</span>
             </div>
             <div className={styles.totalRow}>
               <span>Impuestos estimados</span>

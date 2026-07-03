@@ -60,7 +60,7 @@ describe('buildSaleOrderPayload', () => {
 
   it('maps each cart item to a sale order line', () => {
     const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
-    expect(payload.lines).toEqual([{ product: 1, quantity: 2, priceUnit: 50 }])
+    expect(payload.lines).toEqual([{ product: 1, quantity: 2, priceUnit: 5 }])
   })
 
   it('maps the payment with reference, amount, journal and IGTF', () => {

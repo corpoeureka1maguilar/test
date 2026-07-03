@@ -69,9 +69,19 @@ export const useCartStore = create<CartState & CartActions>()(persist((set) => (
   }
 }), { name: 'autopay-cart' }))
 
+export function useCartSubtotal() {
+  return useCartStore(s => {
+    const subtotalD = s.items.reduce<any>((sumD, i) => addVES(sumD, ves(i.subtotal)), ves(0))
+    return toFloat(subtotalD)
+  })
+}
+
 export function useCartTotal() {
   return useCartStore(s => {
-    const totalD = s.items.reduce<any>((sumD, i) => addVES(sumD, ves(i.subtotal)), ves(0))
+    const totalD = s.items.reduce<any>(
+      (sumD, i) => addVES(sumD, ves(i.subtotal * (1 + i.taxRate))),
+      ves(0)
+    )
     return toFloat(totalD)
   })
 }
@@ -79,7 +89,7 @@ export function useCartTotal() {
 export function useCartTaxTotal() {
   return useCartStore(s => {
     const taxD = s.items.reduce<any>(
-      (sumD, i) => addVES(sumD, ves(i.subtotal * i.taxRate / (1 + i.taxRate))),
+      (sumD, i) => addVES(sumD, ves(i.subtotal * i.taxRate)),
       ves(0)
     )
     return toFloat(taxD)

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount } from './cart'
+import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount, useCartSubtotal } from './cart'
 import type { KioskProduct } from '@/shared/types/types'
 
 function makeProduct(overrides: Partial<KioskProduct> = {}): KioskProduct {
@@ -72,14 +72,24 @@ describe('cart totals', () => {
       useCartStore.getState().addItem(makeProduct({ id: 1, price: 100 }))
       useCartStore.getState().addItem(makeProduct({ id: 2, price: 50 }))
     })
-    const { result } = renderHook(() => useCartTotal())
+    const { result } = renderHook(() => useCartSubtotal())
     expect(result.current).toBe(150)
   })
 
-  it('extracts the tax portion already included in each subtotal', () => {
-    act(() => useCartStore.getState().addItem(makeProduct({ price: 116, taxRate: 0.16 })))
+  it('calculates the tax amount over each subtotal', () => {
+    act(() => useCartStore.getState().addItem(makeProduct({ price: 100, taxRate: 0.16 })))
     const { result } = renderHook(() => useCartTaxTotal())
     expect(result.current).toBeCloseTo(16, 5)
+  })
+
+  it('calculates the total amount including taxes', () => {
+    act(() => {
+      useCartStore.getState().addItem(makeProduct({ id: 1, price: 100, taxRate: 0.16 }))
+      useCartStore.getState().addItem(makeProduct({ id: 2, price: 50, taxRate: 0.08 }))
+    })
+    const { result } = renderHook(() => useCartTotal())
+    // 100 * 1.16 + 50 * 1.08 = 116 + 54 = 170
+    expect(result.current).toBe(170)
   })
 
   it('counts total units across items', () => {

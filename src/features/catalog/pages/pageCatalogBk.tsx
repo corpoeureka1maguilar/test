@@ -3,7 +3,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
-import { useCartStore, useCartTotal, useCartCount } from '@/features/cart/stores/cart'
+import { useCartStore, useCartTotal, useCartCount, useCartSubtotal, useCartTaxTotal } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash } from '@phosphor-icons/react'
 
@@ -18,6 +18,8 @@ export function ProductCatalog() {
   const { items, addItem, setQty, removeItem } = useCartStore()
   const total = useCartTotal()
   const count = useCartCount()
+  const subtotal = useCartSubtotal()
+  const taxTotal = useCartTaxTotal()
   const fixedProductIds = useConfigStore((s) => s.fixedProductIds) || []
 
   const searchRef = useRef<HTMLInputElement>(null)
@@ -452,11 +454,11 @@ export function ProductCatalog() {
           <div className={styles.totalsSection}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
-              <span>Bs. {total.toFixed(2)}</span>
+              <span>Bs. {subtotal.toFixed(2)}</span>
             </div>
             <div className={styles.totalRow}>
               <span>Impuestos estimados</span>
-              <span>Bs. 0.00</span>
+              <span>Bs. {taxTotal.toFixed(2)}</span>
             </div>
             <div className={styles.totalRowBig}>
               <span>Total</span>

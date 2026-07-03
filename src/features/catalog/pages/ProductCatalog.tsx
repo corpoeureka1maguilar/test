@@ -3,7 +3,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
-import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount } from '@/features/cart/stores/cart'
+import { useCartStore, useCartTotal, useCartTaxTotal, useCartCount, useCartSubtotal } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash, WarningCircle } from '@phosphor-icons/react'
 
@@ -20,6 +20,7 @@ export function ProductCatalog() {
   const { items, addItem, setQty, removeItem } = useCartStore()
   const total = useCartTotal()
   const taxTotal = useCartTaxTotal()
+  const subtotal = useCartSubtotal()
   const count = useCartCount()
   const rate = useExchangeRateStore((s) => s.rate)
   const fixedProductIds = useConfigStore((s) => s.fixedProductIds) || []
@@ -487,7 +488,7 @@ export function ProductCatalog() {
           <div className={styles.totalsSection}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
-              <span>{formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}</span>
+              <span>{formatBs(subtotal)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(subtotal / rate)}</span>}</span>
             </div>
             <div className={styles.totalRow}>
               <span>Impuestos estimados</span>

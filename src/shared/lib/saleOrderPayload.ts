@@ -39,7 +39,7 @@ export function buildSaleOrderPayload(
     lines: cart.map(item => ({
       product:   item.productId,
       quantity:  item.qty,
-      priceUnit: item.price
+      priceUnit: item.priceUsd
     })),
 
     // Requerido por _action_post_process_order (KeyError si no existe)
