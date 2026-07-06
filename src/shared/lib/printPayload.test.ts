@@ -117,6 +117,14 @@ describe('buildNotaCreditoPayload', () => {
     expect(payload.maquina).toBe('')
   })
 
+  // Paridad con fex (eu_fex_ppal print.ts _getReturnInvoicePrint): la nota de
+  // crédito no reporta caja de origen, la clave se elimina del payload en vez
+  // de mandarse vacía — el agente de impresión rechaza payloads con caja: ""
+  it('does not include the caja key at all, like fex does for notas de crédito', () => {
+    const payload = build('1234')
+    expect(payload).not.toHaveProperty('caja')
+  })
+
   it('exposes the lines as ItemsNota (not Items) and forces montoigtf to zero', () => {
     const payload = build('1234')
 

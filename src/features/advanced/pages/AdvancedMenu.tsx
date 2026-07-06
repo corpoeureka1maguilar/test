@@ -182,7 +182,7 @@ export function AdvancedMenu() {
 
   const printNotaCredito = async (o: KioskOrder) => {
     const printer = new FiscalPrinterAdapter(config.printerUrl, config.printerModel)
-    await printer.checkConnection()
+    const status = await printer.checkConnection()
 
     const { fecha, hora } = getOriginalInvoiceDate(o)
 
@@ -206,7 +206,10 @@ export function AdvancedMenu() {
       lines,
       NO_IGTF_METHOD,
       o.amountTotal * orderRate,
-      o.printerSerial ?? ''
+      // Igual que fex (maquina = printer.code de la impresora conectada): la
+      // devolución ocurre en el mismo kiosco que emitió la factura, así que
+      // el serial reportado por la impresora es válido si la orden no lo tiene
+      o.printerSerial || status.serial || ''
     )
 
     return printer.printNotaCredito(payload as Record<string, unknown>)

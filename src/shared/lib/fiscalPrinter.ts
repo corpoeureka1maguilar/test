@@ -79,7 +79,9 @@ export class FiscalPrinterAdapter {
     }
   }
 
-  async checkConnection(): Promise<void> {
+  // Devuelve el estado reportado por la impresora: el `serial` se usa como
+  // `maquina` en la nota de crédito cuando la orden no tiene serial guardado
+  async checkConnection(): Promise<{ Estado?: string; serial?: string; indimpresion?: string }> {
     const { url, headers } = this.getProxyUrlAndHeaders('Estado')
 
     const controller = new AbortController()
@@ -106,6 +108,7 @@ export class FiscalPrinterAdapter {
       if (!hasValidResponse) throw new Error('La impresora no devolvió una respuesta válida')
 
       console.info('[FiscalPrinter] Conexión OK, serial:', status.serial || 'N/A')
+      return status
     } catch (e: unknown) {
       if ((e as Error)?.name === 'AbortError') throw new Error('Tiempo de espera agotado al conectar')
       throw new Error((e as Error)?.message ?? 'No se pudo establecer conexión con la impresora')

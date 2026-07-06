@@ -86,7 +86,7 @@
   cursor: pointer;
   gap: 1rem;
   transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-
+  width: max-content;
   &:active {
     transform: scale(0.96);
   }
@@ -140,12 +140,15 @@
 
 
 .mainBtn {
-  composes: btn from global;
-  composes: btn-accent from global;
-  height: 100px;
-  font-size: 2rem;
+  height: 500px;
+  width: 501px;
+  font-size: 4rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  border-radius: 100%;
+  color: #e7f3e7;
+  background-color: #10b981;
+  border: transparent;
 }
 
 .actions {
@@ -153,8 +156,9 @@
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
-  max-width: 520px;
+  max-width: 800px;
   margin-top: 2rem;
+      align-items: center;
 }
 
 .devolucionBtn {
@@ -207,11 +211,14 @@
   .mainBtn {
     height: 75px;
     font-size: 1.5rem;
+    width: 850px;
+    
   }
 
   .actions {
     margin-top: 1rem;
     gap: 1rem;
+
   }
 
   .devolucionBtn {

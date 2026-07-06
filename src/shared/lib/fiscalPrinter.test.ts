@@ -31,10 +31,13 @@ describe('FiscalPrinterAdapter — proxy routing', () => {
 })
 
 describe('FiscalPrinterAdapter — checkConnection', () => {
-  it('resolves when the printer reports a known status field', async () => {
+  // Paridad con fex: la nota de crédito necesita el serial de la impresora
+  // conectada como `maquina` cuando la orden no lo tiene guardado; para eso
+  // checkConnection devuelve el estado (con serial) en vez de void
+  it('resolves with the printer status so callers can read the serial', async () => {
     mockFetchOnce({ Estado: 'OK', serial: 'A1' })
     const printer = new FiscalPrinterAdapter('http://printer.local', 'EPSON')
-    await expect(printer.checkConnection()).resolves.toBeUndefined()
+    await expect(printer.checkConnection()).resolves.toMatchObject({ serial: 'A1' })
   })
 
   it('throws a translated error message for a known printer error code', async () => {

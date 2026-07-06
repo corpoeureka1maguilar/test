@@ -97,8 +97,9 @@ export function buildNotaCreditoPayload(
   if (/^\d+$/.test(factura)) factura = String(Number(factura))
   factura = factura.padStart(7, '0').slice(0, 7)
 
-  // Sin stationLabel: la nota de crédito no reporta la caja de origen
-  const { Items, ...rest } = buildFacturaPayload(partnerName, partnerVat, lines, method, totalAmount, '')
+  // La nota de crédito no reporta la caja de origen: igual que fex, la clave
+  // se elimina del payload en vez de mandarse vacía
+  const { Items, caja: _caja, ...rest } = buildFacturaPayload(partnerName, partnerVat, lines, method, totalAmount, '')
 
   return {
     ...rest,
