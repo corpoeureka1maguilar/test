@@ -129,36 +129,38 @@ export function Welcome() {
 
   return (
     <div className={styles.wrapper}>
-      {/* Botón de opciones avanzadas oculto en la esquina superior izquierda */}
-      <button
-        type="button"
-        className={styles.advancedBtn}
-        onClick={() => setShowPinModal(true)}
-        title="Opciones Avanzadas"
-      >
-        <List size={28} />
-      </button>
+      <div className={styles.header}>
+        {/* Botón de opciones avanzadas */}
+        <button
+          type="button"
+          className={styles.advancedBtn}
+          onClick={() => setShowPinModal(true)}
+          title="Opciones Avanzadas"
+        >
+          <List size={28} />
+        </button>
 
-      {/* Logo de la empresa en la parte superior central */}
-      <div className={styles.topLogoContainer}>
-        {companyLogo && (
-          <img
-            src={`data:image/png;base64,${companyLogo}`}
-            alt="Logo empresa"
-            className={styles.companyLogo}
-          />
-        )}
+        {/* Logo de la empresa */}
+        <div className={styles.topLogoContainer}>
+          {companyLogo && (
+            <img
+              src={`data:image/png;base64,${companyLogo}`}
+              alt="Logo empresa"
+              className={styles.companyLogo}
+            />
+          )}
+        </div>
+
+        {/* Botón de mute */}
+        <button
+          type="button"
+          className={styles.muteBtn}
+          onClick={toggleMute}
+          title={isMuted ? 'Activar sonido' : 'Silenciar'}
+        >
+          {isMuted ? <SpeakerSimpleSlash size={32} /> : <SpeakerSimpleHigh size={32} />}
+        </button>
       </div>
-
-      {/* Botón de mute minimalista y premium en la esquina superior derecha */}
-      <button
-        type="button"
-        className={styles.muteBtn}
-        onClick={toggleMute}
-        title={isMuted ? 'Activar sonido' : 'Silenciar'}
-      >
-        {isMuted ? <SpeakerSimpleSlash size={32} /> : <SpeakerSimpleHigh size={32} />}
-      </button>
 
       <div className={styles.content}>
         <WelcomeAd configs={adConfigs} isMuted={isMuted} isLoading={isLoading} />
