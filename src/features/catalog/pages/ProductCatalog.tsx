@@ -212,7 +212,7 @@ export function ProductCatalog() {
         matchBarcodeIncludes(p.barcode, cleanedQ)
       )
     }
-    return list
+    return list.slice(0, 20)
   }, [products, activeCategoryId, debouncedSearch])
 
   const getQty = (productId: number) =>

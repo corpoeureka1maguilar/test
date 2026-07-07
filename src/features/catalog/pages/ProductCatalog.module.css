@@ -338,7 +338,7 @@
 }
 
 .card {
-
+  height: 250px;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
