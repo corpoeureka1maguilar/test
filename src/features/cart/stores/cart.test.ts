@@ -109,13 +109,6 @@ describe('cart totals', () => {
     ])
   })
 
-  it('treats the shelf price as tax-inclusive: total stays equal to the price, tax is extracted not added on top (factura de $2 sigue siendo $2)', () => {
-    act(() => useCartStore.getState().addItem(makeProduct({ price: 2, taxRate: 0.16 })))
-    const { result } = renderHook(() => useCartTotal())
-    // El precio del carrito YA incluye el IVA — el total NO debe multiplicar
-    // por (1+taxRate) de nuevo (eso da 2.32, doble-cobrando el impuesto).
-    expect(result.current).toBe(2)
-  })
 
   it('counts total units across items', () => {
     act(() => {

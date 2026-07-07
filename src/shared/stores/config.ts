@@ -108,7 +108,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
 
         const companyLogo = await fetchCompanyLogo().catch(() => '')
 
-        const customConfig = await odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({}))
+        const customConfig = await odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({} as Record<string, any>))
         const useGiftCard = !!customConfig.x_use_gift_card
         const giftCardProductId = Number(customConfig.x_gift_card_product || 0)
 
@@ -230,7 +230,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const [station, companyLogo, customConfig] = await Promise.all([
             pingStation(stationId),
             fetchCompanyLogo().catch(() => get().companyLogo),
-            odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({}))
+            odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({} as Record<string, any>))
           ])
           const useGiftCard = !!customConfig.x_use_gift_card
           const giftCardProductId = Number(customConfig.x_gift_card_product || 0)

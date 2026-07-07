@@ -123,7 +123,7 @@ describe('fetchProducts', () => {
     expect(products).toEqual([{
       id: 1, name: 'Producto A', defaultCode: 'P-A', barcode: undefined,
       price: 360, priceUsd: 10, taxRate: 0.16,
-      categId: 1, categName: 'General', uomName: 'Unidad'
+      categId: 1, categName: 'General', uomName: 'Unidad', isGiftCard: false
     }])
     expect(useExchangeRateStore.getState().rate).toBe(36)
   })

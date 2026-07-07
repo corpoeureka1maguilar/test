@@ -3,9 +3,11 @@ import { createActor, fromPromise } from 'xstate'
 import { saleMachine } from './saleMachine'
 import { OdooServerError } from '@/shared/lib/odooEnv'
 import { QueueFullError } from '@/shared/lib/orderQueue'
-import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, PrinterInvoiceData } from '@/shared/types/types'
+import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, PrinterInvoiceData, GiftCard } from '@/shared/types/types'
 
-type SubmitInput = { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string }
+type SubmitInput = { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string; giftCard: GiftCard | null }
+type EnqueueInput = { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string }
+type PrintInput = { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string; giftCard: GiftCard | null }
 
 // Error transitorio (red/timeout/5xx): plain Error, es DEFERRABLE -> enqueuingOffline
 const submitPaymentRejecting = fromPromise<unknown, SubmitInput>(
@@ -18,16 +20,16 @@ const submitPaymentRejectingPermanent = fromPromise<unknown, SubmitInput>(
 const submitPaymentResolving = fromPromise<unknown, SubmitInput>(
   async () => ({ ok: true })
 )
-const enqueueOfflineOrderResolving = fromPromise<unknown, SubmitInput>(
+const enqueueOfflineOrderResolving = fromPromise<unknown, EnqueueInput>(
   async ({ input }) => ({ id: input.attemptId })
 )
-const enqueueOfflineOrderRejectingFull = fromPromise<unknown, SubmitInput>(
+const enqueueOfflineOrderRejectingFull = fromPromise<unknown, EnqueueInput>(
   async () => { throw new QueueFullError() }
 )
-const printResolving = fromPromise<PrinterInvoiceData, { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }>(
+const printResolving = fromPromise<PrinterInvoiceData, PrintInput>(
   async () => ({ code: '001', date: '2026-06-30 10:00', serial: 'A1' })
 )
-const printRejecting = fromPromise<PrinterInvoiceData, { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }>(
+const printRejecting = fromPromise<PrinterInvoiceData, PrintInput>(
   async () => { throw new Error('Impresora no responde') }
 )
 
@@ -171,7 +173,7 @@ describe('saleMachine — payment processing', () => {
   })
 
   it('RESET while printing cancels the in-flight print job and returns to idle', async () => {
-    const neverResolving = fromPromise<PrinterInvoiceData, { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }>(
+    const neverResolving = fromPromise<PrinterInvoiceData, PrintInput>(
       () => new Promise(() => {})
     )
     const stuckMachine = saleMachine.provide({
@@ -208,7 +210,7 @@ describe('saleMachine — payment processing', () => {
 
   it('RETRY from printingError re-runs the print job and reaches success when it recovers', async () => {
     let attempts = 0
-    const flakyPrint = fromPromise<PrinterInvoiceData, { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }>(
+    const flakyPrint = fromPromise<PrinterInvoiceData, PrintInput>(
       async () => {
         attempts++
         if (attempts === 1) throw new Error('Impresora no responde')
@@ -256,7 +258,7 @@ describe('saleMachine — offline enqueue (transient error while Odoo is unreach
     // Congela el enqueue in-flight para poder observar el estado intermedio
     // antes de que avance a printing (enqueueOfflineOrderResolving es demasiado
     // rápido y el waitFor puede llegar tarde)
-    const neverResolvingEnqueue = fromPromise<unknown, SubmitInput>(() => new Promise(() => {}))
+    const neverResolvingEnqueue = fromPromise<unknown, EnqueueInput>(() => new Promise(() => {}))
     const machine = saleMachine.provide({
       actors: { submitPaymentToOdoo: submitPaymentRejecting, enqueueOfflineOrder: neverResolvingEnqueue }
     })

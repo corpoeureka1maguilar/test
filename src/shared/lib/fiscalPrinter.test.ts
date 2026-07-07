@@ -78,7 +78,7 @@ describe('FiscalPrinterAdapter — printFactura', () => {
   it('throws when the response has no recognizable invoice data', async () => {
     mockFetchOnce({ unrelated: true })
     const printer = new FiscalPrinterAdapter('http://printer.local')
-    await expect(printer.printFactura({})).rejects.toThrow('La impresora no devolvió los datos esperados.')
+    await expect(printer.printFactura({})).rejects.toThrow('Hubo un error en la impresion por favor llama a un supervisor de la tienda')
   })
 
   it('translates a network failure into a friendly message', async () => {

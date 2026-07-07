@@ -28,6 +28,7 @@ vi.mock('@/shared/lib/odooEnv', async (importOriginal) => {
       setupConnection: vi.fn(),
       authenticate: vi.fn().mockResolvedValue(2),
       disconnect: vi.fn(),
+      callMethod: vi.fn().mockResolvedValue({}),
       uid: 2
     }
   }

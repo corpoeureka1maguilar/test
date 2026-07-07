@@ -11,7 +11,7 @@ export function buildSaleOrderPayload(
   payment: ActivePayment,
   method: KioskPaymentMethod,
   attemptId: string,
-  giftCard: GiftCard | null
+  giftCard: GiftCard | null = null
 ) {
   const sessionId = useSessionStore.getState().sessionId
   const cashierId = useSessionStore.getState().cashierId

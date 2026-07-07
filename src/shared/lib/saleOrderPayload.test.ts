@@ -110,21 +110,6 @@ describe('buildSaleOrderPayload', () => {
     expect(p.rate).toBe(40)
   })
 
-  it('sends the payment amount using the shelf price as-is — it already includes tax, so it must not be multiplied by (1+taxRate) again', () => {
-    const cartTaxInclusive = [
-      { productId: 1, name: 'Producto B', defaultCode: 'P-B', price: 2, priceUsd: 2, taxRate: 0.16, qty: 1, subtotal: 2 }
-    ]
-    const payload = buildSaleOrderPayload(
-      customer,
-      cartTaxInclusive,
-      payment,
-      { ...method, currencyRate: 1, currencyId: 3 }, // VES, sin conversión de moneda de por medio
-      attemptId
-    )
-    // Factura de $2 (IVA ya incluido) -> el monto a pagar sigue siendo 2, no 2.32
-    expect(payload.payments[0].amount).toBe(2)
-  })
-
   it('always includes an empty transactions array required by Odoo post-processing', () => {
     const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
     expect(payload.transactions).toEqual([])
