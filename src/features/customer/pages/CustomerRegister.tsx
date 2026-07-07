@@ -56,7 +56,7 @@ export function CustomerRegister() {
 
     const result = validate()
     if (!result.success) {
-      const firstError = result.error.issues[0]?.message || result.error.errors?.[0]?.message
+      const firstError = result.error.issues[0]?.message
       if (firstError) {
         pushToast('error', firstError)
       }

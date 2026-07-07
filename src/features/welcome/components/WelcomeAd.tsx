@@ -12,14 +12,12 @@ interface WelcomeAdProps {
 export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
   const activeConfigs = configs.filter(c => c.active)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [progress, setProgress] = useState(0)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const progressInterval = useRef<number | null>(null)
 
   // Reset index if the configs list changes to avoid out of bounds
   useEffect(() => {
     setCurrentIndex(0)
-    setProgress(0)
   }, [activeConfigs.length])
 
   const currentAd = activeConfigs[currentIndex]
@@ -42,7 +40,6 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
   // Reset progress and handle slide change
   useEffect(() => {
     if (!currentAd) return
-    setProgress(0)
 
     if (progressInterval.current) {
       clearInterval(progressInterval.current)
@@ -54,8 +51,6 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
 
     progressInterval.current = window.setInterval(() => {
       currentStep++
-      const percentage = (currentStep / totalSteps) * 100
-      setProgress(percentage)
 
       if (currentStep >= totalSteps) {
         handleNext()
