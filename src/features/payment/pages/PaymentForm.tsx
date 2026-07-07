@@ -6,6 +6,8 @@ import { getPaymentFormFields, getPaymentLabel, isValidVenezuelanPhone } from '@
 import { formatBs, formatUSD } from '@/shared/lib/money'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import { useUIStore } from '@/shared/stores/ui'
+import { searchGiftCard } from '@/shared/lib/odooRepository'
+import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import styles from './PaymentForm.module.css'
 
 export function PaymentForm() {
@@ -20,6 +22,13 @@ export function PaymentForm() {
   const [bank, setBank] = useState('')
   const [phone, setPhone] = useState('')
 
+  // Gift Card payment state
+  const [giftCardCode, setGiftCardCode] = useState('')
+  const [searchingCard, setSearchingCard] = useState(false)
+  const [foundCard, setFoundCard] = useState<any | null>(null)
+  const [cardError, setCardError] = useState<string | null>(null)
+  const [showKeyboard, setShowKeyboard] = useState(false)
+
   useEffect(() => {
     if (!method) navigate('/pago')
   }, [method, navigate])
@@ -29,16 +38,70 @@ export function PaymentForm() {
   const fields = getPaymentFormFields(method.paymentType)
   const isForeign = !!method.currencyRate && method.currencyRate > 1
   const currencySymbol = method.currencySymbol || '$'
-  const rate = method.currencyRate ?? 0
-  const hasRate = rate > 0
+  const hasRate = globalRate > 0
 
   // Bs siempre disponible desde el carrito
   const igtfBs = method.applyIgtf ? total * (method.igtfPercent / 100) : 0
   const totalWithIgtfBs = total + igtfBs
 
-  // USD = Bs / tasa (base en dólares, se aplica en Bs por la tasa del día)
-  const igtfUSD = hasRate ? igtfBs / rate : null
-  const totalWithIgtfUSD = hasRate ? totalWithIgtfBs / rate : null
+  // USD = Bs / tasa BCV (globalRate): es la MISMA tasa usada para construir
+  // los precios del carrito y la que se le muestra al cliente en pantalla —
+  // method.currencyRate es la tasa de la moneda del método de pago (otra
+  // fuente distinta) y no debe usarse para esta conversión.
+  const igtfUSD = hasRate ? igtfBs / globalRate : null
+  const totalWithIgtfUSD = hasRate ? totalWithIgtfBs / globalRate : null
+
+  const handleSearchCard = async () => {
+    if (!giftCardCode.trim()) return
+    setSearchingCard(true)
+    setCardError(null)
+    setFoundCard(null)
+    try {
+      const card = await searchGiftCard(giftCardCode.trim())
+      if (!card) {
+        setCardError('No se encontró ninguna tarjeta de regalo con ese código.')
+      } else if (card.state !== 'available') {
+        setCardError('Esta tarjeta de regalo no está activa o ya fue consumida.')
+      } else {
+        setFoundCard(card)
+      }
+    } catch (err) {
+      console.error(err)
+      setCardError('Error al buscar la tarjeta de regalo en Odoo.')
+    } finally {
+      setSearchingCard(false)
+      setShowKeyboard(false)
+    }
+  }
+
+  const handleGiftCardSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!foundCard) return
+
+    const orderTotalUSD = total / globalRate
+    if (foundCard.balance < orderTotalUSD) {
+      pushToast('error', 'El saldo de la tarjeta es insuficiente.')
+      return
+    }
+
+    send({
+      type: 'SUBMIT_PAYMENT',
+      payment: {
+        methodId: method.id,
+        reference: foundCard.code,
+        amount: total,
+        igtfAmount: 0
+      },
+      giftCard: {
+        id: foundCard.id,
+        code: foundCard.code,
+        amount: orderTotalUSD,
+        balance: foundCard.balance,
+        state: 'available'
+      }
+    })
+    navigate('/resultado')
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,6 +126,132 @@ export function PaymentForm() {
       }
     })
     navigate('/resultado')
+  }
+
+  if (method.id === -999) {
+    const orderTotalUSD = total / globalRate
+    const hasSufficientBalance = foundCard ? foundCard.balance >= orderTotalUSD : false
+
+    return (
+      <div className="kiosk-container">
+        <h1 className={styles.title}>Pago con Tarjeta de Regalo</h1>
+
+        <div className={styles.summaryContainer} style={{ margin: '0 auto 3rem' }}>
+          <div className={styles.summaryCard}>
+            <div className={styles.amountRow}>
+              <span>Total de la compra</span>
+              <strong>
+                <span className={styles.amountUsd}>{formatUSD(orderTotalUSD)}</span>
+                <span className={styles.amountSecondary}>{formatBs(total)}</span>
+              </strong>
+            </div>
+
+            {foundCard && (
+              <>
+                <hr className={styles.divider} />
+                <div className={styles.amountRow}>
+                  <span>Saldo de la tarjeta</span>
+                  <strong className={styles.cardBalance}>
+                    {formatUSD(foundCard.balance)}
+                    <span className={styles.amountSecondary}>{formatBs(foundCard.balance * globalRate)}</span>
+                  </strong>
+                </div>
+                <div className={styles.amountRow}>
+                  <span>Monto a consumir</span>
+                  <strong className={styles.amountToConsume}>
+                    {formatUSD(orderTotalUSD)}
+                  </strong>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {!foundCard ? (
+          <div className={styles.formContainer}>
+            <div className={styles.label}>
+              <span>Código de la tarjeta</span>
+              <div className={styles.searchRow}>
+                <input
+                  type="text"
+                  value={giftCardCode}
+                  onChange={e => setGiftCardCode(e.target.value)}
+                  placeholder="CARDXXXXXXXXXX"
+                  className={styles.giftCardInput}
+                  disabled={searchingCard}
+                  onFocus={() => setShowKeyboard(true)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleSearchCard()
+                  }}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleSearchCard}
+                  className={`btn btn-accent ${styles.searchButton}`}
+                  disabled={searchingCard}
+                >
+                  {searchingCard ? 'Buscando...' : 'Buscar'}
+                </button>
+              </div>
+            </div>
+            {cardError && <p className={styles.errorText}>{cardError}</p>}
+
+            {showKeyboard && (
+              <div className={styles.inlineKeyboardContainer}>
+                <AppVirtualKeyboard
+                  value={giftCardCode}
+                  onChange={setGiftCardCode}
+                  onClose={() => setShowKeyboard(false)}
+                  onEnter={() => {
+                    handleSearchCard()
+                    setShowKeyboard(false)
+                  }}
+                />
+              </div>
+            )}
+
+            <div className={styles.actions} style={{ marginTop: '2rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => { send({ type: 'BACK' }); navigate('/pago') }}>Volver</button>
+            </div>
+          </div>
+        ) : (
+          <form className={styles.form} onSubmit={handleGiftCardSubmit}>
+            {!hasSufficientBalance && (
+              <div className={styles.noRateWarning}>
+                El saldo de tu tarjeta de regalo ({formatUSD(foundCard.balance)}) es menor que el total a pagar ({formatUSD(orderTotalUSD)}).
+              </div>
+            )}
+
+            {hasSufficientBalance && (
+              <p className={styles.successText}>
+                ✓ Tarjeta lista para usar. Se debitarán {formatUSD(orderTotalUSD)} de tu saldo.
+              </p>
+            )}
+
+            <div className={styles.actions}>
+              <button
+                type="submit"
+                className="btn btn-accent"
+                disabled={!hasSufficientBalance}
+              >
+                Confirmar consumo
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setFoundCard(null)
+                  setGiftCardCode('')
+                }}
+              >
+                Usar otra tarjeta
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    )
   }
 
   return (

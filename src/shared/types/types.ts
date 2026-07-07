@@ -29,6 +29,7 @@ export interface KioskProduct {
   categId: number
   categName: string
   uomName: string
+  isGiftCard?: boolean
 }
 
 export interface CartItem {
@@ -40,6 +41,15 @@ export interface CartItem {
   taxRate: number
   qty: number
   subtotal: number
+  isGiftCard?: boolean
+}
+
+export interface GiftCard {
+  id: number
+  code: string
+  amount: number
+  balance: number
+  state: 'new' | 'available' | 'consumed'
 }
 
 export interface KioskPaymentMethod {

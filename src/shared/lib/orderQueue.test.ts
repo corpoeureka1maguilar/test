@@ -10,6 +10,8 @@ import {
   resetDrainingToPending,
   tagLegacyEntries,
   matchesInstance,
+  markFailed,
+  requeueFailed,
   QueueFullError,
   type QueueEntry
 } from './orderQueue'
@@ -93,6 +95,31 @@ describe('orderQueue — bounded FIFO', () => {
     const count = await hydrateCount()
     expect(count).toBe(2)
     expect(useOfflineQueueStore.getState().count).toBe(2)
+  })
+
+  it('requeueFailed reverts a failed entry to pending and clears lastError', async () => {
+    await enqueue('a', { n: 1 })
+    await markFailed('a', 'Cliente bloqueado')
+
+    await requeueFailed('a')
+
+    const [entry] = await peekAll()
+    expect(entry.status).toBe('pending')
+    expect(entry.lastError).toBeNull()
+  })
+
+  it('requeueFailed is a no-op on a pending entry (does not touch attempts or status)', async () => {
+    await enqueue('a', { n: 1 })
+
+    await requeueFailed('a')
+
+    const [entry] = await peekAll()
+    expect(entry.status).toBe('pending')
+    expect(entry.attempts).toBe(0)
+  })
+
+  it('requeueFailed is a no-op when the id does not exist', async () => {
+    await expect(requeueFailed('missing')).resolves.toBeUndefined()
   })
 
   it('resetDrainingToPending resets any draining entry back to pending on boot', async () => {

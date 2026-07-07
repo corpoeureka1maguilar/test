@@ -53,6 +53,19 @@ export function isMissingRecordError(err: unknown): boolean {
   )
 }
 
+// AccessDenied puede significar credenciales realmente inválidas, pero en
+// drain() casi siempre significa que la sesión todavía no se restableció
+// tras un refresh (uid=0 mientras reauthenticate() corre en paralelo). Se
+// trata como transitorio: reintentar jamás lastima, y sí evita enterrar
+// para siempre una venta que ya se cobró.
+export function isAccessDeniedError(err: unknown): boolean {
+  if (!(err instanceof OdooServerError)) return false
+  return (
+    err.odooException.includes('AccessDenied') ||
+    /access denied/i.test(err.message)
+  )
+}
+
 interface RpcError {
   data?: { message?: string; name?: string }
   message?: string

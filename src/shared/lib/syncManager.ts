@@ -4,7 +4,7 @@
 
 import { peekAll, markStatus, markFailed, dequeue, resetDrainingToPending, tagLegacyEntries, matchesInstance } from './orderQueue'
 import { createSaleOrder, setOrderPrinterData, pingStation } from './odooRepository'
-import { OdooServerError } from './odooEnv'
+import { OdooServerError, isAccessDeniedError } from './odooEnv'
 import { useConfigStore } from '@/shared/stores/config'
 import { getInstanceKey } from './idbStore'
 
@@ -90,14 +90,15 @@ export async function drain(): Promise<void> {
         const result = (await createSaleOrder(target.payload)) as { id?: number } | null | undefined
         odooOrderId = result?.id
       } catch (err) {
-        if (err instanceof OdooServerError) {
+        if (err instanceof OdooServerError && !isAccessDeniedError(err)) {
           // Permanente: se marca 'failed' (se conserva) y se SALTA al
           // siguiente item — un rechazo de negocio no debe wedgear la cola
           await markFailed(target.id, err.message)
           continue
         }
-        // Transitorio: se revierte a 'pending' y se DETIENE el drain — el
-        // resto de la cola espera al próximo intento (backoff o reconexión)
+        // Transitorio (red, o AccessDenied por sesión aún no restablecida
+        // tras un refresh): se revierte a 'pending' y se DETIENE el drain —
+        // el resto de la cola espera al próximo intento (backoff o reconexión)
         await markStatus(target.id, 'pending')
         scheduleBackoffPoll()
         return

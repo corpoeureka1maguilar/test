@@ -5,11 +5,13 @@ import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
 import { useCartStore, useCartTotal, useCartCount, useCartSubtotal, useCartTaxBreakdown } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
-import { Barcode, MagnifyingGlass, Sparkle, ShoppingCart, Trash, WarningCircle } from '@phosphor-icons/react'
+import { AppNumericKeyboard } from '@/shared/components/AppNumericKeyboard'
+import { BarcodeIcon, MagnifyingGlass, Sparkle, ShoppingCart, Trash, WarningCircle } from '@phosphor-icons/react'
 
 import { formatBs, formatUSD } from '@/shared/lib/money'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import { useConfigStore } from '@/shared/stores/config'
+import { useUIStore } from '@/shared/stores/ui'
 import { matchBarcode, matchBarcodeIncludes } from '@/shared/lib/paymentUtils'
 import styles from './ProductCatalog.module.css'
 
@@ -36,6 +38,7 @@ export function ProductCatalog() {
   
   const [isBouncing, setIsBouncing] = useState(false)
   const [showKeyboard, setShowKeyboard] = useState(false)
+  const [isKeyboardMinimized, setIsKeyboardMinimized] = useState(false)
   const [showNotFoundAlert, setShowNotFoundAlert] = useState(false)
   const [notFoundCode, setNotFoundCode] = useState('')
 
@@ -78,7 +81,31 @@ export function ProductCatalog() {
     setTimeout(() => setIsBouncing(false), 500)
   }
 
+  const giftCardProductId = useConfigStore((s) => s.giftCardProductId)
+  const addGiftCard = useCartStore((s) => s.addGiftCard)
+  const pushToast = useUIStore((s) => s.pushToast)
+  const [showGiftCardModal, setShowGiftCardModal] = useState(false)
+  const [giftCardAmountStr, setGiftCardAmountStr] = useState('')
+  const [pendingGiftCardProduct, setPendingGiftCardProduct] = useState<any | null>(null)
+
   const handleAddItem = (product: any) => {
+    const isGiftCard = product.isGiftCard || product.id === giftCardProductId
+
+    // Si ya hay una tarjeta de regalo en el carrito, bloquear la adición de otros productos
+    if (items.some(i => i.isGiftCard)) {
+      if (!isGiftCard) {
+        pushToast('error', 'No podés combinar otros productos con la compra de una tarjeta de regalo.')
+        return
+      }
+    }
+
+    if (isGiftCard) {
+      setPendingGiftCardProduct(product)
+      setGiftCardAmountStr('')
+      setShowGiftCardModal(true)
+      return
+    }
+
     addItem(product)
     setLastScannedProduct(product) // Store as last scanned for easy visual editing
     triggerCartAnimation()
@@ -97,6 +124,24 @@ export function ProductCatalog() {
           }
         }
       })
+    }
+  }
+
+  const handleGiftCardConfirm = () => {
+    const amount = parseFloat(giftCardAmountStr)
+    if (isNaN(amount) || amount <= 0) {
+      pushToast('error', 'Ingresá un monto válido para la tarjeta de regalo.')
+      return
+    }
+    if (pendingGiftCardProduct) {
+      if (items.length > 0 && !items.every(i => i.productId === pendingGiftCardProduct.id)) {
+        pushToast('info', 'Se vació el carrito para comprar la tarjeta de regalo.')
+      }
+      addGiftCard(pendingGiftCardProduct, amount)
+      setLastScannedProduct({ ...pendingGiftCardProduct, price: amount, priceUsd: amount })
+      triggerCartAnimation()
+      setShowGiftCardModal(false)
+      setPendingGiftCardProduct(null)
     }
   }
 
@@ -181,7 +226,7 @@ export function ProductCatalog() {
 
   return (
     <div 
-      className={`${styles.wrapper} ${styles.scanMode} ${showKeyboard && isManualMode ? styles.keyboardOpen : ''}`} 
+      className={`${styles.wrapper} ${styles.scanMode} ${showKeyboard && isManualMode ? (isKeyboardMinimized ? styles.keyboardMinimized : styles.keyboardOpen) : ''}`} 
       onClick={handleWrapperClick}
     >
       {/* INPUT OCULTO PARA EL SCANNER FÍSICO CUANDO EL MODAL ESTÁ CERRADO */}
@@ -204,7 +249,7 @@ export function ProductCatalog() {
           {/* Zona del Lector de Código de Barras */}
           <div className={`${styles.scannerZone} ${lastScannedProduct ? styles.scannerZoneActive : ''}`}>
             <div className={styles.barcodeIcon}>
-              <Barcode size={80} weight="thin" />
+              <BarcodeIcon size={80} weight="thin" />
             </div>
             <div className={styles.scanInstruction}>
               Listo para escanear
@@ -289,7 +334,7 @@ export function ProductCatalog() {
         >
           {isManualMode ? (
             <>
-              <Barcode size={20} /> Escanear Productos
+              <BarcodeIcon size={20} /> Escanear Productos
             </>
           ) : (
             <>
@@ -322,6 +367,7 @@ export function ProductCatalog() {
                 onKeyDown={handleKeyDown}
                 onFocus={() => {
                   setShowKeyboard(true);
+                  setIsKeyboardMinimized(false);
                 }}
                 inputMode="none"
                 placeholder="Escribí nombre o código de barras..."
@@ -566,8 +612,10 @@ export function ProductCatalog() {
           onClose={() => setShowKeyboard(false)}
           onEnter={() => {
             processSearchSubmit()
-            setShowKeyboard(false)
+            setIsKeyboardMinimized(true)
           }}
+          isMinimized={isKeyboardMinimized}
+          onMinimizeChange={setIsKeyboardMinimized}
         />
       )}
 
@@ -576,6 +624,39 @@ export function ProductCatalog() {
         <div className={styles.toastError}>
           <WarningCircle size={24} weight="fill" />
           <span>Producto no encontrado: "{notFoundCode}"</span>
+        </div>
+      )}
+
+      {/* MODAL MONTO TARJETA DE REGALO */}
+      {showGiftCardModal && (
+        <div className={styles.giftCardModalOverlay} onClick={() => { setShowGiftCardModal(false); setPendingGiftCardProduct(null); }}>
+          <div className={styles.giftCardModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.giftCardModalHeader}>
+              <h3 className={styles.giftCardModalTitle}>Monto de la Tarjeta</h3>
+              <span className={styles.giftCardModalSubtitle}>Ingrese el monto a recargar en USD</span>
+            </div>
+            <div className={styles.giftCardModalInputWrapper}>
+              <span className={styles.giftCardModalLabel}>Monto ($)</span>
+              <div className={styles.giftCardModalInput}>
+                {giftCardAmountStr ? `$ ${giftCardAmountStr}` : <span style={{ opacity: 0.3 }}>$ 0.00</span>}
+              </div>
+            </div>
+            <AppNumericKeyboard
+              value={giftCardAmountStr}
+              onChange={setGiftCardAmountStr}
+              maxLength={5}
+              onConfirm={handleGiftCardConfirm}
+            />
+            <div className={styles.giftCardModalActions}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => { setShowGiftCardModal(false); setPendingGiftCardProduct(null); }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

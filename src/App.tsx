@@ -14,7 +14,16 @@ const queryClient = new QueryClient({
     queries: { retry: 1, refetchOnWindowFocus: false }
   }
 })
+// devtools 
+declare global {
+  interface Window {
+    __TANSTACK_QUERY_CLIENT__:
+      import('@tanstack/query-core')
+        .QueryClient
+  }
+}
 
+window.__TANSTACK_QUERY_CLIENT__ = queryClient
 const REAUTH_INTERVAL_MS = 30 * 60 * 1000
 const REAUTH_RETRY_BASE_MS = 15_000
 const REAUTH_RETRY_MAX_MS = 2 * 60 * 1000

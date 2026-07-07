@@ -197,3 +197,92 @@
   margin-top: 0.1em;
   font-variant-numeric: tabular-nums;
 }
+
+.divider {
+  border: 0;
+  border-top: 1px solid var(--color-surface-border);
+  margin: 1rem 0;
+}
+
+.cardBalance {
+  color: #22c55e !important;
+  font-size: 1.6rem;
+  font-weight: 800 !important;
+}
+
+.amountToConsume {
+  color: var(--color-accent) !important;
+  font-size: 1.6rem;
+  font-weight: 800 !important;
+}
+
+.formContainer {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.searchRow {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  align-items: center;
+  width: 100%;
+}
+
+.giftCardInput {
+  flex: 1 !important;
+  width: auto !important;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.searchButton {
+  height: var(--kiosk-input-height) !important;
+  width: 180px !important;
+  font-size: 1.25rem !important;
+  padding: 0 1.5rem !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 8px 20px -8px var(--color-accent-glow) !important;
+}
+
+.errorText {
+  color: var(--color-error, #ef4444);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.successText {
+  color: #22c55e;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.inlineKeyboardContainer {
+  width: 100%;
+  max-width: 600px;
+  margin: 1.5rem auto 0;
+}
+
+.inlineKeyboardContainer :global(div[class*="wrapper"]) {
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: none !important;
+  border-top: none !important;
+  border: 1px solid var(--color-surface-border) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border-radius: 20px !important;
+  padding: 1rem !important;
+  animation: none !important;
+}
+
+.inlineKeyboardContainer :global(button[class*="key"]) {
+  color: #1e293b !important;
+}

@@ -7,6 +7,7 @@
     "build": "tsc -b && vite build",
     "build:central": "tsc -b && VITE_PROXY_BASE=http://localhost:9191 vite build",
     "preview": "node server.js",
+    "mock:merchant": "node merchant-mock.js",
     "proxy": "node proxy-local.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

@@ -10,6 +10,7 @@ import { getMetrics, trackView, trackViewDuration } from '@/shared/lib/metrics'
 import { syncMetrics } from '@/shared/lib/odooRepository'
 import { useConfigStore } from '@/shared/stores/config'
 import { OfflineOverlay } from '@/shared/components/OfflineOverlay'
+import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 
 const INACTIVITY_WARNING_MS = 60_000
 const INACTIVITY_COUNTDOWN_S = 30
@@ -150,6 +151,7 @@ export function RootLayout() {
         />
       )}
       <OfflineOverlay />
+      <AppVirtualKeyboard />
     </div>
   )
 }

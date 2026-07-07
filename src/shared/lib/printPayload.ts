@@ -123,7 +123,8 @@ export function buildFacturaPayload(
 ): FacturaPayload {
   const igtfAmount = calcIgtf(method, totalAmount)
   const codeCreator = (code: string) => 'pago' + code.slice(0, 2)
-  const methodCode = codeCreator('01')
+  const codeVal = method.id === -999 ? '15' : '01'
+  const methodCode = codeCreator(codeVal)
 
   const items: FacturaItem[] = lines
     .filter(l => l.qty > 0)

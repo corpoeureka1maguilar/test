@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
 import { fetchActiveSession, openOdooSession, closeOdooSession, fetchCashier } from '@/shared/lib/odooRepository'
 import { odooEnv } from '@/shared/lib/odooEnv'
 
@@ -18,7 +19,7 @@ interface SessionActions {
   reset(): void
 }
 
-export const useSessionStore = create<SessionState & SessionActions>((set, get) => ({
+export const useSessionStore = create<SessionState & SessionActions>()(devtools((set, get) => ({
   sessionId: null,
   cashierId: null,
   cashierName: '',
@@ -124,4 +125,4 @@ export const useSessionStore = create<SessionState & SessionActions>((set, get) 
       errorMsg: null
     })
   }
-}))
+}), { name: 'session' }))

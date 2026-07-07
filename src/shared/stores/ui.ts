@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
 import type { Toast } from '@/shared/types/types'
 import { randomUUID } from '@/shared/lib/cryptoUtils'
 
@@ -14,7 +15,7 @@ interface UIActions {
   clearToasts(): void
 }
 
-export const useUIStore = create<UIState & UIActions>((set) => ({
+export const useUIStore = create<UIState & UIActions>()(devtools((set) => ({
   loading: false,
   toasts: [],
 
@@ -40,4 +41,4 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   clearToasts() {
     set({ toasts: [] })
   }
-}))
+}), { name: 'ui' }))

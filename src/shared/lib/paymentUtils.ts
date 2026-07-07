@@ -104,6 +104,18 @@ export function formatPhone(value: string): string {
   }
 }
 
+/** Valida un número de teléfono internacional en formato +<código país><número> (7 a 15 dígitos, E.164-ish) */
+export function isValidInternationalPhone(phone: string): boolean {
+  const clean = phone.replace(/\s+/g, '')
+  return /^\+\d{7,15}$/.test(clean)
+}
+
+/** Formatea un número de teléfono internacional: un único `+` inicial, sin caracteres no numéricos, máximo 15 dígitos */
+export function formatInternationalPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 15)
+  return digits ? `+${digits}` : ''
+}
+
 /** Compara un código de barras escaneado con los códigos de barras del producto (soporta múltiples códigos separados por espacios/comas/comas/barras) */
 export function matchBarcode(productBarcode: string | undefined, query: string): boolean {
   if (!productBarcode) return false

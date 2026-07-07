@@ -125,3 +125,8 @@ export function verifyPinHash(pin: string, stored: string): boolean {
 export function isLegacyPinHash(stored: string): boolean {
   return !!stored && !stored.startsWith(`${PIN_HASH_VERSION}:`)
 }
+
+export function generateGiftCardCode(): string {
+  const ts = String(Date.now() + Math.random())
+  return ('CARD' + sha256Hex(ts).toUpperCase()).slice(0, 14)
+}

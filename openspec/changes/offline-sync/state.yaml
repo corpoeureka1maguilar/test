@@ -1,0 +1,46 @@
+change: offline-sync
+artifact_store: openspec
+created: 2026-07-06
+updated: 2026-07-06
+
+phases:
+  explore:
+    status: done
+    artifact: explore.md
+  proposal:
+    status: done
+    artifact: proposal.md
+  spec:
+    status: done
+    artifact:
+      - specs/offline-catalog-cache/spec.md
+      - specs/offline-order-queue/spec.md
+      - specs/offline-sync/spec.md
+  design:
+    status: done
+    artifact: design.md
+  tasks:
+    status: done
+    artifact: tasks.md
+  apply:
+    status: done
+    note: "Batch 1/2: Phases 0-2 (idb/fake-indexeddb deps, idbStore, offlineCache, orderQueue, saleMachine enqueuingOffline). Batch 2/2: Phase 3 (syncManager drain/backoff/boot-recovery + contract test), Phase 4 (useShouldBlockUI + OfflineOverlay wiring; task 4.4 left unchecked — requires physical kiosk/printer, cannot be automated), Phase 5.2 (docs/offline-sync.md), 5.3 (full suite green). 211/211 tests passing across 29 files. Amendment batch (post-verify): Phase 6 — instance scoping (design ADR-6). DB_VERSION bumped 1->2 (data-shape addition, no structural store/index change). 226/227 tests passing (16 new instance-scoping tests; the 1 failure — fiscalPrinter.test.ts — is pre-existing and unrelated, reproduces in isolation)."
+  verify:
+    status: pending
+    note: "Re-run required after Phase 6 (instance scoping) amendment."
+  archive:
+    status: pending
+
+next_recommended:
+  - sdd-verify
+
+open_questions: []
+
+resolved_decisions:
+  - "Delivery: SINGLE PR with size:exception (user-approved, 2026-07-06). Work-unit commits still used."
+  - "Task 3.1 drain conflict resolved 2026-07-06: ADR-3 wins (permanent OdooServerError -> failed+continue; transient -> stop). offline-sync spec updated."
+  - "Task 5.1 backend x_fex_id dedup verified PARTIAL 2026-07-06: application-level search-before-create exists (eu_pos_base/models/sale_order.py:1240), no DB unique constraint; accepted given sequential single-item drain."
+  - "Decision 1 (5000 ceiling, replace-on-refresh) and Decision 2 (cache payment methods offline) — implemented as designed, no veto raised during batch 1 apply."
+  - "Task 5.2 (2026-07-06): offline stock-drift policy documented in docs/offline-sync.md — no online stock check exists today (online or offline); backend must tolerate bulk-committed queued orders; not a bug, accepted trade-off given MAX_QUEUE_SIZE=5 and sequential drain."
+  - "Task 4.4 (2026-07-06): left unchecked — a real cashier+printer+kiosk manual walkthrough cannot be executed inside this apply batch. Equivalent behavior is covered by automated unit tests (useShouldBlockUI.test.ts, OfflineOverlay.test.tsx). Recommend running the manual check before archive/production rollout."
+  - "Phase 6 (2026-07-06, amendment): instance scoping added post-verify — user identified that IndexedDB (autopay-offline) survives clearConfig()+saveConfig() and is never touched by that flow, so a reconfigured kiosk could otherwise drain/serve another Odoo instance's data. instanceKey = odooUrl+odooDb+stationId, composed once in getInstanceKey() (idbStore.ts). Foreign-instance queue entries stay dormant (never sent/failed/deleted, matching the ADR-3 no-delete-on-failed precedent). Legacy pre-amendment entries/cache rows (no instanceKey) are lazily tagged with whichever instance is active the first time they are read/booted against after the upgrade. DB_VERSION bumped 1->2 (comment-documented; no structural schema change). Requires re-running sdd-verify before archive."

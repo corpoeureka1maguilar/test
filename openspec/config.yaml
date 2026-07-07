@@ -1,0 +1,66 @@
+schema: spec-driven
+
+context: |
+  Tech stack: React 18 + Vite + TypeScript kiosk app (autopay)
+  State: TanStack Query (server cache), Zustand (client stores), XState (saleMachine)
+  Backend: Odoo via src/shared/lib/odooRepository.ts (RPC, no card-payment integration)
+  Testing: Vitest + Testing Library + jsdom, 21 existing *.test.ts(x) files
+  Style: no eslint/prettier config detected; tsc --noEmit for type checking
+
+strict_tdd: true
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages (src/shared, src/features, saleMachine, odooRepository)
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows (XState transitions, Odoo RPC calls)
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - Load relevant coding skills for the project stack
+  verify:
+    - Run tests via `npm test` (vitest run) if test infrastructure exists
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)
+
+testing:
+  strict_tdd_mode: enabled
+  detected: 2026-07-06
+  test_runner:
+    command: npm test
+    raw_command: vitest run
+    watch_command: npm run test:watch
+    framework: Vitest 4.1.9
+  test_layers:
+    unit:
+      available: true
+      tool: Vitest
+    integration:
+      available: true
+      tool: "@testing-library/react + @testing-library/jest-dom"
+    e2e:
+      available: false
+      tool: null
+  coverage:
+    available: false
+    command: null
+    note: "No @vitest/coverage-v8 or @vitest/coverage-istanbul in devDependencies"
+  quality_tools:
+    linter:
+      available: false
+      command: null
+    type_checker:
+      available: true
+      command: "npm run typecheck (tsc --noEmit)"
+    formatter:
+      available: false
+      command: null

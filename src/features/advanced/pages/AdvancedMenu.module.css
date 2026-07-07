@@ -642,6 +642,30 @@
   width: 100%;
 }
 
+.queueItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-surface);
+  border-radius: 14px;
+}
+
+.queueInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.queueActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
 .amountUsd {
   display: block;
   font-size: 0.75em;

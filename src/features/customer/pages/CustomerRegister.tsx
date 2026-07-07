@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCreatePartner } from '@/features/customer/hooks/useCreatePartner'
@@ -7,6 +7,9 @@ import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { useAddressAutocomplete } from '@/features/customer/hooks/useAddressAutocomplete'
 import { useConfigStore } from '@/shared/stores/config'
 import { useRegisterForm } from '@/features/customer/hooks/useRegisterForm'
+import { VenezuelanPhoneField } from '@/features/customer/components/VenezuelanPhoneField'
+import { InternationalPhoneField } from '@/features/customer/components/InternationalPhoneField'
+import { fetchStates, type OdooState } from '@/shared/lib/odooRepository'
 import styles from './CustomerRegister.module.css'
 
 export function CustomerRegister() {
@@ -24,7 +27,6 @@ export function CustomerRegister() {
   }, [context.pendingVat, matches, navigate])
 
   const vat = context.pendingVat ?? ''
-  console.log('DEBUG CustomerRegister: context.pendingVat =', context.pendingVat, 'vat =', vat)
 
   const {
     form,
@@ -33,9 +35,62 @@ export function CustomerRegister() {
     set,
     handleKeyboardChange,
     handleSuggestionSelect,
-    handlePrefixSelect,
+    handleStateSelect,
+    isVenezuelan,
+    phoneInput,
     validate
   } = useRegisterForm({ branchState, vat })
+
+  const [states, setStates] = useState<OdooState[]>([])
+
+  useEffect(() => {
+    fetchStates()
+      .then(setStates)
+      .catch((err) => {
+        console.warn('Error fetching states from Odoo, using fallback:', err)
+        setStates([
+          { id: 1, name: 'Amazonas', code: 'AM' },
+          { id: 2, name: 'Anzoátegui', code: 'AN' },
+          { id: 3, name: 'Apure', code: 'AP' },
+          { id: 4, name: 'Aragua', code: 'AR' },
+          { id: 5, name: 'Barinas', code: 'BA' },
+          { id: 6, name: 'Bolívar', code: 'BO' },
+          { id: 7, name: 'Carabobo', code: 'CA' },
+          { id: 8, name: 'Cojedes', code: 'CO' },
+          { id: 9, name: 'Delta Amacuro', code: 'DA' },
+          { id: 10, name: 'Distrito Capital', code: 'DC' },
+          { id: 11, name: 'Falcón', code: 'FA' },
+          { id: 12, name: 'Guárico', code: 'GU' },
+          { id: 13, name: 'Lara', code: 'LA' },
+          { id: 14, name: 'Mérida', code: 'ME' },
+          { id: 15, name: 'Miranda', code: 'MI' },
+          { id: 16, name: 'Monagas', code: 'MO' },
+          { id: 17, name: 'Nueva Esparta', code: 'NE' },
+          { id: 18, name: 'Portuguesa', code: 'PO' },
+          { id: 19, name: 'Sucre', code: 'SU' },
+          { id: 20, name: 'Táchira', code: 'TA' },
+          { id: 21, name: 'Trujillo', code: 'TR' },
+          { id: 22, name: 'Vargas', code: 'VA' },
+          { id: 23, name: 'Yaracuy', code: 'YA' },
+          { id: 24, name: 'Zulia', code: 'ZU' }
+        ])
+      })
+  }, [])
+
+  const filteredStates = useMemo(() => {
+    const q = (form.estado || '').trim().toLowerCase()
+    if (!q) return states
+    return states.filter(s => s.name.toLowerCase().includes(q))
+  }, [states, form.estado])
+
+  const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const relatedTarget = e.relatedTarget as HTMLElement
+    if (!relatedTarget || relatedTarget.tagName !== 'INPUT') {
+      setTimeout(() => {
+        setIsKeyboardMinimized(true)
+      }, 150)
+    }
+  }
 
   const { suggestions, isLoading: isSearching, search: searchAddress, clear: clearSuggestions } = useAddressAutocomplete()
 
@@ -81,8 +136,10 @@ export function CustomerRegister() {
     }
   }
 
+  const [isKeyboardMinimized, setIsKeyboardMinimized] = useState(false)
+
   return (
-    <div className="kiosk-container" style={{ paddingBottom: activeField ? '320px' : '2rem' }}>
+    <div className="kiosk-container" style={{ paddingBottom: activeField ? (isKeyboardMinimized ? '80px' : '320px') : '2rem' }}>
       <h2 className={styles.title}>Registrate para continuar</h2>
 
       <div className="card">
@@ -92,7 +149,8 @@ export function CustomerRegister() {
               type="text"
               value={form.name}
               onChange={set('name')}
-              onFocus={() => setActiveField('name')}
+              onFocus={() => { setActiveField('name'); setIsKeyboardMinimized(false); }}
+              onBlur={handleInputBlur}
               inputMode="none"
               placeholder="Nombre y apellido"
               autoFocus
@@ -107,76 +165,73 @@ export function CustomerRegister() {
               className={styles.readonlyField}
             />
           </label>
-          <label>Teléfono 
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={set('phone')}
-              onFocus={() => setActiveField('phone')}
-              inputMode="none"
-              placeholder="04XX-XXXXXXX"
+          {isVenezuelan ? (
+            <VenezuelanPhoneField
+              {...phoneInput}
+              isActive={activeField === 'phone'}
+              onFocus={() => { setActiveField('phone'); setIsKeyboardMinimized(false); }}
+              onBlur={handleInputBlur}
             />
-            {activeField === 'phone' && (
-              <div className={styles.prefixContainer}>
-                {['0412', '0414', '0424', '0426', '0422'].map(prefix => (
-                  <button
-                    key={prefix}
-                    type="button"
-                    className={styles.prefixButton}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      handlePrefixSelect(prefix)
-                    }}
-                  >
-                    {prefix}
-                  </button>
-                ))}
-                <div className={styles.prefixSeparator} />
-                {['+'].map(prefix => (
-                  <button
-                    key={prefix}
-                    type="button"
-                    className={styles.prefixButton}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      handlePrefixSelect(prefix)
-                    }}
-                  >
-                    {prefix}
-                  </button>
-                ))}
-              </div>
-            )}
-          </label>
+          ) : (
+            <InternationalPhoneField
+              {...phoneInput}
+              onFocus={() => { setActiveField('phone'); setIsKeyboardMinimized(false); }}
+              onBlur={handleInputBlur}
+            />
+          )}
           <label>Correo electrónico
             <input
               type="email"
               value={form.email}
               onChange={set('email')}
-              onFocus={() => setActiveField('email')}
+              onFocus={() => { setActiveField('email'); setIsKeyboardMinimized(false); }}
+              onBlur={handleInputBlur}
               inputMode="none"
               placeholder="correo@ejemplo.com"
             />
           </label>
-          <label>Estado 
-            <input
-              type="text"
-              value={form.estado}
-              onChange={set('estado')}
-              onFocus={() => setActiveField('estado')}
-              inputMode="none"
-              placeholder="Ej: Zulia, Miranda..."
-            />
-          </label>
           <div className={styles.streetWrapper}>
-            <label>Dirección
+            <label>Estado *
+              <input
+                type="text"
+                value={form.estado}
+                onChange={set('estado')}
+                onFocus={() => { setActiveField('estado'); setIsKeyboardMinimized(false); }}
+                onBlur={handleInputBlur}
+                inputMode="none"
+                placeholder="Ej: Zulia, Miranda..."
+                required
+              />
+            </label>
+            {activeField === 'estado' && filteredStates.length > 0 && (
+              <div className={styles.suggestionsDropdown}>
+                {filteredStates.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={styles.suggestionItem}
+                    onMouseDown={e => {
+                      e.preventDefault()
+                      handleStateSelect(s.name)
+                    }}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className={styles.streetWrapper}>
+            <label>Dirección *
               <input
                 type="text"
                 value={form.street}
                 onChange={set('street')}
-                onFocus={() => setActiveField('street')}
+                onFocus={() => { setActiveField('street'); setIsKeyboardMinimized(false); }}
+                onBlur={handleInputBlur}
                 inputMode="none"
                 placeholder="Av., Calle, Sector..."
+                required
               />
             </label>
 
@@ -220,8 +275,10 @@ export function CustomerRegister() {
           value={form[activeField] || ''}
           onChange={(val) => handleKeyboardChange(val, searchAddress)}
           onClose={() => { setActiveField(null); clearSuggestions() }}
-          onEnter={() => setActiveField(null)}
-          layoutType={activeField === 'phone' ? 'tel' : 'text'}
+          onEnter={() => setIsKeyboardMinimized(true)}
+          layoutType="text"
+          isMinimized={isKeyboardMinimized}
+          onMinimizeChange={setIsKeyboardMinimized}
         />
       )}
     </div>

@@ -1,0 +1,38 @@
+change: gift-cards
+artifact_store: openspec
+created: 2026-07-07
+updated: 2026-07-07
+
+phases:
+  explore:
+    status: done
+    artifact: explore.md
+  proposal:
+    status: done
+    artifact: proposal.md
+  spec:
+    status: done
+    artifact:
+      - specs/spec.md
+  design:
+    status: done
+    artifact: design.md
+  tasks:
+    status: done
+    artifact: tasks.md
+  apply:
+    status: pending
+    note: "Initial core implementation written. Identified Odoo ValueError registry issue with `is_gift_card` and resolved it by identifying gift card products through the configured station product ID. Pending final review, local testing and verification."
+  verify:
+    status: pending
+  archive:
+    status: pending
+
+next_recommended:
+  - sdd-verify
+
+open_questions: []
+
+resolved_decisions:
+  - "Avoided custom `is_gift_card` product field query on `product.product` to prevent registry/module ValueErrors in Odoo. Instead, the gift card product is identified dynamically in the frontend mapping by matching product IDs against the configured `giftCardProductId` loaded from Odoo settings."
+  - "Restricted Gift Card payment flow to orders where the total debt is fully covered by the card balance, as the kiosk single-payment architecture does not support multi-payment split/installment flows in the current version."

@@ -107,6 +107,19 @@ describe('syncManager.drain — ADR-3 partial-failure semantics', () => {
     expect(all[0].attempts).toBe(1)
   })
 
+  it('reverts an AccessDenied (session not ready yet) item to pending instead of permanently failing it', async () => {
+    await enqueue('a', { n: 1 })
+    createSaleOrderMock.mockRejectedValueOnce(
+      new OdooServerError('Access Denied', 'odoo.exceptions.AccessDenied')
+    )
+
+    await drain()
+
+    const all = await peekAll()
+    expect(all[0].status).toBe('pending')
+    expect(createSaleOrderMock).toHaveBeenCalledTimes(1)
+  })
+
   it('reverts a transiently-failed item to pending and stops the drain', async () => {
     await enqueue('a', { n: 1 })
     await enqueue('b', { n: 2 })
@@ -117,6 +130,125 @@ describe('syncManager.drain — ADR-3 partial-failure semantics', () => {
     const all = await peekAll()
     expect(all.map((e) => e.id)).toEqual(['a', 'b'])
     expect(all[0].status).toBe('pending')
+    expect(createSaleOrderMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('syncManager.drain — AccessDenied recovery (expected/happy path)', () => {
+  it('recovers via odooException name match: session becomes ready on the next drain and the item syncs', async () => {
+    await enqueue('a', { n: 1 })
+    createSaleOrderMock
+      .mockRejectedValueOnce(new OdooServerError('Access Denied', 'odoo.exceptions.AccessDenied'))
+      .mockResolvedValueOnce({ id: 1 })
+
+    await drain()
+    await drain()
+
+    expect(await peekAll()).toHaveLength(0)
+    expect(createSaleOrderMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('recovers via message-only match when the server omits odooException: syncs once the session is ready', async () => {
+    await enqueue('a', { n: 1 })
+    createSaleOrderMock
+      .mockRejectedValueOnce(new OdooServerError('Access Denied'))
+      .mockResolvedValueOnce({ id: 1 })
+
+    await drain()
+    await drain()
+
+    expect(await peekAll()).toHaveLength(0)
+  })
+
+  it('recovers regardless of message casing (ACCESS DENIED) once the session is ready', async () => {
+    await enqueue('a', { n: 1 })
+    createSaleOrderMock
+      .mockRejectedValueOnce(new OdooServerError('ACCESS DENIED'))
+      .mockResolvedValueOnce({ id: 1 })
+
+    await drain()
+    await drain()
+
+    expect(await peekAll()).toHaveLength(0)
+  })
+
+  it('recovers from the exact real-world login-style AccessDenied message once the session is ready', async () => {
+    await enqueue('a', { n: 1 })
+    createSaleOrderMock
+      .mockRejectedValueOnce(
+        new OdooServerError(
+          'Access Denied (Credenciales incorrectas o base de datos no configurada)',
+          'odoo.exceptions.AccessDenied'
+        )
+      )
+      .mockResolvedValueOnce({ id: 1 })
+
+    await drain()
+    await drain()
+
+    expect(await peekAll()).toHaveLength(0)
+  })
+
+  it('keeps FIFO order intact across the retry: both items land in Odoo in the original sequence', async () => {
+    await enqueue('a', { n: 1 })
+    await enqueue('b', { n: 2 })
+    createSaleOrderMock
+      .mockRejectedValueOnce(new OdooServerError('Access Denied', 'odoo.exceptions.AccessDenied'))
+      .mockResolvedValueOnce({ id: 1 })
+      .mockResolvedValueOnce({ id: 2 })
+
+    await drain()
+    await drain()
+
+    expect(createSaleOrderMock).toHaveBeenNthCalledWith(2, { n: 1 })
+    expect(createSaleOrderMock).toHaveBeenNthCalledWith(3, { n: 2 })
+    expect(await peekAll()).toHaveLength(0)
+  })
+
+  it('registers the printer fiscal data once the retried item finally syncs', async () => {
+    await enqueue('a', { n: 1 })
+    await patchFiscal('a', { code: '001', date: '2026-07-06', serial: 'A1' })
+    createSaleOrderMock
+      .mockRejectedValueOnce(new OdooServerError('Access Denied', 'odoo.exceptions.AccessDenied'))
+      .mockResolvedValueOnce({ id: 42 })
+
+    await drain()
+    await drain()
+
+    expect(setOrderPrinterDataMock).toHaveBeenCalledWith(42, '001', '2026-07-06', 'A1')
+  })
+
+  it('also recovers on reconnection (isOffline true->false) after an AccessDenied revert, not just via a manual drain() call', async () => {
+    // Cola vacía al llamar initSyncManager: no dispara su propio drain()
+    // interno, así el único drain() disparado más abajo es el de la
+    // suscripción isOffline (sin contención por el lock `draining`).
+    await initSyncManager()
+    await enqueue('a', { n: 1 })
+    createSaleOrderMock.mockRejectedValueOnce(
+      new OdooServerError('Access Denied', 'odoo.exceptions.AccessDenied')
+    )
+    await drain()
+    expect((await peekAll())[0].status).toBe('pending')
+
+    createSaleOrderMock.mockResolvedValueOnce({ id: 1 })
+    useConfigStore.setState({ isOffline: true })
+    useConfigStore.setState({ isOffline: false })
+
+    await vi.waitFor(async () => {
+      expect(await peekAll()).toHaveLength(0)
+    })
+  })
+
+  it('does not confuse a genuine AccessError (permission denial, not session) with AccessDenied: it stays permanently failed', async () => {
+    await enqueue('a', { n: 1 })
+    createSaleOrderMock.mockRejectedValueOnce(
+      new OdooServerError('You are not allowed to access this document', 'odoo.exceptions.AccessError')
+    )
+
+    await drain()
+
+    const all = await peekAll()
+    expect(all[0].status).toBe('failed')
     expect(createSaleOrderMock).toHaveBeenCalledTimes(1)
   })
 })

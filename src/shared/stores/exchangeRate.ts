@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { devtools, persist } from 'zustand/middleware'
 
 interface ExchangeRateState {
   rate: number
@@ -9,11 +9,14 @@ interface ExchangeRateState {
 // Persistido para que pantallas como /advanced tengan una tasa disponible
 // aunque se abran directo, sin haber pasado antes por el catálogo de productos
 export const useExchangeRateStore = create<ExchangeRateState>()(
-  persist(
-    (set) => ({
-      rate: 0,
-      setRate: (rate) => set({ rate }),
-    }),
-    { name: 'autopay-exchange-rate' }
+  devtools(
+    persist(
+      (set) => ({
+        rate: 0,
+        setRate: (rate) => set({ rate }),
+      }),
+      { name: 'autopay-exchange-rate' }
+    ),
+    { name: 'exchangeRate' }
   )
 )

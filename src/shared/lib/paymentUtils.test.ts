@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { calcIgtf, getPaymentLabel, getPaymentFormFields, isValidVenezuelanPhone, formatPhone, matchBarcode, matchBarcodeIncludes } from './paymentUtils'
+import {
+  calcIgtf,
+  getPaymentLabel,
+  getPaymentFormFields,
+  isValidVenezuelanPhone,
+  formatPhone,
+  isValidInternationalPhone,
+  formatInternationalPhone,
+  matchBarcode,
+  matchBarcodeIncludes
+} from './paymentUtils'
 import type { KioskPaymentMethod } from '@/shared/types/types'
 
 function makeMethod(overrides: Partial<KioskPaymentMethod> = {}): KioskPaymentMethod {
@@ -79,6 +89,43 @@ describe('isValidVenezuelanPhone', () => {
     expect(isValidVenezuelanPhone('0414-12345678')).toBe(false)
     expect(isValidVenezuelanPhone('+123')).toBe(false)
     expect(isValidVenezuelanPhone('+1234567890123456')).toBe(false)
+  })
+})
+
+describe('isValidInternationalPhone', () => {
+  it('validates a well-formed + number with 7-15 digits', () => {
+    expect(isValidInternationalPhone('+1234567')).toBe(true)
+    expect(isValidInternationalPhone('+123456789012345')).toBe(true)
+  })
+
+  it('validates after stripping spaces', () => {
+    expect(isValidInternationalPhone('+57 310 123 4567')).toBe(true)
+  })
+
+  it('rejects fewer than 7 digits', () => {
+    expect(isValidInternationalPhone('+123456')).toBe(false)
+  })
+
+  it('rejects more than 15 digits', () => {
+    expect(isValidInternationalPhone('+1234567890123456')).toBe(false)
+  })
+
+  it('rejects numbers missing the leading +', () => {
+    expect(isValidInternationalPhone('1234567')).toBe(false)
+  })
+})
+
+describe('formatInternationalPhone', () => {
+  it('keeps a single leading + and strips non-digits', () => {
+    expect(formatInternationalPhone('+57 310-123 4567')).toBe('+573101234567')
+  })
+
+  it('adds a leading + if missing', () => {
+    expect(formatInternationalPhone('573101234567')).toBe('+573101234567')
+  })
+
+  it('caps the number at 15 digits', () => {
+    expect(formatInternationalPhone('+1234567890123456789')).toBe('+123456789012345')
   })
 })
 

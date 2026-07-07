@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
 
 // Espejo síncrono de la cola offline (ver orderQueue.ts) — IndexedDB es la
 // única fuente de verdad; este store SOLO refleja el conteo para que
@@ -10,7 +11,7 @@ interface OfflineQueueState {
   setCount(count: number): void
 }
 
-export const useOfflineQueueStore = create<OfflineQueueState>((set) => ({
+export const useOfflineQueueStore = create<OfflineQueueState>()(devtools((set) => ({
   count: 0,
   setCount: (count) => set({ count })
-}))
+}), { name: 'offlineQueue' }))

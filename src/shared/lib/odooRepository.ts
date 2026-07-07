@@ -1,6 +1,6 @@
 import { odooEnv } from '@/shared/lib/odooEnv'
 import { useConfigStore } from '@/shared/stores/config'
-import type { KioskPartner, KioskPaymentMethod, KioskProduct, KioskOrder, KioskOrderLine, AdConfig } from '@/shared/types/types'
+import type { KioskPartner, KioskPaymentMethod, KioskProduct, KioskOrder, KioskOrderLine, AdConfig, GiftCard } from '@/shared/types/types'
 
 // ─── Raw Odoo shapes ──────────────────────────────────────────────────────────
 
@@ -87,6 +87,7 @@ function mapProduct(r: RawProduct, taxRateMap: Map<number, number>, secondaryBar
   // Los códigos secundarios (product.barcode.multi) se anexan al barcode principal
   // separados por coma; matchBarcode/matchBarcodeIncludes ya soportan ese formato
   const barcode = [r.barcode || undefined, secondaryBarcodesMap.get(r.id)].filter(Boolean).join(',')
+  const giftCardProductId = useConfigStore.getState().giftCardProductId
   return {
     id: r.id,
     name: r.name,
@@ -97,7 +98,8 @@ function mapProduct(r: RawProduct, taxRateMap: Map<number, number>, secondaryBar
     taxRate,
     categId: r.categ_id[0],
     categName: r.categ_id[1],
-    uomName: r.uom_id[1]
+    uomName: r.uom_id[1],
+    isGiftCard: r.id === giftCardProductId
   }
 }
 
@@ -643,6 +645,25 @@ export async function fetchBranchDefaultPricelist(branchId: number): Promise<num
   return branch?.x_fex_default_pricelist_id ? branch.x_fex_default_pricelist_id[0] : 0
 }
 
+export interface OdooState {
+  id: number
+  name: string
+  code: string
+}
+
+export async function fetchStates(): Promise<OdooState[]> {
+  const raw = await odooEnv.callMethod<any[]>(
+    'res.country.state', 'search_read',
+    [[['country_id.code', '=', 'VE']]],
+    { fields: ['id', 'name', 'code'] }
+  )
+  return raw.map(r => ({
+    id: r.id,
+    name: r.name,
+    code: r.code
+  }))
+}
+
 // ─── Métricas del kiosco ───────────────────────────────────────────────────────
 
 // Envía el snapshot acumulado de métricas (ver shared/lib/metrics.ts) a Odoo,
@@ -651,6 +672,31 @@ export async function syncMetrics(stationId: number, branchId: number, metadata:
   await odooEnv.callMethod(
     'x.pos.kiosk.metric', 'action_report_metrics',
     [stationId, metadata, branchId || null]
+  )
+}
+
+// ─── Gift Cards ──────────────────────────────────────────────────────────────
+
+export async function searchGiftCard(code: string): Promise<GiftCard | null> {
+  const result = await odooEnv.callMethod<GiftCard | null>(
+    'x.pos.gift.card',
+    'action_search_gift_card',
+    [code]
+  )
+  return result
+}
+
+export interface AssignCardFromSaleInput {
+  amount: number
+  partner_id: number
+  code: string
+}
+
+export async function assignCardFromSale(data: AssignCardFromSaleInput): Promise<GiftCard> {
+  return odooEnv.callMethod<GiftCard>(
+    'x.pos.gift.card',
+    'action_assign_card_from_sale',
+    [data]
   )
 }
 

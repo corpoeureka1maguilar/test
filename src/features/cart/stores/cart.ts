@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { devtools, persist } from 'zustand/middleware'
 import { useMemo } from 'react'
 import type { CartItem, KioskProduct } from '@/shared/types/types'
 import { ves, addVES, toFloat, mulVES } from '@/shared/lib/money'
@@ -10,6 +10,7 @@ interface CartState {
 
 interface CartActions {
   addItem(product: KioskProduct): void
+  addGiftCard(product: KioskProduct, amount: number): void
   removeItem(productId: number): void
   setQty(productId: number, qty: number): void
   clearCart(): void
@@ -17,11 +18,15 @@ interface CartActions {
 
 // Persistido para que una compra no finalizada sobreviva recargas del kiosco;
 // solo se vacía con clearCart() tras un pago exitoso
-export const useCartStore = create<CartState & CartActions>()(persist((set) => ({
+export const useCartStore = create<CartState & CartActions>()(devtools(persist((set) => ({
   items: [],
 
   addItem(product) {
     set((s) => {
+      // Bloquear si ya hay una tarjeta de regalo en el carrito
+      if (s.items.some(i => i.isGiftCard)) {
+        return {}
+      }
       const existing = s.items.find(i => i.productId === product.id)
       if (existing) {
         return {
@@ -41,7 +46,27 @@ export const useCartStore = create<CartState & CartActions>()(persist((set) => (
           priceUsd: product.priceUsd,
           taxRate: product.taxRate,
           qty: 1,
-          subtotal: product.price
+          subtotal: product.price,
+          isGiftCard: product.isGiftCard
+        }]
+      }
+    })
+  },
+
+  addGiftCard(product, amount) {
+    set(() => {
+      // Comprar tarjeta de regalo reemplaza todo el carrito (debe contenerla solo a ella)
+      return {
+        items: [{
+          productId: product.id,
+          name: product.name,
+          defaultCode: product.defaultCode,
+          price: amount,
+          priceUsd: amount,
+          taxRate: product.taxRate,
+          qty: 1,
+          subtotal: amount,
+          isGiftCard: true
         }]
       }
     })
@@ -68,7 +93,7 @@ export const useCartStore = create<CartState & CartActions>()(persist((set) => (
   clearCart() {
     set({ items: [] })
   }
-}), { name: 'autopay-cart' }))
+}), { name: 'autopay-cart' }), { name: 'cart' }))
 
 export function useCartSubtotal() {
   return useCartStore(s => {

@@ -44,6 +44,7 @@
   --kiosk-input-font-size: 1.75rem;
   --kiosk-card-padding:  3rem;
   --kiosk-max-width:     1200px;
+  --keyboard-height:     0px;
 }
 
 * {
@@ -88,7 +89,8 @@ body {
   max-width: var(--kiosk-max-width);
   margin: 0 auto;
   min-height: calc(100vh - 120px);
-  padding: 2rem;
+  padding: 2rem 2rem calc(var(--keyboard-height, 0px) + 2rem) 2rem;
+  transition: padding-bottom 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
   flex-direction: column;
   align-items: center; /* Crucial for Apple centering */

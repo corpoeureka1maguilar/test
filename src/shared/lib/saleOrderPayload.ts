@@ -1,4 +1,4 @@
-import type { KioskPartner, CartItem, ActivePayment, KioskPaymentMethod } from '@/shared/types/types'
+import type { KioskPartner, CartItem, ActivePayment, KioskPaymentMethod, GiftCard } from '@/shared/types/types'
 import { useSessionStore } from '@/shared/stores/session'
 import { useConfigStore } from '@/shared/stores/config'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
@@ -10,7 +10,8 @@ export function buildSaleOrderPayload(
   cart: CartItem[],
   payment: ActivePayment,
   method: KioskPaymentMethod,
-  attemptId: string
+  attemptId: string,
+  giftCard: GiftCard | null
 ) {
   const sessionId = useSessionStore.getState().sessionId
   const cashierId = useSessionStore.getState().cashierId
@@ -32,6 +33,23 @@ export function buildSaleOrderPayload(
   // El amount va en bolívares — Odoo calcula amount_ref en USD usando la tasa
   const paymentAmount = round2(totalWithIgtfBs)
   const paymentIgtf = round2(igtfBs)
+
+  const isPayingWithGiftCard = method.id === -999 && giftCard?.state === 'available'
+
+  const formattedGiftCard = giftCard ? (
+    giftCard.state === 'new' ? {
+      id: giftCard.id,
+      code: giftCard.code,
+      amount: giftCard.amount,
+      state: 'new'
+    } : {
+      id: giftCard.id,
+      code: giftCard.code,
+      amount: giftCard.amount,
+      balance: giftCard.balance,
+      state: 'available'
+    }
+  ) : undefined
 
   return {
     // UUID string → x_fex_id para deduplicar. Se genera UNA vez por intento de
@@ -66,8 +84,11 @@ export function buildSaleOrderPayload(
     // Requerido por _action_post_process_order (KeyError si no existe)
     transactions: [],
 
+    // Tarjeta de regalo
+    giftCard: formattedGiftCard,
+
     // Pagos — field names que lee _action_parse_pos_data de account.payment.fex
-    payments: [{
+    payments: isPayingWithGiftCard ? [] : [{
       id:         randomUUID(),
       isChange:   false,
       date:       new Date().toISOString(),

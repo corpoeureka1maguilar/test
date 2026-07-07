@@ -126,6 +126,17 @@ export async function markStatus(id: string, status: QueueStatus): Promise<void>
   await db.put(ORDER_QUEUE_STORE, { ...entry, status })
 }
 
+// Reintento manual (Menú Avanzado > Cola Offline): una entrada 'failed'
+// vuelve a 'pending' para que drain() la reintente. Solo aplica a entradas
+// realmente 'failed' — no toca pending/draining, que ya están bajo control
+// del synchronizer.
+export async function requeueFailed(id: string): Promise<void> {
+  const db = await getOfflineDb()
+  const entry = await db.get(ORDER_QUEUE_STORE, id) as QueueEntry | undefined
+  if (!entry || entry.status !== 'failed') return
+  await db.put(ORDER_QUEUE_STORE, { ...entry, status: 'pending', lastError: null })
+}
+
 export async function hydrateCount(): Promise<number> {
   const instanceKey = getInstanceKey()
   const all = await peekAll()

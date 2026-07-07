@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { devtools, persist } from 'zustand/middleware'
 import { odooEnv, isMissingRecordError } from '@/shared/lib/odooEnv'
 import { useUIStore } from '@/shared/stores/ui'
 import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState, fetchBranchFixedProducts, fetchBranchDefaultPricelist } from '@/shared/lib/odooRepository'
@@ -45,6 +45,8 @@ interface ConfigState {
   isConfigured: boolean
   isConnectionReady: boolean
   isOffline: boolean
+  useGiftCard: boolean
+  giftCardProductId: number
 }
 
 interface ConfigActions {
@@ -64,8 +66,9 @@ interface ConfigActions {
 }
 
 export const useConfigStore = create<ConfigState & ConfigActions>()(
-  persist(
-    (set, get) => ({
+  devtools(
+    persist(
+      (set, get) => ({
       odooUrl: '',
       odooDb: '',
       serviceUser: '',
@@ -81,6 +84,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       pricelistId: 0,
       appToken: '',
       companyLogo: '',
+      useGiftCard: false,
+      giftCardProductId: 0,
       isConfigured: false,
       isConnectionReady: false,
       isOffline: false,
@@ -102,6 +107,10 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         await saveSecret(SERVICE_PASSWORD_SECRET, data.servicePassword)
 
         const companyLogo = await fetchCompanyLogo().catch(() => '')
+
+        const customConfig = await odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({}))
+        const useGiftCard = !!customConfig.x_use_gift_card
+        const giftCardProductId = Number(customConfig.x_gift_card_product || 0)
 
         if (data.configToken) {
           const station = await linkStation(data.configToken, appToken)
@@ -130,6 +139,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             pricelistId,
             appToken,
             companyLogo,
+            useGiftCard,
+            giftCardProductId,
             isConfigured: true,
             isConnectionReady: true,
             isOffline: false
@@ -152,6 +163,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             pricelistId,
             appToken: existingToken,
             companyLogo,
+            useGiftCard,
+            giftCardProductId,
             isConfigured: true,
             isConnectionReady: true,
             isOffline: false
@@ -214,10 +227,13 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           await setProxyTarget(odooUrl)
           odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })
           await odooEnv.authenticate(serviceUser)
-          const [station, companyLogo] = await Promise.all([
+          const [station, companyLogo, customConfig] = await Promise.all([
             pingStation(stationId),
-            fetchCompanyLogo().catch(() => get().companyLogo)
+            fetchCompanyLogo().catch(() => get().companyLogo),
+            odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({}))
           ])
+          const useGiftCard = !!customConfig.x_use_gift_card
+          const giftCardProductId = Number(customConfig.x_gift_card_product || 0)
           const branchState = station.branchId
             ? await fetchBranchState().catch(() => get().branchState)
             : get().branchState
@@ -227,7 +243,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const pricelistId = station.branchId
             ? await fetchBranchDefaultPricelist(station.branchId).catch(() => get().pricelistId)
             : get().pricelistId
-          set({ isConnectionReady: true, isOffline: false, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds, pricelistId })
+          set({ isConnectionReady: true, isOffline: false, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds, pricelistId, useGiftCard, giftCardProductId })
         } catch (err) {
           // La estación fue borrada en Odoo (p. ej. la duplicaron y eliminaron
           // la original): error PERMANENTE, reintentar deja la caja bloqueada
@@ -267,8 +283,12 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         pricelistId: state.pricelistId,
         appToken: state.appToken,
         companyLogo: state.companyLogo,
+        useGiftCard: state.useGiftCard,
+        giftCardProductId: state.giftCardProductId,
         isConfigured: state.isConfigured
       })
     }
+    ),
+    { name: 'config' }
   )
 )

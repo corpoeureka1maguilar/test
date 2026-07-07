@@ -15,6 +15,9 @@ import type { KioskOrder, KioskPaymentMethod } from '@/shared/types/types'
 import { formatBs, formatUSD } from '@/shared/lib/money'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import { getMetrics, resetMetrics, trackRefund } from '@/shared/lib/metrics'
+import { peekAll, requeueFailed, dequeue, matchesInstance, type QueueEntry } from '@/shared/lib/orderQueue'
+import { getInstanceKey } from '@/shared/lib/idbStore'
+import { drain } from '@/shared/lib/syncManager'
 import styles from './AdvancedMenu.module.css'
 
 // Toda acción administrativa pasa por el PIN modal con su operación de
@@ -40,7 +43,7 @@ export function AdvancedMenu() {
   const config = useConfigStore()
 
   const defaultTab = (location.state as any)?.defaultTab || 'devoluciones'
-  const [activeTab, setActiveTab] = useState<'devoluciones' | 'reimpresion' | 'cierres' | 'terminal' | 'metrics'>(defaultTab)
+  const [activeTab, setActiveTab] = useState<'devoluciones' | 'reimpresion' | 'cierres' | 'terminal' | 'metrics' | 'cola'>(defaultTab)
   const [pattern, setPattern] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<KioskOrder | null>(null)
   const [reason, setReason] = useState('')
@@ -104,6 +107,65 @@ export function AdvancedMenu() {
       setMetrics(getMetrics())
     }
   }, [activeTab])
+
+  const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([])
+
+  // Solo se muestran/tocan entradas de LA instancia actual (design ADR-6):
+  // una entrada de otra instancia queda dormida y no debe exponerse acá.
+  const loadQueue = async () => {
+    const instanceKey = getInstanceKey()
+    const all = await peekAll()
+    setQueueEntries(all.filter((e) => matchesInstance(e, instanceKey)))
+  }
+
+  useEffect(() => {
+    if (activeTab === 'cola') loadQueue()
+  }, [activeTab])
+
+  const requestRequeue = (entry: QueueEntry) => {
+    setPendingAction({
+      title: `Confirma para reintentar la venta ${entry.id}`,
+      operationRef: KIOSK_OPERATIONS.terminalConfig,
+      auditMessage: `Reintento manual de sincronización offline (venta ${entry.id})`,
+      run: () => handleRequeue(entry.id)
+    })
+  }
+
+  const handleRequeue = async (id: string) => {
+    setLoading(true)
+    try {
+      await requeueFailed(id)
+      await drain()
+      await loadQueue()
+      pushToast('success', 'Venta reencolada; sincronizando con Odoo...')
+    } catch (err) {
+      pushToast('error', `Error al reencolar: ${(err as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const requestDiscard = (entry: QueueEntry) => {
+    setPendingAction({
+      title: `Confirma para DESCARTAR definitivamente la venta ${entry.id}`,
+      operationRef: KIOSK_OPERATIONS.terminalConfig,
+      auditMessage: `Descarte manual de venta offline fallida (venta ${entry.id})`,
+      run: () => handleDiscard(entry.id)
+    })
+  }
+
+  const handleDiscard = async (id: string) => {
+    setLoading(true)
+    try {
+      await dequeue(id)
+      await loadQueue()
+      pushToast('success', 'Venta descartada de la cola offline')
+    } catch (err) {
+      pushToast('error', `Error al descartar: ${(err as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleResetMetrics = () => {
     setPendingAction({
@@ -432,6 +494,13 @@ export function AdvancedMenu() {
           onClick={() => setActiveTab('metrics')}
         >
           Métricas
+        </button>
+        <button
+          type="button"
+          className={`${styles.tab} ${activeTab === 'cola' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('cola')}
+        >
+          Cola Offline
         </button>
       </div>
 
@@ -839,6 +908,48 @@ export function AdvancedMenu() {
             <button type="button" className={styles.resetBtn} onClick={handleResetMetrics}>
               Restablecer Métricas
             </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'cola' && (
+        <div className={styles.sectionCard} style={{ width: '100%', maxWidth: '900px' }}>
+          <h3 className={styles.sectionTitle}>Cola de Ventas Offline</h3>
+          <div className={styles.listContainer} style={{ maxHeight: 'none' }}>
+            {queueEntries.length === 0 ? (
+              <p className={styles.emptyState}>No hay ventas pendientes de sincronización</p>
+            ) : (
+              queueEntries.map((entry) => (
+                <div key={entry.id} className={styles.queueItem}>
+                  <div className={styles.queueInfo}>
+                    <div className={styles.viewMeta}>
+                      <span className={styles.itemName}>{entry.id}</span>
+                      <span className={`${styles.badge} ${entry.status === 'failed' ? styles.badgeClosed : styles.badgeOpen}`}>
+                        {entry.status === 'failed' ? 'FALLIDA' : entry.status === 'draining' ? 'SINCRONIZANDO' : 'PENDIENTE'}
+                      </span>
+                    </div>
+                    <span className={styles.info} style={{ padding: 0 }}>
+                      Encolada: {new Date(entry.enqueuedAt).toLocaleString()} · Intentos: {entry.attempts}
+                    </span>
+                    {entry.lastError && (
+                      <span className={styles.info} style={{ padding: 0, color: 'var(--color-danger)' }}>
+                        Último error: {entry.lastError}
+                      </span>
+                    )}
+                  </div>
+                  {entry.status === 'failed' && (
+                    <div className={styles.queueActions}>
+                      <button type="button" className="btn btn-secondary" onClick={() => requestRequeue(entry)}>
+                        Reintentar
+                      </button>
+                      <button type="button" className={styles.resetBtn} onClick={() => requestDiscard(entry)}>
+                        Descartar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

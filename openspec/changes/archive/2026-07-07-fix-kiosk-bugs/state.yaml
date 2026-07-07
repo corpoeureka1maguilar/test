@@ -1,0 +1,36 @@
+change: fix-kiosk-bugs
+artifact_store: openspec
+created: 2026-07-07
+updated: 2026-07-07
+
+phases:
+  explore:
+    status: done
+    artifact: exploration.md
+  proposal:
+    status: done
+    artifact: proposal.md
+  spec:
+    status: done
+    artifact:
+      - specs/payment-flow/spec.md
+      - specs/customer-registration/spec.md
+  design:
+    status: done
+    artifact: design.md
+  tasks:
+    status: done
+    artifact: tasks.md
+  apply:
+    status: done
+  verify:
+    status: done
+    artifact: verify-report.md
+  archive:
+    status: pending
+
+next_recommended:
+  - sdd-archive
+
+open_questions: []
+resolved_decisions: []

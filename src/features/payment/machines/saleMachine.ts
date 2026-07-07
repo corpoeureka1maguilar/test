@@ -1,13 +1,14 @@
 import { setup, assign, fromPromise, fromCallback } from 'xstate'
-import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, PrinterInvoiceData } from '@/shared/types/types'
-import { createSaleOrder, setOrderPrinterData } from '@/shared/lib/odooRepository'
-import { FiscalPrinterAdapter } from '@/shared/lib/fiscalPrinter'
+import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, PrinterInvoiceData, GiftCard } from '@/shared/types/types'
+import { createSaleOrder, setOrderPrinterData, assignCardFromSale } from '@/shared/lib/odooRepository'
+import { FiscalPrinterAdapter, noFiscalItem } from '@/shared/lib/fiscalPrinter'
 import { buildFacturaPayload } from '@/shared/lib/printPayload'
 import { buildSaleOrderPayload } from '@/shared/lib/saleOrderPayload'
 import { useConfigStore } from '@/shared/stores/config'
-import { randomUUID } from '@/shared/lib/cryptoUtils'
+import { randomUUID, generateGiftCardCode } from '@/shared/lib/cryptoUtils'
 import { OdooServerError } from '@/shared/lib/odooEnv'
 import { enqueue as enqueueOrder, patchFiscal } from '@/shared/lib/orderQueue'
+import { useCartStore } from '@/features/cart/stores/cart'
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ export interface SaleContext {
   cart: CartItem[]
   selectedMethod: KioskPaymentMethod | null
   activePayment: ActivePayment | null
+  giftCard: GiftCard | null
   saleAttemptId: string | null      // x_fex_id: estable durante todo el intento de venta (dedup en Odoo)
   odooOrderId: number | null        // id de la orden creada en Odoo, para registrar el n° fiscal
   queuedOffline: boolean            // true si la venta se encoló localmente (Odoo inalcanzable)
@@ -36,7 +38,7 @@ export type SaleEvent =
   | { type: 'CHECKOUT'; cart: CartItem[] }
   | { type: 'PAY' }
   | { type: 'SELECT_METHOD'; method: KioskPaymentMethod }
-  | { type: 'SUBMIT_PAYMENT'; payment: ActivePayment }
+  | { type: 'SUBMIT_PAYMENT'; payment: ActivePayment; giftCard?: GiftCard }
   | { type: 'TICK' }
   | { type: 'RETRY' }
   | { type: 'CONTINUE' }
@@ -52,10 +54,35 @@ const countdownTick = fromCallback(({ sendBack }) => {
 
 const submitPaymentToOdoo = fromPromise<
   unknown,
-  { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string }
+  { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string; giftCard: GiftCard | null }
 >(async ({ input }) => {
-  const { customer, cart, payment, method, attemptId } = input
-  const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
+  const { customer, cart, payment, method, attemptId, giftCard } = input
+
+  const giftCardItem = cart.find(item => item.isGiftCard)
+  if (giftCardItem) {
+    const code = generateGiftCardCode()
+    const cardInfo = await assignCardFromSale({
+      amount: giftCardItem.price,
+      partner_id: customer.id,
+      code: code
+    })
+    const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId, {
+      id: cardInfo.id,
+      code: cardInfo.code,
+      amount: cardInfo.amount,
+      balance: cardInfo.balance,
+      state: 'new'
+    })
+    return createSaleOrder(payload)
+  }
+
+  // Tarjeta de regalo como medio de pago
+  if (method.id === -999 && giftCard) {
+    const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId, giftCard)
+    return createSaleOrder(payload)
+  }
+
+  const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId, null)
   return createSaleOrder(payload)
 })
 
@@ -69,7 +96,7 @@ const enqueueOfflineOrder = fromPromise<
   { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string }
 >(async ({ input }) => {
   const { customer, cart, payment, method, attemptId } = input
-  const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
+  const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId, null)
   return enqueueOrder(attemptId, payload)
 })
 
@@ -82,10 +109,32 @@ function isDeferrableError(error: unknown): boolean {
 
 const printFiscalInvoice = fromPromise<
   PrinterInvoiceData,
-  { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }
+  { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string; giftCard: GiftCard | null }
 >(async ({ input, signal }) => {
-  const { customer, cart, method, printerUrl, printerModel } = input
+  const { customer, cart, method, printerUrl, printerModel, giftCard } = input
   const printer = new FiscalPrinterAdapter(printerUrl, printerModel)
+
+  const isGiftCardPurchase = cart.some(item => item.isGiftCard)
+  if (isGiftCardPurchase && giftCard) {
+    const items = [
+      noFiscalItem("==================================", "C"),
+      noFiscalItem("TARJETA DE REGALO", "C"),
+      noFiscalItem("==================================", "C"),
+      noFiscalItem("Cliente: " + customer.name),
+      noFiscalItem("C.I: " + customer.cedula),
+      noFiscalItem("Monto: USD " + giftCard.amount.toFixed(2)),
+      noFiscalItem("Codigo: " + giftCard.code),
+      noFiscalItem("----------------------------------"),
+      noFiscalItem(giftCard.code, "B"),
+      noFiscalItem("==================================", "C")
+    ]
+    const response = await printer.printNoFiscal(items, signal)
+    return {
+      code: String(response.numNota || response.numfactura || ''),
+      date: `${response.fecha} ${response.hora}`.trim(),
+      serial: response.serial
+    }
+  }
 
   const totalBs = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const igtfBs = method.applyIgtf ? totalBs * (method.igtfPercent / 100) : 0
@@ -133,7 +182,9 @@ export const saleMachine = setup({
     }),
     setPayment: assign({
       activePayment: ({ event }) =>
-        (event as Extract<SaleEvent, { type: 'SUBMIT_PAYMENT' }>).payment
+        (event as Extract<SaleEvent, { type: 'SUBMIT_PAYMENT' }>).payment,
+      giftCard: ({ event }) =>
+        (event as Extract<SaleEvent, { type: 'SUBMIT_PAYMENT' }>).giftCard ?? null
     }),
     // Genera el x_fex_id UNA sola vez por intento de venta y lo conserva en
     // los reintentos: si Odoo creó la orden pero el timeout se comió la
@@ -190,19 +241,27 @@ export const saleMachine = setup({
     clearPrintError: assign({ printError: null }),
     startCountdown: assign({ countdown: 10 }),
     decrementCountdown: assign({ countdown: ({ context }) => context.countdown - 1 }),
-    resetContext: assign({
-      customer: null,
-      pendingVat: null,
-      cart: [],
-      selectedMethod: null,
-      activePayment: null,
-      saleAttemptId: null,
-      odooOrderId: null,
-      queuedOffline: false,
-      printerResult: null,
-      errorMessage: null,
-      printError: null,
-      countdown: 0
+    resetContext: assign(() => {
+      try {
+        useCartStore.getState().clearCart()
+      } catch (err) {
+        console.error('Error clearing cart store in resetContext:', err)
+      }
+      return {
+        customer: null,
+        pendingVat: null,
+        cart: [],
+        selectedMethod: null,
+        activePayment: null,
+        giftCard: null,
+        saleAttemptId: null,
+        odooOrderId: null,
+        queuedOffline: false,
+        printerResult: null,
+        errorMessage: null,
+        printError: null,
+        countdown: 0
+      }
     })
   }
 }).createMachine({
@@ -214,6 +273,7 @@ export const saleMachine = setup({
     cart: [],
     selectedMethod: null,
     activePayment: null,
+    giftCard: null,
     saleAttemptId: null,
     odooOrderId: null,
     queuedOffline: false,
@@ -285,7 +345,8 @@ export const saleMachine = setup({
             cart: context.cart,
             payment: context.activePayment,
             method: context.selectedMethod,
-            attemptId: context.saleAttemptId
+            attemptId: context.saleAttemptId,
+            giftCard: context.giftCard
           }
         },
         onDone: { target: 'printing', actions: ['clearError', 'setOdooOrderId'] },
@@ -342,7 +403,8 @@ export const saleMachine = setup({
             method: context.selectedMethod,
             payment: context.activePayment,
             printerUrl: useConfigStore.getState().printerUrl,
-            printerModel: useConfigStore.getState().printerModel
+            printerModel: useConfigStore.getState().printerModel,
+            giftCard: context.giftCard
           }
         },
         onDone: { target: 'success', actions: ['setPrinterResult', 'persistPrinterData', 'patchQueueFiscal'] },
