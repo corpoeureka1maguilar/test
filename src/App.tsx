@@ -6,6 +6,7 @@ import { SaleMachineProvider } from '@/features/payment/machines/SaleMachineCont
 import { AppToast } from '@/shared/components/AppToast'
 import { AppLoading } from '@/shared/components/AppLoading'
 import { useConfigStore } from '@/shared/stores/config'
+import { initSyncManager } from '@/shared/lib/syncManager'
 import '@/assets/index.css'
 
 const queryClient = new QueryClient({
@@ -68,6 +69,23 @@ function AppInit() {
 }
 
 export function App() {
+  // El synchronizer se inicializa una sola vez por arranque de la app, sin
+  // depender de isConfigured: la recuperación de arranque (resetear items
+  // 'draining' colgados) debe correr aunque el kiosko todavía no reautentique
+  useEffect(() => {
+    initSyncManager().catch((err) => {
+      console.error('[App] Error inicializando el synchronizer offline:', err)
+    })
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault()
+    }
+    document.addEventListener('contextmenu', handleContextMenu)
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu)
+    }
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <SaleMachineProvider>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useSearchOrders } from '@/features/advanced/hooks/useSearchOrders'
 import { useOrder } from '@/features/cart/hooks/useOrder'
 import { AppOrderSummary } from '@/features/cart/components/AppOrderSummary'
@@ -34,6 +35,7 @@ const NO_IGTF_METHOD: KioskPaymentMethod = {
 export function AdvancedMenu() {
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
   const { pushToast, setLoading } = useUIStore()
   const config = useConfigStore()
 
@@ -105,7 +107,7 @@ export function AdvancedMenu() {
 
   const handleResetMetrics = () => {
     setPendingAction({
-      title: 'Confirmá tu PIN para restablecer las métricas',
+      title: 'Confirma para restablecer las métricas',
       operationRef: KIOSK_OPERATIONS.terminalConfig,
       run: () => {
         resetMetrics()
@@ -113,6 +115,21 @@ export function AdvancedMenu() {
         pushToast('success', 'Métricas restablecidas')
       }
     })
+  }
+
+  const handleReloadCache = async () => {
+    setLoading(true)
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['products'] }),
+        queryClient.refetchQueries({ queryKey: ['payment-methods'] })
+      ])
+      pushToast('success', 'Caché recargado con éxito')
+    } catch (err) {
+      pushToast('error', `Error al recargar caché: ${(err as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Formulario para la parametrización de la terminal
@@ -138,7 +155,7 @@ export function AdvancedMenu() {
 
   const requestUnlockTerminal = () => {
     setPendingAction({
-      title: 'Confirmá tu PIN para modificar la configuración',
+      title: 'Confirma para modificar la configuración',
       operationRef: KIOSK_OPERATIONS.terminalConfig,
       run: () => setIsTerminalUnlocked(true)
     })
@@ -155,7 +172,7 @@ export function AdvancedMenu() {
       return
     }
     setPendingAction({
-      title: 'Confirmá tu PIN para procesar la devolución',
+      title: 'Confirma para procesar la devolución',
       operationRef: KIOSK_OPERATIONS.saleReturn,
       auditMessage: `Devolución de la orden ${order.name} (${reason})`,
       run: handleReturn
@@ -254,7 +271,7 @@ export function AdvancedMenu() {
   const requestReprint = () => {
     if (!order) return
     setPendingAction({
-      title: 'Confirmá tu PIN para reimprimir la factura',
+      title: 'Confirma para reimprimir la factura',
       operationRef: KIOSK_OPERATIONS.invoiceReprint,
       auditMessage: order.printerNumber
         ? `Reimpresión de la factura ${order.printerNumber} (orden ${order.name})`
@@ -315,7 +332,7 @@ export function AdvancedMenu() {
 
   const requestPrintReport = (tipo: 'X' | 'Z', reportName: string) => {
     setPendingAction({
-      title: `Confirmá tu PIN para imprimir: ${reportName}`,
+      title: `Confirma para imprimir: ${reportName}`,
       operationRef: tipo === 'Z' ? KIOSK_OPERATIONS.sessionClose : KIOSK_OPERATIONS.shiftClose,
       auditMessage: `Impresión de reporte ${tipo}: ${reportName}`,
       run: () => handlePrintReport(tipo, reportName)
@@ -546,7 +563,7 @@ export function AdvancedMenu() {
                   type="button"
                   className="btn btn-primary"
                   onClick={() => setPendingAction({
-                    title: 'Confirmá tu PIN para aperturar caja',
+                    title: 'Confirma para aperturar caja',
                     operationRef: KIOSK_OPERATIONS.openSession,
                     run: handleOpenSession
                   })}
@@ -560,7 +577,7 @@ export function AdvancedMenu() {
                   type="button"
                   className="btn btn-danger"
                   onClick={() => setPendingAction({
-                    title: 'Confirmá tu PIN para cerrar caja',
+                    title: 'Confirma para cerrar caja',
                     operationRef: KIOSK_OPERATIONS.sessionClose,
                     run: handleCloseSession
                   })}
@@ -609,42 +626,59 @@ export function AdvancedMenu() {
       )}
 
       {activeTab === 'terminal' && (
-        <form className={styles.configForm} onSubmit={handleSaveConfig}>
-          <div className={styles.formGrid}>
-            <label className={styles.fieldLabel}>URL de Odoo
-              <input type="text" value={form.odooUrl} onChange={setFormField('odooUrl')} placeholder="https://mi-empresa.odoo.com" required disabled={!isTerminalUnlocked} />
-            </label>
-            <label className={styles.fieldLabel}>Base de datos
-              <input type="text" value={form.odooDb} onChange={setFormField('odooDb')} placeholder="mi_base" required disabled={!isTerminalUnlocked} />
-            </label>
-            <label className={styles.fieldLabel}>Usuario de servicio
-              <input type="text" value={form.serviceUser} onChange={setFormField('serviceUser')} placeholder="kiosco@empresa.com" required disabled={!isTerminalUnlocked} />
-            </label>
-            <label className={styles.fieldLabel}>Contraseña de Odoo
-              <input type="password" value={form.servicePassword} onChange={setFormField('servicePassword')} required disabled={!isTerminalUnlocked} />
-            </label>
-            <label className={styles.fieldLabel}>URL Impresora Fiscal
-              <input type="text" value={form.printerUrl} onChange={setFormField('printerUrl')} required disabled={!isTerminalUnlocked} />
-            </label>
-            <label className={styles.fieldLabel}>Modelo Impresora Fiscal
-              <input type="text" value={form.printerModel} onChange={setFormField('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." disabled={!isTerminalUnlocked} />
-            </label>
-            {isTerminalUnlocked && (
-              <label className={styles.fieldLabel}>PIN de Administrador (nuevo)
-                <input type="password" value={form.adminPin} onChange={setFormField('adminPin')} maxLength={6} required placeholder="PIN de 4 a 6 dígitos" />
+        <div className={styles.terminalContainer}>
+          <form className={styles.configForm} onSubmit={handleSaveConfig}>
+            <div className={styles.formGrid}>
+              <label className={styles.fieldLabel}>URL de Odoo
+                <input type="text" value={form.odooUrl} onChange={setFormField('odooUrl')} placeholder="https://mi-empresa.odoo.com" required disabled={!isTerminalUnlocked} />
               </label>
+              <label className={styles.fieldLabel}>Base de datos
+                <input type="text" value={form.odooDb} onChange={setFormField('odooDb')} placeholder="mi_base" required disabled={!isTerminalUnlocked} />
+              </label>
+              <label className={styles.fieldLabel}>Usuario de servicio
+                <input type="text" value={form.serviceUser} onChange={setFormField('serviceUser')} placeholder="kiosco@empresa.com" required disabled={!isTerminalUnlocked} />
+              </label>
+              <label className={styles.fieldLabel}>Contraseña de Odoo
+                <input type="password" value={form.servicePassword} onChange={setFormField('servicePassword')} required disabled={!isTerminalUnlocked} />
+              </label>
+              <label className={styles.fieldLabel}>URL Impresora Fiscal
+                <input type="text" value={form.printerUrl} onChange={setFormField('printerUrl')} required disabled={!isTerminalUnlocked} />
+              </label>
+              <label className={styles.fieldLabel}>Modelo Impresora Fiscal
+                <input type="text" value={form.printerModel} onChange={setFormField('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." disabled={!isTerminalUnlocked} />
+              </label>
+              {isTerminalUnlocked && (
+                <label className={styles.fieldLabel}>PIN de Administrador (nuevo)
+                  <input type="password" value={form.adminPin} onChange={setFormField('adminPin')} maxLength={6} required placeholder="PIN de 4 a 6 dígitos" />
+                </label>
+              )}
+            </div>
+            {isTerminalUnlocked ? (
+              <button type="submit" className="btn btn-accent" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }}>
+                Guardar Configuración
+              </button>
+            ) : (
+              <button type="button" className="btn btn-secondary" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }} onClick={requestUnlockTerminal}>
+                Modificar Configuración
+              </button>
             )}
+          </form>
+
+          <div className={styles.cacheCard}>
+            <h3 className={styles.cacheTitle}>Caché del Sistema</h3>
+            <p className={styles.cacheDesc}>
+              Descarga la información más reciente de productos y métodos de pago desde Odoo para actualizar el caché local.
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleReloadCache}
+              style={{ width: '100%', maxWidth: '380px' }}
+            >
+              Recargar Caché
+            </button>
           </div>
-          {isTerminalUnlocked ? (
-            <button type="submit" className="btn btn-accent" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }}>
-              Guardar Configuración
-            </button>
-          ) : (
-            <button type="button" className="btn btn-secondary" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }} onClick={requestUnlockTerminal}>
-              Modificar Configuración
-            </button>
-          )}
-        </form>
+        </div>
       )}
 
       {activeTab === 'metrics' && (

@@ -651,3 +651,56 @@
   margin-top: 0.1em;
   font-variant-numeric: tabular-nums;
 }
+
+.terminalContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+}
+
+.cacheCard {
+  background: var(--color-panel);
+  border: 1px solid var(--color-surface-border);
+  padding: 3rem;
+  border-radius: var(--app-radius);
+  box-shadow: var(--app-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 900px;
+  animation: appleScaleIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cacheTitle {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.cacheDesc {
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 600px;
+}
+
+@media (max-aspect-ratio: 1.35), (max-height: 800px) {
+  .cacheCard {
+    padding: 1.5rem;
+    gap: 0.75rem;
+  }
+  .cacheTitle {
+    font-size: 1.2rem;
+  }
+  .cacheDesc {
+    font-size: 0.85rem;
+  }
+}
+

@@ -52,7 +52,7 @@ export function noFiscalItem(text: string, efecto: NoFiscalStyle = ''): NoFiscal
 }
 
 export class FiscalPrinterAdapter {
-  constructor(private readonly printerUrl: string, private readonly modelo?: string) {}
+  constructor(private readonly printerUrl: string, private readonly modelo?: string) { }
 
   private getProxyUrlAndHeaders(endpoint: string): { url: string; headers: Record<string, string> } {
     const hasProtocol = this.printerUrl.startsWith('http://') || this.printerUrl.startsWith('https://')
@@ -150,7 +150,7 @@ export class FiscalPrinterAdapter {
       if (status.error) throw new Error(getPrinterErrorMessage(status.error as unknown as string))
 
       const hasValidData = status.numfactura || status.fecha || status.numNota || status.numReporte
-      if (!hasValidData) throw new Error('La impresora no devolvió los datos esperados.')
+      if (!hasValidData) throw new Error('Hubo un error en la impresion por favor llama a un supervisor de la tienda')
 
       return status
     } catch (e: unknown) {

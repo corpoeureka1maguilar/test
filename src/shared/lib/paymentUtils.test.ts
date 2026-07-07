@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcIgtf, getPaymentLabel, getPaymentFormFields, isValidVenezuelanPhone, matchBarcode, matchBarcodeIncludes } from './paymentUtils'
+import { calcIgtf, getPaymentLabel, getPaymentFormFields, isValidVenezuelanPhone, formatPhone, matchBarcode, matchBarcodeIncludes } from './paymentUtils'
 import type { KioskPaymentMethod } from '@/shared/types/types'
 
 function makeMethod(overrides: Partial<KioskPaymentMethod> = {}): KioskPaymentMethod {
@@ -66,6 +66,10 @@ describe('isValidVenezuelanPhone', () => {
     expect(isValidVenezuelanPhone('584161234567')).toBe(true)
     expect(isValidVenezuelanPhone('4261234567')).toBe(true)
     expect(isValidVenezuelanPhone('02121234567')).toBe(true)
+    expect(isValidVenezuelanPhone('04221234567')).toBe(true)
+    expect(isValidVenezuelanPhone('02551234567')).toBe(true)
+    expect(isValidVenezuelanPhone('+57 310 1234567')).toBe(true)
+    expect(isValidVenezuelanPhone('+13051234567')).toBe(true)
   })
 
   it('invalidates wrong formats', () => {
@@ -73,6 +77,8 @@ describe('isValidVenezuelanPhone', () => {
     expect(isValidVenezuelanPhone('0414-123456')).toBe(false)
     expect(isValidVenezuelanPhone('05121234567')).toBe(false)
     expect(isValidVenezuelanPhone('0414-12345678')).toBe(false)
+    expect(isValidVenezuelanPhone('+123')).toBe(false)
+    expect(isValidVenezuelanPhone('+1234567890123456')).toBe(false)
   })
 })
 
@@ -96,5 +102,18 @@ describe('matchBarcodeIncludes', () => {
     expect(matchBarcodeIncludes('123456, 789012', '456')).toBe(true)
     expect(matchBarcodeIncludes('123456, 789012', '7890')).toBe(true)
     expect(matchBarcodeIncludes('123456, 789012', '999')).toBe(false)
+  })
+})
+
+describe('formatPhone', () => {
+  it('formats Venezuelan numbers with hyphens', () => {
+    expect(formatPhone('04261234567')).toBe('0426-1234-567')
+    expect(formatPhone('0412123')).toBe('0412-123')
+    expect(formatPhone('04121234')).toBe('0412-1234')
+    expect(formatPhone('041212345')).toBe('0412-1234-5')
+  })
+
+  it('keeps international numbers raw', () => {
+    expect(formatPhone('+573101234567')).toBe('+573101234567')
   })
 })

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { AdConfig } from '@/shared/types/types'
+import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import styles from './WelcomeAd.module.css'
 
 interface WelcomeAdProps {
@@ -85,74 +86,80 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
 
   if (activeConfigs.length === 0 || !currentAd) return null
 
-  const handleTap = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const percent = x / rect.width
-    if (percent < 0.3) {
-      handlePrev()
-    } else {
-      handleNext()
-    }
-  }
-
   return (
-    <div className={styles.adContainer} onClick={handleTap}>
-      {/* Instagram-style progress indicators */}
-      <div className={styles.progressHeader}>
-        {activeConfigs.map((_, index) => {
-          let width = '0%'
-          if (index < currentIndex) width = '100%'
-          if (index === currentIndex) width = `${progress}%`
+    <div className={styles.adWrapper}>
+      <div className={styles.adSliderRow}>
+        <button
+          type="button"
+          className={styles.arrowBtn}
+          onClick={handlePrev}
+          aria-label="Anterior"
+        >
+          <CaretLeft size={36} weight="bold" />
+        </button>
 
-          return (
-            <div key={index} className={styles.progressBarBg}>
-              <div 
-                className={styles.progressBarFill} 
-                style={{ width }} 
-              />
+        <div className={styles.adContainer}>
+          {/* Slide rendering */}
+          {currentAd.type === 'video' ? (
+            <video
+              ref={videoRef}
+              src={currentAd.url}
+              className={styles.adVideo}
+              autoPlay
+              playsInline
+              muted={isMuted}
+            />
+          ) : currentAd.type === 'image' ? (
+            <img
+              src={currentAd.url}
+              alt={currentAd.title || "Publicidad"}
+              className={styles.adImage}
+            />
+          ) : (
+            <div 
+              className={styles.adGradient}
+              style={{
+                background: `linear-gradient(135deg, ${currentAd.colorStart ?? '#059669'}, ${currentAd.colorEnd ?? '#10b981'})`
+              }}
+            />
+          )}
+
+          {/* Premium Content Overlay */}
+          <div className={styles.contentOverlay}>
+            <div className={styles.headerRow}>
+              <span className={styles.adBadge}>RÁPIDO Y SEGURO</span>
             </div>
-          )
-        })}
+            
+            {(currentAd.title || currentAd.description) && (
+              <div className={styles.textInfo}>
+                {currentAd.title && <h3 className={styles.adTitle}>{currentAd.title}</h3>}
+                {currentAd.description && <p className={styles.adDesc}>{currentAd.description}</p>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className={styles.arrowBtn}
+          onClick={handleNext}
+          aria-label="Siguiente"
+        >
+          <CaretRight size={36} weight="bold" />
+        </button>
       </div>
 
-      {/* Slide rendering */}
-      {currentAd.type === 'video' ? (
-        <video
-          ref={videoRef}
-          src={currentAd.url}
-          className={styles.adVideo}
-          autoPlay
-          playsInline
-          muted={isMuted}
-        />
-      ) : currentAd.type === 'image' ? (
-        <img
-          src={currentAd.url}
-          alt={currentAd.title || "Publicidad"}
-          className={styles.adImage}
-        />
-      ) : (
-        <div 
-          className={styles.adGradient}
-          style={{
-            background: `linear-gradient(135deg, ${currentAd.colorStart ?? '#059669'}, ${currentAd.colorEnd ?? '#10b981'})`
-          }}
-        />
-      )}
-
-      {/* Premium Content Overlay */}
-      <div className={styles.contentOverlay}>
-        <div className={styles.headerRow}>
-          <span className={styles.adBadge}>Patrocinado</span>
-        </div>
-        
-        {(currentAd.title || currentAd.description) && (
-          <div className={styles.textInfo}>
-            {currentAd.title && <h3 className={styles.adTitle}>{currentAd.title}</h3>}
-            {currentAd.description && <p className={styles.adDesc}>{currentAd.description}</p>}
-          </div>
-        )}
+      {/* Pagination Dots */}
+      <div className={styles.dotsContainer}>
+        {activeConfigs.map((_, index) => (
+          <button
+            key={index}
+            type="button"
+            className={`${styles.dot} ${index === currentIndex ? styles.activeDot : ''}`}
+            onClick={() => setCurrentIndex(index)}
+            aria-label={`Ir al anuncio ${index + 1}`}
+          />
+        ))}
       </div>
     </div>
   )

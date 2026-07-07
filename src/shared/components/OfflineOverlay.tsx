@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { WifiSlash, ArrowClockwise } from '@phosphor-icons/react'
 import { useConfigStore } from '@/shared/stores/config'
+import { useShouldBlockUI } from '@/shared/hooks/useShouldBlockUI'
 import styles from './OfflineOverlay.module.css'
 
 export function OfflineOverlay() {
-  const isOffline = useConfigStore((s) => s.isOffline)
-  const isConfigured = useConfigStore((s) => s.isConfigured)
   const reauthenticate = useConfigStore((s) => s.reauthenticate)
   const [isRetrying, setIsRetrying] = useState(false)
 
-  // Solo mostrar si el kiosko ya está configurado y el servidor está offline
-  if (!isConfigured || !isOffline) return null
+  // Solo bloquea cuando offline Y la cola local está llena (design ADR-4):
+  // mientras haya cupo, el kiosko sigue vendiendo offline sin interrupciones
+  const shouldBlockUI = useShouldBlockUI()
+  if (!shouldBlockUI) return null
 
   const handleRetry = async () => {
     if (isRetrying) return
@@ -32,11 +33,12 @@ export function OfflineOverlay() {
           <div className={styles.pulseRing} />
         </div>
         
-        <h1 className={styles.title}>Servidor fuera de línea</h1>
-        
+        <h1 className={styles.title}>Cola de ventas offline llena</h1>
+
         <p className={styles.description}>
-          El kiosco no puede establecer comunicación con el servidor central. 
-          Por favor, verificá que el servidor esté encendido y conectado a la red.
+          El servidor central sigue fuera de línea y este kiosco ya alcanzó el
+          máximo de ventas que puede guardar localmente. No se pueden registrar
+          más ventas hasta reconectar y sincronizar la cola pendiente.
         </p>
 
         <div className={styles.statusBox}>

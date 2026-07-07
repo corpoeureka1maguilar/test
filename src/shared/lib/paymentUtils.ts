@@ -70,9 +70,13 @@ export function getPaymentFormFields(paymentType: PaymentType): ('reference' | '
   }
 }
 
-/** Valida si un número telefónico es un número móvil o fijo de Venezuela válido */
 export function isValidVenezuelanPhone(phone: string): boolean {
-  const clean = phone.replace(/\D/g, '')
+  const trimmed = phone.trim()
+  if (trimmed.startsWith('+')) {
+    const clean = trimmed.replace(/\D/g, '')
+    return clean.length >= 7 && clean.length <= 15
+  }
+  const clean = trimmed.replace(/\D/g, '')
   let digits = clean
   if (digits.startsWith('58') && digits.length === 12) {
     digits = digits.slice(2)
@@ -80,7 +84,24 @@ export function isValidVenezuelanPhone(phone: string): boolean {
   if (digits.length === 10 && (digits.startsWith('4') || digits.startsWith('2'))) {
     digits = '0' + digits
   }
-  return /^(0412|0414|0424|0416|0426|02\d{2})\d{7}$/.test(digits)
+  return /^(0412|0414|0424|0416|0426|0422|02\d{2})\d{7}$/.test(digits)
+}
+
+/** Formatea dinámicamente un número de teléfono de Venezuela en formato XXXX-XXXX-XXX */
+export function formatPhone(value: string): string {
+  const trimmed = value.trim()
+  if (trimmed.startsWith('+')) {
+    return trimmed
+  }
+  const clean = trimmed.replace(/\D/g, '')
+  if (clean.length === 0) return ''
+  if (clean.length <= 4) {
+    return clean
+  } else if (clean.length <= 8) {
+    return `${clean.slice(0, 4)}-${clean.slice(4)}`
+  } else {
+    return `${clean.slice(0, 4)}-${clean.slice(4, 8)}-${clean.slice(8, 11)}`
+  }
 }
 
 /** Compara un código de barras escaneado con los códigos de barras del producto (soporta múltiples códigos separados por espacios/comas/comas/barras) */

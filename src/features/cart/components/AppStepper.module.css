@@ -17,19 +17,44 @@
 }
 
 .companyLogo {
-  height: 36px;
+  height: 88px;
   width: auto;
-  max-width: 110px;
+  max-width: 140px;
   object-fit: contain;
-  opacity: 0.9;
+  opacity: 0.95;
+}
+
+.rightInfo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 140px;
+  justify-content: flex-end;
+}
+
+.customerDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  justify-content: center;
+  align-items: flex-end;
+  text-align: right;
 }
 
 .customerName {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text);
+  line-height: 1.1;
+}
+
+.customerDoc {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
   opacity: 0.85;
 }
 

@@ -1,15 +1,28 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createActor, fromPromise } from 'xstate'
 import { saleMachine } from './saleMachine'
+import { OdooServerError } from '@/shared/lib/odooEnv'
+import { QueueFullError } from '@/shared/lib/orderQueue'
 import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, PrinterInvoiceData } from '@/shared/types/types'
 
 type SubmitInput = { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string }
 
+// Error transitorio (red/timeout/5xx): plain Error, es DEFERRABLE -> enqueuingOffline
 const submitPaymentRejecting = fromPromise<unknown, SubmitInput>(
   async () => { throw new Error('Odoo no disponible') }
 )
+// Rechazo permanente de Odoo (regla de negocio): NO es deferrable -> paymentError
+const submitPaymentRejectingPermanent = fromPromise<unknown, SubmitInput>(
+  async () => { throw new OdooServerError('Cliente bloqueado', 'odoo.exceptions.UserError') }
+)
 const submitPaymentResolving = fromPromise<unknown, SubmitInput>(
   async () => ({ ok: true })
+)
+const enqueueOfflineOrderResolving = fromPromise<unknown, SubmitInput>(
+  async ({ input }) => ({ id: input.attemptId })
+)
+const enqueueOfflineOrderRejectingFull = fromPromise<unknown, SubmitInput>(
+  async () => { throw new QueueFullError() }
 )
 const printResolving = fromPromise<PrinterInvoiceData, { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }>(
   async () => ({ code: '001', date: '2026-06-30 10:00', serial: 'A1' })
@@ -18,12 +31,18 @@ const printRejecting = fromPromise<PrinterInvoiceData, { customer: KioskPartner;
   async () => { throw new Error('Impresora no responde') }
 )
 
-vi.mock('@/shared/lib/odooRepository', () => ({ createSaleOrder: vi.fn() }))
+vi.mock('@/shared/lib/odooRepository', () => ({ createSaleOrder: vi.fn(), setOrderPrinterData: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/shared/lib/fiscalPrinter', () => ({
   FiscalPrinterAdapter: vi.fn().mockImplementation(() => ({
     printFactura: vi.fn().mockResolvedValue({ numfactura: '001', fecha: '2026-06-30', hora: '10:00', serial: 'A1' })
   }))
 }))
+vi.mock('@/shared/lib/orderQueue', async () => {
+  const actual = await vi.importActual<typeof import('@/shared/lib/orderQueue')>('@/shared/lib/orderQueue')
+  return { ...actual, enqueue: vi.fn(), patchFiscal: vi.fn().mockResolvedValue(undefined) }
+})
+
+import { enqueue as enqueueOrderMock, patchFiscal as patchFiscalMock } from '@/shared/lib/orderQueue'
 
 const customer: KioskPartner = { id: 1, name: 'Juan Perez', cedula: 'V-12345678' }
 const cart: CartItem[] = [
@@ -88,9 +107,9 @@ describe('saleMachine — happy path transitions', () => {
 })
 
 describe('saleMachine — payment processing', () => {
-  it('moves to paymentError and records the message when submitPaymentToOdoo rejects', async () => {
+  it('moves to paymentError and records the message when Odoo permanently rejects the sale (OdooServerError)', async () => {
     const failingMachine = saleMachine.provide({
-      actors: { submitPaymentToOdoo: submitPaymentRejecting }
+      actors: { submitPaymentToOdoo: submitPaymentRejectingPermanent }
     })
     const actor = createActor(failingMachine)
     actor.start()
@@ -100,12 +119,12 @@ describe('saleMachine — payment processing', () => {
     await vi.waitFor(() => {
       expect(actor.getSnapshot().value).toBe('paymentError')
     })
-    expect(actor.getSnapshot().context.errorMessage).toBe('Odoo no disponible')
+    expect(actor.getSnapshot().context.errorMessage).toBe('Cliente bloqueado')
   })
 
   it('RETRY from paymentError goes back to enteringDetails and clears the error', async () => {
     const failingMachine = saleMachine.provide({
-      actors: { submitPaymentToOdoo: submitPaymentRejecting }
+      actors: { submitPaymentToOdoo: submitPaymentRejectingPermanent }
     })
     const actor = createActor(failingMachine)
     actor.start()
@@ -227,10 +246,83 @@ describe('saleMachine — payment processing', () => {
   })
 })
 
+describe('saleMachine — offline enqueue (transient error while Odoo is unreachable)', () => {
+  beforeEach(() => {
+    vi.mocked(enqueueOrderMock).mockReset()
+    vi.mocked(patchFiscalMock).mockReset().mockResolvedValue(undefined)
+  })
+
+  it('routes a transient error (plain Error) to enqueuingOffline instead of paymentError', async () => {
+    // Congela el enqueue in-flight para poder observar el estado intermedio
+    // antes de que avance a printing (enqueueOfflineOrderResolving es demasiado
+    // rápido y el waitFor puede llegar tarde)
+    const neverResolvingEnqueue = fromPromise<unknown, SubmitInput>(() => new Promise(() => {}))
+    const machine = saleMachine.provide({
+      actors: { submitPaymentToOdoo: submitPaymentRejecting, enqueueOfflineOrder: neverResolvingEnqueue }
+    })
+    const actor = createActor(machine)
+    actor.start()
+    runToEnteringDetails(actor)
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+
+    await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('enqueuingOffline'))
+  })
+
+  it('proceeds to printing with queuedOffline:true and odooOrderId:null once the offline enqueue succeeds', async () => {
+    const machine = saleMachine.provide({
+      actors: {
+        submitPaymentToOdoo: submitPaymentRejecting,
+        enqueueOfflineOrder: enqueueOfflineOrderResolving,
+        printFiscalInvoice: printResolving
+      }
+    })
+    const actor = createActor(machine)
+    actor.start()
+    runToEnteringDetails(actor)
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+
+    await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('success'))
+    expect(actor.getSnapshot().context.queuedOffline).toBe(true)
+    expect(actor.getSnapshot().context.odooOrderId).toBeNull()
+    expect(actor.getSnapshot().context.printerResult).toEqual({ code: '001', date: '2026-06-30 10:00', serial: 'A1' })
+  })
+
+  it('routes to paymentError when the offline queue is full (enqueue rejects)', async () => {
+    const machine = saleMachine.provide({
+      actors: { submitPaymentToOdoo: submitPaymentRejecting, enqueueOfflineOrder: enqueueOfflineOrderRejectingFull }
+    })
+    const actor = createActor(machine)
+    actor.start()
+    runToEnteringDetails(actor)
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+
+    await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('paymentError'))
+    expect(actor.getSnapshot().context.errorMessage).toMatch(/cola offline/i)
+  })
+
+  it('printing.onDone patches the queue entry fiscal data when the sale was queued offline', async () => {
+    const machine = saleMachine.provide({
+      actors: {
+        submitPaymentToOdoo: submitPaymentRejecting,
+        enqueueOfflineOrder: enqueueOfflineOrderResolving,
+        printFiscalInvoice: printResolving
+      }
+    })
+    const actor = createActor(machine)
+    actor.start()
+    runToEnteringDetails(actor)
+    const attemptId = actor.getSnapshot().context.saleAttemptId
+    actor.send({ type: 'SUBMIT_PAYMENT', payment })
+
+    await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('success'))
+    expect(patchFiscalMock).toHaveBeenCalledWith(attemptId, { code: '001', date: '2026-06-30 10:00', serial: 'A1' })
+  })
+})
+
 describe('saleMachine — sale attempt dedup id', () => {
   it('assigns saleAttemptId when entering enteringDetails and keeps it across RETRY', async () => {
     const failingMachine = saleMachine.provide({
-      actors: { submitPaymentToOdoo: submitPaymentRejecting }
+      actors: { submitPaymentToOdoo: submitPaymentRejectingPermanent }
     })
     const actor = createActor(failingMachine)
     actor.start()

@@ -22,7 +22,7 @@ export function PaymentSelect() {
 
   return (
     <div className="kiosk-container">
-      <h2 className={styles.title}>Elegí cómo pagar</h2>
+      <h2 className={styles.title}>Selecciona tu método de pago</h2>
       <p className={styles.total}>
         Total:&nbsp;<strong>{formatBs(total)}</strong>
         {rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}

@@ -15,6 +15,7 @@ export interface KioskPartner {
   cedula: string
   phone?: string
   street?: string
+  email?: string
 }
 
 export interface KioskProduct {

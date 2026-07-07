@@ -10,6 +10,7 @@ interface RawPartner {
   cedula: string
   phone: string | false
   street: string | false
+  email: string | false
 }
 
 interface RawMethod {
@@ -32,6 +33,11 @@ interface RawProduct {
   taxes_id: number[]
   categ_id: [number, string]
   uom_id: [number, string]
+}
+
+interface RawBarcodeMulti {
+  product_id: [number, string]
+  name: string
 }
 
 interface RawOrderHeader {
@@ -59,7 +65,7 @@ interface RawOrderLine {
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 function mapPartner(r: RawPartner): KioskPartner {
-  return { id: r.id, name: r.name, cedula: r.cedula, phone: r.phone || undefined, street: r.street || undefined }
+  return { id: r.id, name: r.name, cedula: r.cedula, phone: r.phone || undefined, street: r.street || undefined, email: r.email || undefined }
 }
 
 function mapMethod(r: RawMethod): KioskPaymentMethod {
@@ -75,14 +81,17 @@ function mapMethod(r: RawMethod): KioskPaymentMethod {
   }
 }
 
-function mapProduct(r: RawProduct, taxRateMap: Map<number, number>): KioskProduct {
+function mapProduct(r: RawProduct, taxRateMap: Map<number, number>, secondaryBarcodesMap: Map<number, string>): KioskProduct {
   const firstTaxId = r.taxes_id?.[0]
   const taxRate = firstTaxId != null ? (taxRateMap.get(firstTaxId) ?? 0.16) : 0.16
+  // Los códigos secundarios (product.barcode.multi) se anexan al barcode principal
+  // separados por coma; matchBarcode/matchBarcodeIncludes ya soportan ese formato
+  const barcode = [r.barcode || undefined, secondaryBarcodesMap.get(r.id)].filter(Boolean).join(',')
   return {
     id: r.id,
     name: r.name,
     defaultCode: r.default_code || '',
-    barcode: r.barcode || undefined,
+    barcode: barcode || undefined,
     price: r.list_price,
     priceUsd: r.list_price,
     taxRate,
@@ -114,7 +123,7 @@ export async function searchPartnerByCedula(cedula: string): Promise<KioskPartne
   const results = await odooEnv.callMethod<RawPartner[]>(
     'res.partner', 'search_read',
     [[['cedula', '=', cedula]]],
-    { fields: ['id', 'name', 'cedula', 'phone', 'street'], limit: 1 }
+    { fields: ['id', 'name', 'cedula', 'phone', 'street', 'email'], limit: 1 }
   )
   return results.length ? mapPartner(results[0]) : null
 }
@@ -124,16 +133,17 @@ export interface CreatePartnerInput {
   cedula: string
   phone?: string
   street?: string
+  email?: string
 }
 
 export async function createPartner(data: CreatePartnerInput): Promise<KioskPartner> {
   const newId = await odooEnv.callMethod<number>(
     'res.partner', 'create',
-    [{ name: data.name, cedula: data.cedula, phone: data.phone || false, street: data.street || false }]
+    [{ name: data.name, cedula: data.cedula, phone: data.phone || false, street: data.street || false, email: data.email || false }]
   )
   const [raw] = await odooEnv.callMethod<RawPartner[]>(
     'res.partner', 'read', [[newId]],
-    { fields: ['id', 'name', 'cedula', 'phone', 'street'] }
+    { fields: ['id', 'name', 'cedula', 'phone', 'street', 'email'] }
   )
   return mapPartner(raw)
 }
@@ -199,7 +209,7 @@ export async function fetchExchangeRate(): Promise<number> {
   return odooEnv.callMethod<number>('res.currency', 'action_get_rate')
 }
 
-export async function fetchProducts(fixedProductIds: number[] = []): Promise<KioskProduct[]> {
+export async function fetchProducts(fixedProductIds: number[] = [], pricelistId = 0): Promise<KioskProduct[]> {
   let rateFetchFailed = false
   const [raw, rate] = await Promise.all([
     odooEnv.callMethod<RawProduct[]>(
@@ -248,6 +258,24 @@ export async function fetchProducts(fixedProductIds: number[] = []): Promise<Kio
     }
   }
 
+  // Códigos de barra secundarios (módulo product_multiple_barcodes); un producto
+  // sin código secundario simplemente no aparece en el resultado, de ahí el Map
+  const secondaryBarcodesMap = new Map<number, string>()
+  try {
+    const barcodesMulti = await odooEnv.callMethod<RawBarcodeMulti[]>(
+      'product.barcode.multi', 'search_read',
+      [[['product_id', 'in', raw.map(r => r.id)]]],
+      { fields: ['product_id', 'name'] }
+    )
+    for (const b of barcodesMulti) {
+      const productId = b.product_id[0]
+      const existing = secondaryBarcodesMap.get(productId)
+      secondaryBarcodesMap.set(productId, existing ? `${existing},${b.name}` : b.name)
+    }
+  } catch (err) {
+    console.error('[fetchProducts] Error fetching secondary barcodes:', err)
+  }
+
   // Persistir la tasa globalmente (para otras pantallas como /advanced), pero
   // solo si el fetch fue exitoso: nunca pisar la última tasa buena conocida
   // con el fallback de 1 usado solo para no romper el cálculo de precios acá
@@ -256,14 +284,30 @@ export async function fetchProducts(fixedProductIds: number[] = []): Promise<Kio
     useExchangeRateStore.getState().setRate(rate)
   }
 
+  // Si la sucursal tiene una pricelist por defecto, sus reglas priman sobre
+  // list_price; un fallo acá no bloquea el catálogo, solo deja list_price
+  const pricelistPriceMap = new Map<number, number>()
+  if (pricelistId && raw.length > 0) {
+    try {
+      const prices = await odooEnv.callMethod<Record<string, number>>(
+        'product.product', 'action_get_prices_by_pricelist',
+        [raw.map(r => r.id), pricelistId]
+      )
+      for (const [id, price] of Object.entries(prices)) {
+        pricelistPriceMap.set(Number(id), price)
+      }
+    } catch (err) {
+      console.error('[fetchProducts] Error fetching pricelist prices:', err)
+    }
+  }
+
   return raw.map(r => {
-    const p = mapProduct(r, taxRateMap)
-    p.priceUsd = p.price
+    const p = mapProduct(r, taxRateMap, secondaryBarcodesMap)
+    const basePriceUsd = pricelistPriceMap.get(r.id) ?? p.price
+    p.priceUsd = basePriceUsd
     // Cualquier tasa positiva es válida (una tasa legítima puede ser ≤ 1);
     // solo se omite el 0/negativo que indicaría un dato corrupto del backend
-    if (rate > 0) {
-      p.price = p.price * rate
-    }
+    p.price = rate > 0 ? basePriceUsd * rate : basePriceUsd
     return p
   })
 }
@@ -589,6 +633,14 @@ export async function fetchBranchFixedProducts(branchId: number): Promise<number
     { fields: ['id', 'x_autopay_fixed_product_ids'] }
   )
   return branch?.x_autopay_fixed_product_ids || []
+}
+
+export async function fetchBranchDefaultPricelist(branchId: number): Promise<number> {
+  const [branch] = await odooEnv.callMethod<{ id: number; x_fex_default_pricelist_id: [number, string] | false }[]>(
+    'res.branch', 'read', [[branchId]],
+    { fields: ['id', 'x_fex_default_pricelist_id'] }
+  )
+  return branch?.x_fex_default_pricelist_id ? branch.x_fex_default_pricelist_id[0] : 0
 }
 
 // ─── Métricas del kiosco ───────────────────────────────────────────────────────

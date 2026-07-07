@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useCreatePartner } from '@/features/customer/hooks/useCreatePartner'
@@ -6,7 +6,7 @@ import { useUIStore } from '@/shared/stores/ui'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { useAddressAutocomplete } from '@/features/customer/hooks/useAddressAutocomplete'
 import { useConfigStore } from '@/shared/stores/config'
-import { isValidVenezuelanPhone } from '@/shared/lib/paymentUtils'
+import { useRegisterForm } from '@/features/customer/hooks/useRegisterForm'
 import styles from './CustomerRegister.module.css'
 
 export function CustomerRegister() {
@@ -17,25 +17,28 @@ export function CustomerRegister() {
   const branchState = useConfigStore(s => s.branchState)
 
   useEffect(() => {
-    const isRegisterState = matches('registeringCustomer') || matches('enteringCedula')
+    const isRegisterState = matches('registeringCustomer') || matches('enteringCedula') || matches('browsingProducts')
     if (!isRegisterState || (matches('registeringCustomer') && !context.pendingVat)) {
       navigate('/cedula')
     }
   }, [context.pendingVat, matches, navigate])
 
-  const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    estado: branchState,
-    street: ''
-  })
+  const vat = context.pendingVat ?? ''
+  console.log('DEBUG CustomerRegister: context.pendingVat =', context.pendingVat, 'vat =', vat)
 
-  const [activeField, setActiveField] = useState<'name' | 'phone' | 'estado' | 'street' | null>(null)
+  const {
+    form,
+    activeField,
+    setActiveField,
+    set,
+    handleKeyboardChange,
+    handleSuggestionSelect,
+    handlePrefixSelect,
+    validate
+  } = useRegisterForm({ branchState, vat })
 
   const { suggestions, isLoading: isSearching, search: searchAddress, clear: clearSuggestions } = useAddressAutocomplete()
 
-  const vat = context.pendingVat ?? ''
-  console.log('DEBUG CustomerRegister: context.pendingVat =', context.pendingVat, 'vat =', vat)
   const formatVatForUI = (v: string) => {
     const parts = v.split('-')
     if (parts.length === 2 && parts[0] === 'V') {
@@ -47,51 +50,29 @@ export function CustomerRegister() {
   }
   const formattedVat = formatVatForUI(vat)
 
-  useEffect(() => {
-    setForm({
-      name: '',
-      phone: '',
-      estado: branchState,
-      street: ''
-    })
-  }, [vat, branchState])
-
-  const set = (field: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm(f => ({ ...f, [field]: e.target.value }))
-
-  const handleKeyboardChange = (val: string) => {
-    if (!activeField) return
-    setForm(f => ({ ...f, [activeField]: val }))
-    if (activeField === 'street') searchAddress(val)
-  }
-
-  const handleSuggestionSelect = (s: { street: string; estado: string }) => {
-    setForm(f => ({ ...f, street: s.street, estado: f.estado || s.estado }))
-    clearSuggestions()
-    setActiveField(null)
-  }
-
-  const handleKeyboardEnter = () => {
-    setActiveField(null)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setActiveField(null)
-    if (!form.name.trim()) { pushToast('error', 'El nombre es requerido'); return }
-    if (form.phone.trim() && !isValidVenezuelanPhone(form.phone)) {
-      pushToast('error', 'El número de teléfono ingresado no es válido')
+
+    const result = validate()
+    if (!result.success) {
+      const firstError = result.error.issues[0]?.message || result.error.errors?.[0]?.message
+      if (firstError) {
+        pushToast('error', firstError)
+      }
       return
     }
 
+    const validData = result.data
+
     try {
-      const streetParts = [form.estado.trim(), form.street.trim()].filter(Boolean)
+      const streetParts = [validData.estado.trim(), validData.street?.trim()].filter(Boolean)
       const partner = await createPartner({
-        name: form.name.trim(),
+        name: validData.name.trim(),
         cedula: vat,
-        phone: form.phone.trim() || undefined,
-        street: streetParts.length ? streetParts.join(', ') : undefined
+        phone: validData.phone?.trim() || undefined,
+        street: streetParts.length ? streetParts.join(', ') : undefined,
+        email: validData.email?.trim() || undefined
       })
       send({ type: 'REGISTERED', customer: partner })
       navigate('/productos')
@@ -135,6 +116,47 @@ export function CustomerRegister() {
               inputMode="none"
               placeholder="04XX-XXXXXXX"
             />
+            {activeField === 'phone' && (
+              <div className={styles.prefixContainer}>
+                {['0412', '0414', '0424', '0426', '0422'].map(prefix => (
+                  <button
+                    key={prefix}
+                    type="button"
+                    className={styles.prefixButton}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      handlePrefixSelect(prefix)
+                    }}
+                  >
+                    {prefix}
+                  </button>
+                ))}
+                <div className={styles.prefixSeparator} />
+                {['+'].map(prefix => (
+                  <button
+                    key={prefix}
+                    type="button"
+                    className={styles.prefixButton}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      handlePrefixSelect(prefix)
+                    }}
+                  >
+                    {prefix}
+                  </button>
+                ))}
+              </div>
+            )}
+          </label>
+          <label>Correo electrónico
+            <input
+              type="email"
+              value={form.email}
+              onChange={set('email')}
+              onFocus={() => setActiveField('email')}
+              inputMode="none"
+              placeholder="correo@ejemplo.com"
+            />
           </label>
           <label>Estado 
             <input
@@ -166,7 +188,10 @@ export function CustomerRegister() {
                     key={s.id}
                     type="button"
                     className={styles.suggestionItem}
-                    onMouseDown={e => { e.preventDefault(); handleSuggestionSelect(s) }}
+                    onMouseDown={e => {
+                      e.preventDefault()
+                      handleSuggestionSelect(s, clearSuggestions)
+                    }}
                   >
                     {s.label}
                   </button>
@@ -192,10 +217,10 @@ export function CustomerRegister() {
 
       {activeField && (
         <AppVirtualKeyboard
-          value={form[activeField]}
-          onChange={handleKeyboardChange}
+          value={form[activeField] || ''}
+          onChange={(val) => handleKeyboardChange(val, searchAddress)}
           onClose={() => { setActiveField(null); clearSuggestions() }}
-          onEnter={handleKeyboardEnter}
+          onEnter={() => setActiveField(null)}
           layoutType={activeField === 'phone' ? 'tel' : 'text'}
         />
       )}

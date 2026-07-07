@@ -29,11 +29,12 @@ export function AppStepper() {
   if (currentStepIndex === -1) return null
 
   const customerName = context.customer?.name ?? null
+  const customerDoc = context.customer?.cedula ?? null
   const formattedRate = rate > 0 ? rate.toFixed(2) : null
 
   return (
     <div className={styles.headerBar}>
-      {/* Customer name - left side */}
+      {/* Logo - left side */}
       <div className={styles.customerInfo}>
         {companyLogo && (
           <img
@@ -41,9 +42,6 @@ export function AppStepper() {
             alt="Logo empresa"
             className={styles.companyLogo}
           />
-        )}
-        {customerName && (
-          <span className={styles.customerName}>{customerName}</span>
         )}
       </div>
 
@@ -72,13 +70,19 @@ export function AppStepper() {
         })}
       </div>
 
-      {/* Exchange rate - right side */}
-      <div className={styles.rateInfo}>
+      {/* Buyer & Exchange rate - right side */}
+      <div className={styles.rightInfo}>
+        {customerName && (
+          <div className={styles.customerDetails}>
+            <span className={styles.customerName}>{customerName}</span>
+            {customerDoc && <span className={styles.customerDoc}>{customerDoc}</span>}
+          </div>
+        )}
         {formattedRate && (
-          <>
+          <div className={styles.rateInfo}>
             <span className={styles.rateLabel}>Tasa del día</span>
             <span className={styles.rateValue}>Bs. {formattedRate}</span>
-          </>
+          </div>
         )}
       </div>
     </div>

@@ -15,6 +15,7 @@ export function buildSaleOrderPayload(
   const sessionId = useSessionStore.getState().sessionId
   const cashierId = useSessionStore.getState().cashierId
   const stationId = useConfigStore.getState().stationId
+  const pricelistId = useConfigStore.getState().pricelistId
   const uid = odooEnv.uid
 
   const globalRate = useExchangeRateStore.getState().rate || 1
@@ -44,6 +45,10 @@ export function buildSaleOrderPayload(
     isCreditOrder: false,
     rate: globalRate,
     date: new Date().toISOString(),
+
+    // Pricelist por defecto de la sucursal — _action_parse_pos_data la mapea
+    // a sale.order.pricelist_id cuando viene presente
+    pricelist: pricelistId || undefined,
 
     // Sesión, Cajero y Estación
     user: uid || undefined,

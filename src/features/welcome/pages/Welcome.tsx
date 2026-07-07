@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { AppPinModal } from '@/features/payment/components/AppPinModal'
 import { KIOSK_OPERATIONS } from '@/shared/lib/odooRepository'
-import { SpeakerSimpleHigh, SpeakerSimpleSlash, List } from '@phosphor-icons/react'
+import { SpeakerSimpleHigh, SpeakerSimpleSlash, List, ArrowRight } from '@phosphor-icons/react'
 import { WelcomeAd } from '../components/WelcomeAd'
 import { useAdvertisements } from '../hooks/useAdvertisements'
 import type { AdConfig } from '@/shared/types/types'
@@ -128,8 +128,8 @@ export function Welcome() {
   }
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.header}>
+    <main className={styles.wrapper}>
+      <header className={styles.header}>
         {/* Botón de opciones avanzadas */}
         <button
           type="button"
@@ -141,15 +141,13 @@ export function Welcome() {
         </button>
 
         {/* Logo de la empresa */}
-        <div className={styles.topLogoContainer}>
-          {companyLogo && (
-            <img
-              src={`data:image/png;base64,${companyLogo}`}
-              alt="Logo empresa"
-              className={styles.companyLogo}
-            />
-          )}
-        </div>
+        {companyLogo && (
+          <img
+            src={`data:image/png;base64,${companyLogo}`}
+            alt="Logo empresa"
+            className={styles.companyLogo}
+          />
+        )}
 
         {/* Botón de mute */}
         <button
@@ -160,15 +158,16 @@ export function Welcome() {
         >
           {isMuted ? <SpeakerSimpleSlash size={32} /> : <SpeakerSimpleHigh size={32} />}
         </button>
-      </div>
+      </header>
 
-      <div className={styles.content}>
+      <section className={styles.content}>
         <WelcomeAd configs={adConfigs} isMuted={isMuted} isLoading={isLoading} />
 
         <div className={styles.actions}>
           {sessionState === 'opened' ? (
             <button type="button" className={styles.mainBtn} onClick={handleStart}>
               INICIAR COMPRA
+              <ArrowRight size={32} weight="bold" className={styles.btnIcon} />
             </button>
           ) : sessionState === 'checking' ? (
             <button type="button" className={styles.mainBtn} disabled>
@@ -182,20 +181,19 @@ export function Welcome() {
               </div>
               <button type="button" className={styles.mainBtn} onClick={() => setShowPinModal(true)}>
                 INGRESAR COMO SUPERVISOR
+                <ArrowRight size={32} weight="bold" className={styles.btnIcon} />
               </button>
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      <div className={styles.footer}>
-        <div className={styles.footerBranding}>
-          <button type="button" className={styles.logo} onClick={handleLogoTap}>
-            <span className={styles.logoText}>FEX</span>
-            <span className={styles.logoSub}>Autopago</span>
-          </button>
-        </div>
-      </div>
+      <footer className={styles.footer}>
+        <button type="button" className={styles.logo} onClick={handleLogoTap}>
+          <span className={styles.logoText}>FEX</span>
+          <span className={styles.logoSub}>Autopago</span>
+        </button>
+      </footer>
 
       {showPinModal && (
         <AppPinModal
@@ -210,7 +208,7 @@ export function Welcome() {
           onCancel={() => setShowPinModal(false)}
         />
       )}
-    </div>
+    </main>
   )
 }
 

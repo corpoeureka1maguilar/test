@@ -16,7 +16,8 @@ vi.mock('@/shared/lib/odooRepository', () => ({
   pingStation: vi.fn(),
   fetchCompanyLogo: vi.fn().mockResolvedValue(''),
   fetchBranchState: vi.fn().mockResolvedValue(''),
-  fetchBranchFixedProducts: vi.fn().mockResolvedValue([])
+  fetchBranchFixedProducts: vi.fn().mockResolvedValue([]),
+  fetchBranchDefaultPricelist: vi.fn().mockResolvedValue(0)
 }))
 
 vi.mock('@/shared/lib/odooEnv', async (importOriginal) => {

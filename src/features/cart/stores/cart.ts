@@ -106,18 +106,16 @@ export interface CartTaxBreakdownItem {
 export function useCartTaxBreakdown(): CartTaxBreakdownItem[] {
   const items = useCartStore(s => s.items)
   return useMemo(() => {
-    const breakdown: Record<number, number> = {}
-    
+    const baseByRate: Record<number, number> = {}
+    const taxByRate: Record<number, number> = {}
+
     for (const item of items) {
       const rate = item.taxRate ?? 0
-      const taxAmount = item.subtotal * rate
-      
-      const currentTaxD = ves(breakdown[rate] ?? 0)
-      const itemTaxD = ves(taxAmount)
-      breakdown[rate] = toFloat(addVES(currentTaxD, itemTaxD))
+      baseByRate[rate] = toFloat(addVES(ves(baseByRate[rate] ?? 0), ves(item.subtotal)))
+      taxByRate[rate] = toFloat(addVES(ves(taxByRate[rate] ?? 0), ves(item.subtotal * rate)))
     }
-    
-    return Object.entries(breakdown).map(([rateStr, amount]) => {
+
+    return Object.keys(baseByRate).map((rateStr) => {
       const rate = parseFloat(rateStr)
       let label = `IVA (${(rate * 100).toFixed(0)}%)`
       if (rate === 0) {
@@ -129,6 +127,9 @@ export function useCartTaxBreakdown(): CartTaxBreakdownItem[] {
       } else if (rate === 0.31) {
         label = 'IVA Importado (31%)'
       }
+      // El tramo Exento no tiene impuesto que mostrar (es 0 por definición);
+      // lo que interesa ahí es la base exenta, no el impuesto generado
+      const amount = rate === 0 ? baseByRate[rate] : taxByRate[rate]
       return { rate, label, amount }
     }).sort((a, b) => b.rate - a.rate)
   }, [items])

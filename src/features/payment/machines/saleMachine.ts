@@ -6,6 +6,8 @@ import { buildFacturaPayload } from '@/shared/lib/printPayload'
 import { buildSaleOrderPayload } from '@/shared/lib/saleOrderPayload'
 import { useConfigStore } from '@/shared/stores/config'
 import { randomUUID } from '@/shared/lib/cryptoUtils'
+import { OdooServerError } from '@/shared/lib/odooEnv'
+import { enqueue as enqueueOrder, patchFiscal } from '@/shared/lib/orderQueue'
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -17,6 +19,7 @@ export interface SaleContext {
   activePayment: ActivePayment | null
   saleAttemptId: string | null      // x_fex_id: estable durante todo el intento de venta (dedup en Odoo)
   odooOrderId: number | null        // id de la orden creada en Odoo, para registrar el n° fiscal
+  queuedOffline: boolean            // true si la venta se encoló localmente (Odoo inalcanzable)
   printerResult: PrinterInvoiceData | null
   errorMessage: string | null
   printError: string | null
@@ -56,6 +59,27 @@ const submitPaymentToOdoo = fromPromise<
   return createSaleOrder(payload)
 })
 
+// Solo se invoca cuando submitPaymentToOdoo falló con un error DEFERRABLE
+// (ver isDeferrableError). Construye el payload UNA vez y lo persiste
+// verbatim: el synchronizer lo reenvía tal cual, nunca lo reconstruye
+// (ver ADR-1/ADR-2 del design — evita drift de tasa/líneas que rompería
+// la deduplicación por x_fex_id en el backend).
+const enqueueOfflineOrder = fromPromise<
+  unknown,
+  { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string }
+>(async ({ input }) => {
+  const { customer, cart, payment, method, attemptId } = input
+  const payload = buildSaleOrderPayload(customer, cart, payment, method, attemptId)
+  return enqueueOrder(attemptId, payload)
+})
+
+// Odoo devuelve OdooServerError para rechazos de negocio permanentes
+// (crédito bloqueado, validación, etc.) — esos jamás deben encolarse offline.
+// Cualquier otro Error (red, timeout, 5xx) se asume transitorio y se difiere.
+function isDeferrableError(error: unknown): boolean {
+  return !(error instanceof OdooServerError)
+}
+
 const printFiscalInvoice = fromPromise<
   PrinterInvoiceData,
   { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string }
@@ -86,7 +110,10 @@ const printFiscalInvoice = fromPromise<
 
 export const saleMachine = setup({
   types: { context: {} as SaleContext, events: {} as SaleEvent },
-  actors: { submitPaymentToOdoo, printFiscalInvoice, countdownTick },
+  actors: { submitPaymentToOdoo, printFiscalInvoice, countdownTick, enqueueOfflineOrder },
+  guards: {
+    isDeferrable: ({ event }) => isDeferrableError((event as { error?: unknown }).error)
+  },
   actions: {
     setCustomer: assign({
       customer: ({ event }) =>
@@ -121,6 +148,20 @@ export const saleMachine = setup({
         return typeof output?.id === 'number' ? output.id : null
       }
     }),
+    // La venta se encoló localmente: no hay odooOrderId todavía (lo resuelve
+    // el synchronizer al drenar) — printing.onDone igual imprime la factura
+    setQueuedOffline: assign({
+      queuedOffline: true,
+      odooOrderId: null
+    }),
+    // Fire-and-forget: la factura ya imprimió; si el patch falla solo se
+    // pierde el dato fiscal para el reintento post-sync (no bloquea la venta)
+    patchQueueFiscal: ({ context, event }) => {
+      const result = (event as { type: string; output?: PrinterInvoiceData }).output
+      if (!context.queuedOffline || !context.saleAttemptId || !result?.code) return
+      patchFiscal(context.saleAttemptId, { code: result.code, date: result.date, serial: result.serial })
+        .catch((err) => console.error('[saleMachine] Error parcheando fiscal en la cola offline:', err))
+    },
     setPrinterResult: assign({
       printerResult: ({ event }) =>
         (event as { type: string; output: PrinterInvoiceData }).output ?? null
@@ -157,6 +198,7 @@ export const saleMachine = setup({
       activePayment: null,
       saleAttemptId: null,
       odooOrderId: null,
+      queuedOffline: false,
       printerResult: null,
       errorMessage: null,
       printError: null,
@@ -174,6 +216,7 @@ export const saleMachine = setup({
     activePayment: null,
     saleAttemptId: null,
     odooOrderId: null,
+    queuedOffline: false,
     printerResult: null,
     errorMessage: null,
     printError: null,
@@ -246,6 +289,39 @@ export const saleMachine = setup({
           }
         },
         onDone: { target: 'printing', actions: ['clearError', 'setOdooOrderId'] },
+        // Deferrable (red/timeout/5xx, no OdooServerError): la venta se
+        // encola offline en vez de fallar (spec: offline-order-queue).
+        // Rechazo permanente de Odoo (regla de negocio) sigue yendo directo
+        // a paymentError — nunca se encola algo que Odoo jamás va a aceptar.
+        onError: [
+          { guard: 'isDeferrable', target: 'enqueuingOffline' },
+          { target: 'paymentError', actions: 'setPaymentError' }
+        ]
+      },
+      on: {
+        RESET: { target: 'idle', actions: 'resetContext' }
+      }
+    },
+
+    // Encola el payload en IndexedDB ANTES de imprimir (el n° fiscal todavía
+    // no existe); si el encolado falla (cola llena / QuotaExceeded) la venta
+    // NO se puede completar offline y se cae a paymentError.
+    enqueuingOffline: {
+      invoke: {
+        src: 'enqueueOfflineOrder',
+        input: ({ context }) => {
+          if (!context.customer || !context.activePayment || !context.selectedMethod || !context.saleAttemptId) {
+            throw new Error('Estado inválido: falta customer, payment, method o attemptId')
+          }
+          return {
+            customer: context.customer,
+            cart: context.cart,
+            payment: context.activePayment,
+            method: context.selectedMethod,
+            attemptId: context.saleAttemptId
+          }
+        },
+        onDone: { target: 'printing', actions: ['clearError', 'setQueuedOffline'] },
         onError: { target: 'paymentError', actions: 'setPaymentError' }
       },
       on: {
@@ -269,7 +345,7 @@ export const saleMachine = setup({
             printerModel: useConfigStore.getState().printerModel
           }
         },
-        onDone: { target: 'success', actions: ['setPrinterResult', 'persistPrinterData'] },
+        onDone: { target: 'success', actions: ['setPrinterResult', 'persistPrinterData', 'patchQueueFiscal'] },
         // La venta ya se cobró en Odoo pero la factura fiscal no salió: no se
         // puede dar por exitosa sin ofrecer reintento (obligación fiscal).
         onError: { target: 'printingError', actions: 'setPrintError' }

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { odooEnv, isMissingRecordError } from '@/shared/lib/odooEnv'
 import { useUIStore } from '@/shared/stores/ui'
-import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState, fetchBranchFixedProducts } from '@/shared/lib/odooRepository'
+import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState, fetchBranchFixedProducts, fetchBranchDefaultPricelist } from '@/shared/lib/odooRepository'
 import { hashPin, verifyPinHash, isLegacyPinHash, randomUUID } from '@/shared/lib/cryptoUtils'
 import { saveSecret, loadSecret, deleteSecret } from '@/shared/lib/secureStorage'
 
@@ -39,6 +39,7 @@ interface ConfigState {
   branchId: number
   branchState: string
   fixedProductIds: number[]
+  pricelistId: number
   appToken: string
   companyLogo: string
   isConfigured: boolean
@@ -77,6 +78,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       branchId: 0,
       branchState: '',
       fixedProductIds: [],
+      pricelistId: 0,
       appToken: '',
       companyLogo: '',
       isConfigured: false,
@@ -109,6 +111,9 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const fixedProductIds = station.branchId
             ? await fetchBranchFixedProducts(station.branchId).catch(() => [])
             : []
+          const pricelistId = station.branchId
+            ? await fetchBranchDefaultPricelist(station.branchId).catch(() => 0)
+            : 0
           set({
             odooUrl: data.odooUrl,
             odooDb: data.odooDb,
@@ -122,6 +127,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             branchId: station.branchId || 0,
             branchState,
             fixedProductIds,
+            pricelistId,
             appToken,
             companyLogo,
             isConfigured: true,
@@ -129,7 +135,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             isOffline: false
           })
         } else {
-          const { stationId, stationName, branchId, branchState, fixedProductIds, appToken: existingToken } = get()
+          const { stationId, stationName, branchId, branchState, fixedProductIds, pricelistId, appToken: existingToken } = get()
           set({
             odooUrl: data.odooUrl,
             odooDb: data.odooDb,
@@ -143,6 +149,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             branchId,
             branchState,
             fixedProductIds,
+            pricelistId,
             appToken: existingToken,
             companyLogo,
             isConfigured: true,
@@ -168,6 +175,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           branchId: 0,
           branchState: '',
           fixedProductIds: [],
+          pricelistId: 0,
           appToken: '',
           companyLogo: '',
           isConfigured: false,
@@ -216,7 +224,10 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const fixedProductIds = station.branchId
             ? await fetchBranchFixedProducts(station.branchId).catch(() => get().fixedProductIds)
             : get().fixedProductIds
-          set({ isConnectionReady: true, isOffline: false, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds })
+          const pricelistId = station.branchId
+            ? await fetchBranchDefaultPricelist(station.branchId).catch(() => get().pricelistId)
+            : get().pricelistId
+          set({ isConnectionReady: true, isOffline: false, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds, pricelistId })
         } catch (err) {
           // La estación fue borrada en Odoo (p. ej. la duplicaron y eliminaron
           // la original): error PERMANENTE, reintentar deja la caja bloqueada
@@ -253,6 +264,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         branchId: state.branchId,
         branchState: state.branchState,
         fixedProductIds: state.fixedProductIds,
+        pricelistId: state.pricelistId,
         appToken: state.appToken,
         companyLogo: state.companyLogo,
         isConfigured: state.isConfigured

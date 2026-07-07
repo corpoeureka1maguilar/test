@@ -104,7 +104,8 @@ describe('cart totals', () => {
       { rate: 0.31, label: 'IVA Importado (31%)', amount: 62 },
       { rate: 0.16, label: 'IVA General (16%)', amount: 16 },
       { rate: 0.08, label: 'IVA (8%)', amount: 4 },
-      { rate: 0, label: 'Exento', amount: 0 }
+      // Exento no reporta impuesto (siempre 0): muestra la base exenta ($10)
+      { rate: 0, label: 'Exento', amount: 10 }
     ])
   })
 

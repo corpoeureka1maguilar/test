@@ -18,7 +18,7 @@ export function PaymentResult() {
   const isSuccess = state === 'success'
   const isError = state === 'paymentError'
   const isPrintError = state === 'printingError'
-  const isProcessing = state === 'processing' || state === 'printing'
+  const isProcessing = state === 'processing' || state === 'enqueuingOffline' || state === 'printing'
 
   useEffect(() => {
     if (isSuccess) {
@@ -44,7 +44,11 @@ export function PaymentResult() {
       <div className={`kiosk-container ${styles.center}`}>
         <div className={styles.spinner} />
         <p className={styles.processingText}>
-          {state === 'printing' ? 'Imprimiendo factura...' : 'Procesando pago...'}
+          {state === 'printing'
+            ? 'Imprimiendo factura...'
+            : state === 'enqueuingOffline'
+              ? 'Servidor no disponible, guardando la venta localmente...'
+              : 'Procesando pago...'}
         </p>
       </div>
     )
@@ -72,8 +76,8 @@ export function PaymentResult() {
         {pendingPrintAction && (
           <AppPinModal
             title={pendingPrintAction === 'retry'
-              ? 'Confirmá tu PIN para reintentar la impresión'
-              : 'Confirmá tu PIN para finalizar sin factura'}
+              ? 'Confirma para reintentar la impresión'
+              : 'Confirma para finalizar sin factura'}
             operationRef={pendingPrintAction === 'retry'
               ? KIOSK_OPERATIONS.invoiceReprint
               : KIOSK_OPERATIONS.continueWithoutInvoice}
@@ -114,6 +118,12 @@ export function PaymentResult() {
     <div className={`kiosk-container ${styles.center}`}>
       <div className={styles.iconSuccess}>✓</div>
       <h2 className={styles.title}>¡Pago confirmado!</h2>
+
+      {context.queuedOffline && (
+        <p className={styles.printWarning}>
+          Se registrará y sincronizará cuando el servidor esté disponible.
+        </p>
+      )}
 
       {context.printerResult && (
         <div className={styles.receipt}>

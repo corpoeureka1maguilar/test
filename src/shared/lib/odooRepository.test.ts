@@ -29,10 +29,10 @@ beforeEach(() => {
 describe('searchPartnerByCedula', () => {
   it('maps the found partner and converts false phone/street to undefined', async () => {
     callMethod.mockResolvedValueOnce([
-      { id: 1, name: 'Juan Perez', cedula: 'V-12345678', phone: false, street: 'Av. Principal' }
+      { id: 1, name: 'Juan Perez', cedula: 'V-12345678', phone: false, street: 'Av. Principal', email: false }
     ])
     const partner = await searchPartnerByCedula('V-12345678')
-    expect(partner).toEqual({ id: 1, name: 'Juan Perez', cedula: 'V-12345678', phone: undefined, street: 'Av. Principal' })
+    expect(partner).toEqual({ id: 1, name: 'Juan Perez', cedula: 'V-12345678', phone: undefined, street: 'Av. Principal', email: undefined })
   })
 
   it('returns null when no partner matches', async () => {
@@ -44,14 +44,14 @@ describe('searchPartnerByCedula', () => {
 describe('createPartner', () => {
   it('creates the partner and reads it back mapped', async () => {
     callMethod.mockResolvedValueOnce(99)
-    callMethod.mockResolvedValueOnce([{ id: 99, name: 'Ana Gomez', cedula: 'V-1111', phone: false, street: false }])
+    callMethod.mockResolvedValueOnce([{ id: 99, name: 'Ana Gomez', cedula: 'V-1111', phone: false, street: false, email: false }])
 
     const partner = await createPartner({ name: 'Ana Gomez', cedula: 'V-1111' })
 
-    expect(partner).toEqual({ id: 99, name: 'Ana Gomez', cedula: 'V-1111', phone: undefined, street: undefined })
+    expect(partner).toEqual({ id: 99, name: 'Ana Gomez', cedula: 'V-1111', phone: undefined, street: undefined, email: undefined })
     expect(callMethod).toHaveBeenNthCalledWith(
       1, 'res.partner', 'create',
-      [{ name: 'Ana Gomez', cedula: 'V-1111', phone: false, street: false }]
+      [{ name: 'Ana Gomez', cedula: 'V-1111', phone: false, street: false, email: false }]
     )
   })
 })
@@ -116,6 +116,7 @@ describe('fetchProducts', () => {
       ])
       .mockResolvedValueOnce(36)
       .mockResolvedValueOnce([{ id: 7, amount: 16 }])
+      .mockResolvedValueOnce([])
 
     const products = await fetchProducts()
 
@@ -133,6 +134,7 @@ describe('fetchProducts', () => {
         { id: 2, name: 'Producto B', default_code: false, barcode: false, list_price: 20, taxes_id: [], categ_id: [1, 'General'], uom_id: [1, 'Unidad'] }
       ])
       .mockRejectedValueOnce(new Error('rate unavailable'))
+      .mockResolvedValueOnce([])
 
     const products = await fetchProducts()
 
@@ -149,6 +151,7 @@ describe('fetchProducts', () => {
       .mockResolvedValueOnce([
         { id: 50, name: 'Bolsa', default_code: 'BOLSA', barcode: false, list_price: 0.5, taxes_id: [], categ_id: [2, 'Empaque'], uom_id: [1, 'Unidad'] }
       ])
+      .mockResolvedValueOnce([])
 
     const products = await fetchProducts([50])
 
@@ -166,12 +169,47 @@ describe('fetchProducts', () => {
         { id: 1, name: 'Producto A', default_code: 'P-A', barcode: false, list_price: 10, taxes_id: [], categ_id: [1, 'General'], uom_id: [1, 'Unidad'] }
       ])
       .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce([])
 
     const products = await fetchProducts([1])
 
     expect(products).toHaveLength(1)
-    // 1: catálogo, 2: tasa de cambio — sin llamada extra por fijos
-    expect(callMethod).toHaveBeenCalledTimes(2)
+    // 1: catálogo, 2: tasa de cambio, 3: códigos de barra secundarios — sin llamada extra por fijos
+    expect(callMethod).toHaveBeenCalledTimes(3)
+  })
+
+  it('merges secondary barcodes (product.barcode.multi) into the product barcode string', async () => {
+    callMethod
+      .mockResolvedValueOnce([
+        { id: 1, name: 'Producto A', default_code: 'P-A', barcode: '111', list_price: 10, taxes_id: [], categ_id: [1, 'General'], uom_id: [1, 'Unidad'] }
+      ])
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce([
+        { product_id: [1, 'Producto A'], name: '222' },
+        { product_id: [1, 'Producto A'], name: '333' }
+      ])
+
+    const products = await fetchProducts()
+
+    expect(callMethod).toHaveBeenCalledWith(
+      'product.barcode.multi', 'search_read',
+      [[['product_id', 'in', [1]]]],
+      { fields: ['product_id', 'name'] }
+    )
+    expect(products[0].barcode).toBe('111,222,333')
+  })
+
+  it('uses only the secondary barcodes when the product has no main barcode', async () => {
+    callMethod
+      .mockResolvedValueOnce([
+        { id: 1, name: 'Producto A', default_code: 'P-A', barcode: false, list_price: 10, taxes_id: [], categ_id: [1, 'General'], uom_id: [1, 'Unidad'] }
+      ])
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce([{ product_id: [1, 'Producto A'], name: '222' }])
+
+    const products = await fetchProducts()
+
+    expect(products[0].barcode).toBe('222')
   })
 })
 
