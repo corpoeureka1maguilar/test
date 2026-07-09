@@ -1,4 +1,5 @@
 import type { ChangeEvent, FocusEvent } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import styles from '../pages/CustomerRegister.module.css'
 
 interface VenezuelanPhoneFieldProps {
@@ -12,10 +13,10 @@ interface VenezuelanPhoneFieldProps {
 }
 
 /**
- * Dumb, presentational Venezuelan phone field: a plain controlled `tel` input
- * (integrates with the global `AppVirtualKeyboard` singleton, which already
- * defaults to its numeric layout for `type="tel"`) plus carrier quick-select
- * buttons. All country logic lives in `usePhoneInput`.
+ * Dumb, presentational Venezuelan phone field: features a custom-styled
+ * prefix dropdown at the beginning of the input container followed by the
+ * text input. Uses a custom div-based dropdown so the open panel is fully
+ * styleable (native <select> dropdown cannot be styled cross-browser).
  */
 export function VenezuelanPhoneField({
   value,
@@ -26,34 +27,99 @@ export function VenezuelanPhoneField({
   onFocus,
   onBlur
 }: VenezuelanPhoneFieldProps) {
+  const [isFocused, setIsFocused] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const activePrefix = prefixes.find(p => value.startsWith(p)) || prefixes[0] || ''
+  const restValue = activePrefix ? value.slice(activePrefix.length).replace(/^-/, '') : value
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const cleanRest = e.target.value.replace(/\D/g, '')
+    const newFullRaw = activePrefix + cleanRest
+    onChange({ ...e, target: { ...e.target, value: newFullRaw } } as ChangeEvent<HTMLInputElement>)
+  }
+
+  const handlePrefixSelect = (prefix: string) => {
+    onPrefixSelect(prefix)
+    setIsDropdownOpen(false)
+  }
+
   return (
     <label>Teléfono
-      <input
-        type="tel"
-        value={value}
-        onChange={onChange}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        inputMode="none"
-        placeholder="04XX-XXXXXXX"
-      />
-      {isActive && (
-        <div className={styles.prefixContainer}>
-          {prefixes.map((prefix) => (
-            <button
-              key={prefix}
-              type="button"
-              className={styles.prefixButton}
-              onMouseDown={(e) => {
-                e.preventDefault()
-                onPrefixSelect(prefix)
-              }}
+      <div className={`${styles.phoneInputContainer} ${(isActive || isFocused) ? styles.phoneInputContainerFocus : ''}`}>
+
+        {/* Custom prefix dropdown trigger */}
+        <div ref={dropdownRef} className={styles.prefixDropdown}>
+          <button
+            type="button"
+            aria-label={activePrefix}
+            className={styles.prefixTrigger}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              setIsDropdownOpen(o => !o)
+            }}
+          >
+            {activePrefix}
+            <svg
+              className={`${styles.prefixChevron} ${isDropdownOpen ? styles.prefixChevronOpen : ''}`}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
             >
-              {prefix}
-            </button>
-          ))}
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {isDropdownOpen && (
+            <div className={styles.prefixMenu}>
+              {prefixes.map((prefix) => (
+                <button
+                  key={prefix}
+                  type="button"
+                  className={`${styles.prefixMenuItem} ${prefix === activePrefix ? styles.prefixMenuItemActive : ''}`}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    handlePrefixSelect(prefix)
+                  }}
+                >
+                  {prefix}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        <div className={styles.prefixSeparator} />
+
+        <input
+          type="tel"
+          value={restValue}
+          onChange={handleInputChange}
+          onFocus={() => {
+            setIsFocused(true)
+            setIsDropdownOpen(false)
+            onFocus()
+          }}
+          onBlur={(e) => {
+            setIsFocused(false)
+            onBlur(e)
+          }}
+          inputMode="none"
+          placeholder="XXXXXXX"
+          className={styles.phoneInput}
+        />
+      </div>
     </label>
   )
 }

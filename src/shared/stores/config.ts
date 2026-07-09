@@ -5,6 +5,7 @@ import { useUIStore } from '@/shared/stores/ui'
 import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState, fetchBranchFixedProducts, fetchBranchDefaultPricelist } from '@/shared/lib/odooRepository'
 import { hashPin, verifyPinHash, isLegacyPinHash, randomUUID } from '@/shared/lib/cryptoUtils'
 import { saveSecret, loadSecret, deleteSecret } from '@/shared/lib/secureStorage'
+import { DEFAULT_ACCENT, normalizeAccent, applyAccentColor } from '@/shared/lib/theme'
 
 // La password del usuario de servicio vive cifrada (ver secureStorage), nunca
 // en el JSON plano de zustand/persist
@@ -47,6 +48,7 @@ interface ConfigState {
   isOffline: boolean
   useGiftCard: boolean
   giftCardProductId: number
+  accentColor: string
 }
 
 interface ConfigActions {
@@ -86,6 +88,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       companyLogo: '',
       useGiftCard: false,
       giftCardProductId: 0,
+      accentColor: DEFAULT_ACCENT,
       isConfigured: false,
       isConnectionReady: false,
       isOffline: false,
@@ -111,6 +114,8 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         const customConfig = await odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({} as Record<string, any>))
         const useGiftCard = !!customConfig.x_use_gift_card
         const giftCardProductId = Number(customConfig.x_gift_card_product || 0)
+        const accentColor = normalizeAccent(customConfig.x_accent_color)
+        applyAccentColor(accentColor)
 
         if (data.configToken) {
           const station = await linkStation(data.configToken, appToken)
@@ -141,6 +146,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             companyLogo,
             useGiftCard,
             giftCardProductId,
+            accentColor,
             isConfigured: true,
             isConnectionReady: true,
             isOffline: false
@@ -165,6 +171,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             companyLogo,
             useGiftCard,
             giftCardProductId,
+            accentColor,
             isConfigured: true,
             isConnectionReady: true,
             isOffline: false
@@ -191,6 +198,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           pricelistId: 0,
           appToken: '',
           companyLogo: '',
+          accentColor: DEFAULT_ACCENT,
           isConfigured: false,
           isConnectionReady: false,
           isOffline: false
@@ -230,10 +238,12 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const [station, companyLogo, customConfig] = await Promise.all([
             pingStation(stationId),
             fetchCompanyLogo().catch(() => get().companyLogo),
-            odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({} as Record<string, any>))
+            odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config', [stationId]).catch(() => ({} as Record<string, any>))
           ])
           const useGiftCard = !!customConfig.x_use_gift_card
           const giftCardProductId = Number(customConfig.x_gift_card_product || 0)
+          const accentColor = normalizeAccent(customConfig.x_accent_color)
+          applyAccentColor(accentColor)
           const branchState = station.branchId
             ? await fetchBranchState().catch(() => get().branchState)
             : get().branchState
@@ -243,7 +253,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const pricelistId = station.branchId
             ? await fetchBranchDefaultPricelist(station.branchId).catch(() => get().pricelistId)
             : get().pricelistId
-          set({ isConnectionReady: true, isOffline: false, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds, pricelistId, useGiftCard, giftCardProductId })
+          set({ isConnectionReady: true, isOffline: false, companyLogo, branchId: station.branchId || get().branchId, branchState, fixedProductIds, pricelistId, useGiftCard, giftCardProductId, accentColor })
         } catch (err) {
           // La estación fue borrada en Odoo (p. ej. la duplicaron y eliminaron
           // la original): error PERMANENTE, reintentar deja la caja bloqueada
@@ -285,6 +295,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         companyLogo: state.companyLogo,
         useGiftCard: state.useGiftCard,
         giftCardProductId: state.giftCardProductId,
+        accentColor: state.accentColor,
         isConfigured: state.isConfigured
       })
     }

@@ -116,34 +116,131 @@
   }
 }
 
-.prefixContainer {
+.phoneInputContainer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.prefixButton {
+  align-items: center;
+  width: 100%;
+  height: var(--kiosk-input-height);
   background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
-  color: var(--color-text);
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  border: 2px solid transparent;
+  border-radius: 22px;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  overflow: hidden;
 }
 
-.prefixButton:active {
-  background: var(--color-surface-hover);
-  transform: scale(0.95);
+.phoneInputContainerFocus {
+  background: #fff;
+  border-color: var(--color-accent);
+  box-shadow: 0 10px 30px -10px var(--color-accent-glow);
+  transform: translateY(-2px);
+}
+
+.prefixDropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.prefixTrigger {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: var(--kiosk-input-height);
+  padding: 0 1.25rem 0 1.5rem;
+  background: transparent;
+  border: none;
+  font-size: var(--kiosk-input-font-size);
+  font-family: var(--app-font-family);
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.prefixTrigger:active {
+  opacity: 0.65;
+}
+
+.prefixChevron {
+  width: 1rem;
+  height: 1rem;
+  stroke: var(--color-text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.prefixChevronOpen {
+  transform: rotate(180deg);
+}
+
+.prefixMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 9999;
+  min-width: 140px;
+  background: #ffffff;
+  border: 1.5px solid var(--color-surface-border);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.18), 0 4px 16px -4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.prefixMenuItem {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 1.1rem;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.3rem;
+  font-family: var(--app-font-family);
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.prefixMenuItem:hover {
+  background: var(--color-surface);
+}
+
+.prefixMenuItemActive {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+.prefixMenuItemActive:hover {
+  background: var(--color-accent-subtle);
 }
 
 .prefixSeparator {
   width: 1px;
+  height: 40%;
   background-color: var(--color-surface-border);
-  align-self: stretch;
-  margin: 0.25rem 0.5rem;
+  align-self: center;
+  margin: 0 0.5rem;
 }
+
+.phoneInput {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  padding: 0 1.5rem 0 1.25rem !important;
+  font-size: var(--kiosk-input-font-size);
+  outline: none;
+  letter-spacing: 0.05em;
+}
+
 

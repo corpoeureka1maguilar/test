@@ -7,7 +7,13 @@ import { AppToast } from '@/shared/components/AppToast'
 import { AppLoading } from '@/shared/components/AppLoading'
 import { useConfigStore } from '@/shared/stores/config'
 import { initSyncManager } from '@/shared/lib/syncManager'
+import { applyPersistedAccent } from '@/shared/lib/bootstrapTheme'
 import '@/assets/index.css'
+
+// Aplica el accentColor persistido de forma síncrona, al evaluar este módulo,
+// antes de que cualquier componente renderice: evita el flash del verde por
+// defecto en cold reload/reconexión mientras reauthenticate() todavía corre.
+applyPersistedAccent()
 
 const queryClient = new QueryClient({
   defaultOptions: {

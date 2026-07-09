@@ -18,7 +18,7 @@ export function AppVirtualKeyboard(props: AppVirtualKeyboardProps) {
   const [localValue, setLocalValue] = useState('')
   const [localLayoutType, setLocalLayoutType] = useState<'text' | 'tel'>('text')
   const [isVisible, setIsVisible] = useState(false)
-  const [isShift, setIsShift] = useState(true) // Start capitalized for premium feel
+  const [isShift, setIsShift] = useState(false) // Start capitalized for premium feel
   const [isAlt, setIsAlt] = useState(false)
   const [internalMinimized, setInternalMinimized] = useState(false)
   const lastInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
@@ -190,7 +190,7 @@ export function AppVirtualKeyboard(props: AppVirtualKeyboardProps) {
   const textLayoutNormal = [
     ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
     ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ñ'],
-    ['SHIFT', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'BACKSPACE'],
+    ['SHIFT', 'z', 'x', 'c', 'v', 'b', 'n', 'm','.', 'BACKSPACE'],
     ['ALT', 'SPACE', 'ENTER']
   ]
 
@@ -214,19 +214,21 @@ export function AppVirtualKeyboard(props: AppVirtualKeyboardProps) {
     : (isAlt ? textLayoutAlt : textLayoutNormal)
 
   if (isMinimized) {
-    return (
-      <div 
-        className={`${styles.wrapper} ${styles.minimized}`} 
-        onClick={handleExpand}
-        onMouseDown={(e) => e.preventDefault()}
-        title="Mostrar teclado"
-      >
-        <div className={styles.minimizedContent}>
-          <span className={styles.minimizedIcon}>⌨️</span>
-          <span className={styles.minimizedText}>Teclado minimizado (Tocar para expandir)</span>
-        </div>
-      </div>
-    )
+    return null 
+
+    // return (
+    //   <div 
+    //     className={`${styles.wrapper} ${styles.minimized}`} 
+    //     onClick={handleExpand}
+    //     onMouseDown={(e) => e.preventDefault()}
+    //     title="Mostrar teclado"
+    //   >
+    //     <div className={styles.minimizedContent}>
+    //       <span className={styles.minimizedIcon}>⌨️</span>
+    //       <span className={styles.minimizedText}>Teclado minimizado (Tocar para expandir)</span>
+    //     </div>
+    //   </div>
+    // )
   }
 
   return (

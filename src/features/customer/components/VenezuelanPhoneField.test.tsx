@@ -13,40 +13,54 @@ const baseProps = {
 }
 
 describe('VenezuelanPhoneField', () => {
-  it('renders a normal (non-readOnly) tel input so it integrates with the global keyboard', () => {
+  it('renders a normal (non-readOnly) tel input showing the rest of the number', () => {
     render(<VenezuelanPhoneField {...baseProps} />)
-    const input = screen.getByDisplayValue('0424-1')
+    const input = screen.getByDisplayValue('1')
     expect(input).toHaveAttribute('type', 'tel')
     expect(input).not.toHaveAttribute('readonly')
   })
 
-  it('renders a carrier quick-select button for every prefix while active', () => {
+  it('renders the prefix trigger button showing the active prefix', () => {
     render(<VenezuelanPhoneField {...baseProps} />)
+    const trigger = screen.getByRole('button', { name: /0424/ })
+    expect(trigger).toBeInTheDocument()
+  })
+
+  it('opens the dropdown menu on trigger mousedown and shows all prefix options', () => {
+    render(<VenezuelanPhoneField {...baseProps} />)
+    const trigger = screen.getByRole('button', { name: '0424' })
+    fireEvent.mouseDown(trigger)
+
     for (const prefix of baseProps.prefixes) {
-      expect(screen.getByRole('button', { name: prefix })).toBeInTheDocument()
+      // 0424 is the active prefix — it appears in both the trigger (aria-label) and the menu item
+      if (prefix === '0424') {
+        expect(screen.getAllByRole('button', { name: prefix }).length).toBeGreaterThanOrEqual(2)
+      } else {
+        expect(screen.getByRole('button', { name: prefix })).toBeInTheDocument()
+      }
     }
   })
 
-  it('hides the prefix buttons when not active', () => {
-    render(<VenezuelanPhoneField {...baseProps} isActive={false} />)
-    expect(screen.queryByRole('button', { name: '0424' })).not.toBeInTheDocument()
-  })
-
-  it('calls onPrefixSelect with the tapped carrier prefix', () => {
+  it('calls onPrefixSelect when a menu item is clicked and closes the menu', () => {
     const onPrefixSelect = vi.fn()
     render(<VenezuelanPhoneField {...baseProps} onPrefixSelect={onPrefixSelect} />)
 
-    fireEvent.mouseDown(screen.getByRole('button', { name: '0424' }))
+    fireEvent.mouseDown(screen.getByRole('button', { name: /0424/ }))
+    fireEvent.mouseDown(screen.getByRole('button', { name: '0412' }))
 
-    expect(onPrefixSelect).toHaveBeenCalledWith('0424')
+    expect(onPrefixSelect).toHaveBeenCalledWith('0412')
   })
 
-  it('calls onChange when the user types into the input', () => {
+  it('calls onChange with reconstructed full number when the user types into the input', () => {
     const onChange = vi.fn()
     render(<VenezuelanPhoneField {...baseProps} onChange={onChange} />)
 
-    fireEvent.change(screen.getByDisplayValue('0424-1'), { target: { value: '0424-12' } })
+    const input = screen.getByDisplayValue('1')
+    fireEvent.change(input, { target: { value: '12' } })
 
     expect(onChange).toHaveBeenCalled()
+    const calledEvent = onChange.mock.calls[0][0]
+    expect(calledEvent.target.value).toBe('042412')
   })
 })
+

@@ -1,8 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useConfigStore } from './config'
 import { useUIStore } from '@/shared/stores/ui'
-import { OdooServerError } from '@/shared/lib/odooEnv'
-import { pingStation } from '@/shared/lib/odooRepository'
+import { OdooServerError, odooEnv } from '@/shared/lib/odooEnv'
+import { pingStation, linkStation } from '@/shared/lib/odooRepository'
+import { DEFAULT_ACCENT, applyAccentColor } from '@/shared/lib/theme'
+
+vi.mock('@/shared/lib/theme', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/shared/lib/theme')>()
+  return {
+    ...original,
+    applyAccentColor: vi.fn()
+  }
+})
 
 // jsdom no tiene indexedDB; en el kiosko real (Chrome) siempre existe
 vi.mock('@/shared/lib/secureStorage', () => ({
@@ -101,5 +110,68 @@ describe('config — reauthenticate', () => {
 
     expect(useConfigStore.getState().isConnectionReady).toBe(true)
     expect(useConfigStore.getState().isConfigured).toBe(true)
+  })
+})
+
+describe('config — accentColor', () => {
+  it('defaults to DEFAULT_ACCENT in initial state', () => {
+    expect(useConfigStore.getState().accentColor).toBe(DEFAULT_ACCENT)
+  })
+
+  it('saveConfig parses x_accent_color from the custom config, normalizes it, stores it, and applies it', async () => {
+    vi.mocked(linkStation).mockResolvedValue({
+      id: 42, name: 'Caja 1', code: 'C1', branchId: 0, companyId: 1,
+      activeSessionId: false, operateWithoutPrinter: false, allowLocalDB: false
+    })
+    vi.mocked(odooEnv.callMethod).mockResolvedValue({ x_accent_color: '#3B82F6' })
+
+    await useConfigStore.getState().saveConfig({
+      odooUrl: 'https://odoo.test',
+      odooDb: 'test_db',
+      serviceUser: 'kiosko@test.com',
+      servicePassword: 'secret',
+      printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
+      printerModel: 'm',
+      adminPin: '1234',
+      configToken: 'TOKEN'
+    })
+
+    expect(useConfigStore.getState().accentColor).toBe('#3b82f6')
+    expect(applyAccentColor).toHaveBeenCalledWith('#3b82f6')
+  })
+
+  it('reauthenticate parses x_accent_color, normalizes it, stores it, and applies it', async () => {
+    vi.mocked(pingStation).mockResolvedValue({
+      id: 42, name: 'Caja 1', code: 'C1', branchId: 7, companyId: 1,
+      activeSessionId: false, operateWithoutPrinter: false, allowLocalDB: false
+    })
+    vi.mocked(odooEnv.callMethod).mockResolvedValue({ x_accent_color: '#3B82F6' })
+
+    await useConfigStore.getState().reauthenticate()
+
+    expect(useConfigStore.getState().accentColor).toBe('#3b82f6')
+    expect(applyAccentColor).toHaveBeenCalledWith('#3b82f6')
+  })
+
+  it('reauthenticate falls back to DEFAULT_ACCENT without throwing when the key is malformed or absent', async () => {
+    vi.mocked(pingStation).mockResolvedValue({
+      id: 42, name: 'Caja 1', code: 'C1', branchId: 7, companyId: 1,
+      activeSessionId: false, operateWithoutPrinter: false, allowLocalDB: false
+    })
+    vi.mocked(odooEnv.callMethod).mockResolvedValue({ x_accent_color: 'not-a-color' })
+
+    await expect(useConfigStore.getState().reauthenticate()).resolves.toBeUndefined()
+    expect(useConfigStore.getState().accentColor).toBe(DEFAULT_ACCENT)
+    expect(applyAccentColor).toHaveBeenCalledWith(DEFAULT_ACCENT)
+
+    vi.mocked(odooEnv.callMethod).mockResolvedValue({})
+    await expect(useConfigStore.getState().reauthenticate()).resolves.toBeUndefined()
+    expect(useConfigStore.getState().accentColor).toBe(DEFAULT_ACCENT)
+  })
+
+  it('clearConfig resets accentColor to DEFAULT_ACCENT', () => {
+    useConfigStore.setState({ accentColor: '#3b82f6' })
+    useConfigStore.getState().clearConfig()
+    expect(useConfigStore.getState().accentColor).toBe(DEFAULT_ACCENT)
   })
 })

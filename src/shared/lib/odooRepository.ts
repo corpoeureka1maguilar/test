@@ -22,6 +22,7 @@ interface RawMethod {
   journal_id: [number, string]
   currency_id: [number, string] | false
   use_for_change: boolean
+  with_merchant: boolean
 }
 
 interface RawProduct {
@@ -77,7 +78,8 @@ function mapMethod(r: RawMethod): KioskPaymentMethod {
     igtfPercent: r.igtf_percent,
     journalId: r.journal_id[0],
     currencyId: r.currency_id ? r.currency_id[0] : 0,
-    useForChange: r.use_for_change
+    useForChange: r.use_for_change,
+    withMerchant: r.with_merchant
   }
 }
 
@@ -166,7 +168,7 @@ export async function fetchPaymentMethods(branchId?: number): Promise<KioskPayme
   const raw = await odooEnv.callMethod<RawMethod[]>(
     'x.pos.payment.method', 'search_read',
     [domain],
-    { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change'] }
+    { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change', 'with_merchant'] }
   )
 
   const mapped = raw.map(mapMethod)
@@ -489,9 +491,11 @@ export async function fetchCompanyLogo(): Promise<string> {
 
 export async function fetchAdvertisements(): Promise<AdConfig[]> {
   try {
+    const stationId = useConfigStore.getState().stationId
     const config = await odooEnv.callMethod<{ ad_configs?: AdConfig[] }>(
       'x.pos.station',
-      'action_get_custom_config'
+      'action_get_custom_config',
+      stationId ? [stationId] : []
     )
     return config?.ad_configs || []
   } catch (err) {

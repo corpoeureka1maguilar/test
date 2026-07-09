@@ -64,6 +64,7 @@ export interface KioskPaymentMethod {
   currencySymbol?: string
   currencyRate?: number
   useForChange: boolean
+  withMerchant?: boolean
 }
 
 export interface ActivePayment {
