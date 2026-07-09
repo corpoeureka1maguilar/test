@@ -121,14 +121,14 @@ export function AppVirtualKeyboard(props: AppVirtualKeyboardProps) {
   const isMinimized = internalMinimized
   const layoutType = localLayoutType
 
-  const handleExpand = () => {
-    setInternalMinimized(false)
-    setTimeout(() => {
-      if (lastInputRef.current) {
-        lastInputRef.current.focus()
-      }
-    }, 50)
-  }
+  // const handleExpand = () => {
+  //   setInternalMinimized(false)
+  //   setTimeout(() => {
+  //     if (lastInputRef.current) {
+  //       lastInputRef.current.focus()
+  //     }
+  //   }, 50)
+  // }
 
   const updateInputValue = (newValue: string) => {
     if (lastInputRef.current) {
