@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { useMemo } from 'react'
 import type { CartItem, KioskProduct } from '@/shared/types/types'
-import { ves, addVES, toFloat, mulVES } from '@/shared/lib/money'
+import { ves, addVES, toFloat, mulVES, type VESDinero } from '@/shared/lib/money'
 
 interface CartState {
   items: CartItem[]
@@ -97,14 +97,14 @@ export const useCartStore = create<CartState & CartActions>()(devtools(persist((
 
 export function useCartSubtotal() {
   return useCartStore(s => {
-    const subtotalD = s.items.reduce<any>((sumD, i) => addVES(sumD, ves(i.subtotal)), ves(0))
+    const subtotalD = s.items.reduce<VESDinero>((sumD, i) => addVES(sumD, ves(i.subtotal)), ves(0))
     return toFloat(subtotalD)
   })
 }
 
 export function useCartTotal() {
   return useCartStore(s => {
-    const totalD = s.items.reduce<any>(
+    const totalD = s.items.reduce<VESDinero>(
       (sumD, i) => addVES(sumD, ves(i.subtotal * (1 + i.taxRate))),
       ves(0)
     )
@@ -114,7 +114,7 @@ export function useCartTotal() {
 
 export function useCartTaxTotal() {
   return useCartStore(s => {
-    const taxD = s.items.reduce<any>(
+    const taxD = s.items.reduce<VESDinero>(
       (sumD, i) => addVES(sumD, ves(i.subtotal * i.taxRate)),
       ves(0)
     )

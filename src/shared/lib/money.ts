@@ -1,4 +1,4 @@
-import { dinero, add, subtract, multiply, toDecimal } from 'dinero.js'
+import { dinero, add, subtract, multiply, toDecimal, type Dinero } from 'dinero.js'
 
 export const VES = {
   code: 'VES',
@@ -6,23 +6,25 @@ export const VES = {
   exponent: 2,
 }
 
-export function ves(amount: number) {
+export type VESDinero = Dinero<number>
+
+export function ves(amount: number): VESDinero {
   return dinero({ amount: Math.round(amount * 100), currency: VES })
 }
 
-export function toFloat(d: any): number {
+export function toFloat(d: VESDinero): number {
   return parseFloat(toDecimal(d))
 }
 
-export function addVES(d1: any, d2: any) {
+export function addVES(d1: VESDinero, d2: VESDinero): VESDinero {
   return add(d1, d2)
 }
 
-export function subVES(d1: any, d2: any) {
+export function subVES(d1: VESDinero, d2: VESDinero): VESDinero {
   return subtract(d1, d2)
 }
 
-export function mulVES(d: any, multiplier: number) {
+export function mulVES(d: VESDinero, multiplier: number): VESDinero {
   return multiply(d, { amount: Math.round(multiplier * 100), scale: 2 })
 }
 
@@ -39,10 +41,10 @@ export function formatBs(amount: number): string {
   return formatVES(ves(amount))
 }
 
-export function formatVES(d: any): string {
+export function formatVES(d: VESDinero): string {
   return toDecimal(d, ({ value, currency }) => {
     const [intPart, decPart = ''] = value.split('.')
-    const paddedDec = decPart.padEnd(currency.exponent as number, '0')
+    const paddedDec = decPart.padEnd(currency.exponent, '0')
     const formattedInt = new Intl.NumberFormat('es-VE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
