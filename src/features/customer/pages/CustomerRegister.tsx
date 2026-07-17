@@ -36,7 +36,6 @@ export function CustomerRegister() {
     handleKeyboardChange,
     handleSuggestionSelect,
     handleStateSelect,
-    isVenezuelan,
     phoneInput,
     validate
   } = useRegisterForm({ branchState, vat })
@@ -165,18 +164,20 @@ export function CustomerRegister() {
               className={styles.readonlyField}
             />
           </label>
-          {isVenezuelan ? (
+          {phoneInput.isInternational ? (
+            <InternationalPhoneField
+              {...phoneInput}
+              onFocus={() => { setActiveField('phone'); setIsKeyboardMinimized(false); }}
+              onBlur={handleInputBlur}
+              onBackToVenezuelan={phoneInput.canSwitchToVenezuelan ? phoneInput.switchToVenezuelan : undefined}
+            />
+          ) : (
             <VenezuelanPhoneField
               {...phoneInput}
               isActive={activeField === 'phone'}
               onFocus={() => { setActiveField('phone'); setIsKeyboardMinimized(false); }}
               onBlur={handleInputBlur}
-            />
-          ) : (
-            <InternationalPhoneField
-              {...phoneInput}
-              onFocus={() => { setActiveField('phone'); setIsKeyboardMinimized(false); }}
-              onBlur={handleInputBlur}
+              onSwitchToInternational={phoneInput.switchToInternational}
             />
           )}
           <label>Correo electrónico

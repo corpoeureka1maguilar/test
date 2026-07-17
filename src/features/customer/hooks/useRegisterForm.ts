@@ -14,7 +14,7 @@ export function makeRegisterSchema(isVenezuelan: boolean) {
     ),
     estado: z.string().trim()
       .min(1, 'El estado es requerido')
-      .min(5, 'El estado debe tener al menos 5 caracteres'),
+      .min(2, 'El estado debe tener al menos 2 caracteres'),
     street: z.string().trim()
       .min(1, 'La dirección es requerida')
       .min(5, 'La dirección debe tener al menos 5 caracteres'),
@@ -84,7 +84,7 @@ export function useRegisterForm({ branchState, vat }: UseRegisterFormProps) {
   }
 
   const validate = () => {
-    return makeRegisterSchema(isVenezuelan).safeParse({ ...form, phone: phoneInput.value })
+    return makeRegisterSchema(!phoneInput.isInternational).safeParse({ ...form, phone: phoneInput.value })
   }
 
   return {

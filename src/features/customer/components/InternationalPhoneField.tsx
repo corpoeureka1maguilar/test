@@ -1,10 +1,13 @@
 import type { ChangeEvent, FocusEvent } from 'react'
+import styles from '../pages/CustomerRegister.module.css'
 
 interface InternationalPhoneFieldProps {
   value: string
   onChange: (e: ChangeEvent<HTMLInputElement>) => void
   onFocus: () => void
   onBlur: (e: FocusEvent<HTMLInputElement>) => void
+  /** Present when the customer got here by opting out of the Venezuelan carrier field, so they can undo it. */
+  onBackToVenezuelan?: () => void
 }
 
 /**
@@ -13,7 +16,7 @@ interface InternationalPhoneFieldProps {
  * no seed button is needed — the user just types digits. No carrier
  * quick-select buttons; country logic lives entirely in `usePhoneInput`.
  */
-export function InternationalPhoneField({ value, onChange, onFocus, onBlur }: InternationalPhoneFieldProps) {
+export function InternationalPhoneField({ value, onChange, onFocus, onBlur, onBackToVenezuelan }: InternationalPhoneFieldProps) {
   return (
     <label>Teléfono
       <input
@@ -25,6 +28,15 @@ export function InternationalPhoneField({ value, onChange, onFocus, onBlur }: In
         inputMode="none"
         placeholder="+<código país><número>"
       />
+      {onBackToVenezuelan && (
+        <button
+          type="button"
+          className={styles.phoneModeSwitch}
+          onMouseDown={(e) => { e.preventDefault(); onBackToVenezuelan() }}
+        >
+          Es un número venezolano
+        </button>
+      )}
     </label>
   )
 }

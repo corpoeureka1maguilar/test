@@ -10,6 +10,8 @@ interface VenezuelanPhoneFieldProps {
   isActive: boolean
   onFocus: () => void
   onBlur: (e: FocusEvent<HTMLInputElement>) => void
+  /** Present when the customer's document allows opting into an international number instead of a local carrier one. */
+  onSwitchToInternational?: () => void
 }
 
 /**
@@ -25,7 +27,8 @@ export function VenezuelanPhoneField({
   prefixes,
   isActive,
   onFocus,
-  onBlur
+  onBlur,
+  onSwitchToInternational
 }: VenezuelanPhoneFieldProps) {
   const [isFocused, setIsFocused] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -56,69 +59,88 @@ export function VenezuelanPhoneField({
     setIsDropdownOpen(false)
   }
 
+  const handleSwitchToInternational = () => {
+    onSwitchToInternational?.()
+    setIsDropdownOpen(false)
+  }
+
   return (
     <label>Teléfono
-      <div className={`${styles.phoneInputContainer} ${(isActive || isFocused) ? styles.phoneInputContainerFocus : ''}`}>
+      <div ref={dropdownRef} className={styles.phoneFieldWrapper}>
+        <div className={`${styles.phoneInputContainer} ${(isActive || isFocused) ? styles.phoneInputContainerFocus : ''}`}>
 
-        {/* Custom prefix dropdown trigger */}
-        <div ref={dropdownRef} className={styles.prefixDropdown}>
-          <button
-            type="button"
-            aria-label={activePrefix}
-            className={styles.prefixTrigger}
-            onMouseDown={(e) => {
-              e.preventDefault()
-              setIsDropdownOpen(o => !o)
-            }}
-          >
-            {activePrefix}
-            <svg
-              className={`${styles.prefixChevron} ${isDropdownOpen ? styles.prefixChevronOpen : ''}`}
-              viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          {/* Custom prefix dropdown trigger */}
+          <div className={styles.prefixDropdown}>
+            <button
+              type="button"
+              aria-label={activePrefix}
+              className={styles.prefixTrigger}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                setIsDropdownOpen(o => !o)
+              }}
             >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
+              {activePrefix}
+              <svg
+                className={`${styles.prefixChevron} ${isDropdownOpen ? styles.prefixChevronOpen : ''}`}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          </div>
 
-          {isDropdownOpen && (
-            <div className={styles.prefixMenu}>
-              {prefixes.map((prefix) => (
-                <button
-                  key={prefix}
-                  type="button"
-                  className={`${styles.prefixMenuItem} ${prefix === activePrefix ? styles.prefixMenuItemActive : ''}`}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    handlePrefixSelect(prefix)
-                  }}
-                >
-                  {prefix}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className={styles.prefixSeparator} />
+
+          <input
+            type="tel"
+            value={restValue}
+            onChange={handleInputChange}
+            onFocus={() => {
+              setIsFocused(true)
+              setIsDropdownOpen(false)
+              onFocus()
+            }}
+            onBlur={(e) => {
+              setIsFocused(false)
+              onBlur(e)
+            }}
+            inputMode="none"
+            placeholder="XXXXXXX"
+            className={styles.phoneInput}
+          />
         </div>
 
-        <div className={styles.prefixSeparator} />
-
-        <input
-          type="tel"
-          value={restValue}
-          onChange={handleInputChange}
-          onFocus={() => {
-            setIsFocused(true)
-            setIsDropdownOpen(false)
-            onFocus()
-          }}
-          onBlur={(e) => {
-            setIsFocused(false)
-            onBlur(e)
-          }}
-          inputMode="none"
-          placeholder="XXXXXXX"
-          className={styles.phoneInput}
-        />
+        {isDropdownOpen && (
+          <div className={styles.prefixMenu}>
+            {prefixes.map((prefix) => (
+              <button
+                key={prefix}
+                type="button"
+                className={`${styles.prefixMenuItem} ${prefix === activePrefix ? styles.prefixMenuItemActive : ''}`}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  handlePrefixSelect(prefix)
+                }}
+              >
+                {prefix}
+              </button>
+            ))}
+            {onSwitchToInternational && (
+              <button
+                type="button"
+                className={styles.prefixMenuItem}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  handleSwitchToInternational()
+                }}
+              >
+                Otro país
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </label>
   )

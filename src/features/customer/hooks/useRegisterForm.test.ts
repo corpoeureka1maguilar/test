@@ -26,14 +26,18 @@ describe('registerSchema validation', () => {
     expect(result.success).toBe(false)
   })
 
-  it('fails if estado is empty or less than 5 characters', () => {
+  it('fails if estado is empty or less than 2 characters', () => {
     // Required (min 1)
     const emptyResult = registerSchema.safeParse({ ...validData, estado: '' })
     expect(emptyResult.success).toBe(false)
 
-    // Min 5 characters
-    const shortResult = registerSchema.safeParse({ ...validData, estado: 'Zul' })
+    // Min 2 characters
+    const shortResult = registerSchema.safeParse({ ...validData, estado: 'Z' })
     expect(shortResult.success).toBe(false)
+
+    // Single-word state names (e.g. "Lara", 4 chars) must pass
+    const singleWordResult = registerSchema.safeParse({ ...validData, estado: 'Lara' })
+    expect(singleWordResult.success).toBe(true)
   })
 
   it('fails if street (dirección) is empty or less than 5 characters', () => {

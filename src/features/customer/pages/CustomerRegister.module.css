@@ -116,6 +116,25 @@
   }
 }
 
+.phoneFieldWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.phoneModeSwitch {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
 .phoneInputContainer {
   display: flex;
   align-items: center;
@@ -136,7 +155,6 @@
 }
 
 .prefixDropdown {
-  position: relative;
   flex-shrink: 0;
 }
 

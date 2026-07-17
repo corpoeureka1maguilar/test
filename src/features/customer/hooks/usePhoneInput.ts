@@ -14,9 +14,18 @@ export function usePhoneInput(isVenezuelan: boolean) {
   // displayed `value` is derived from it on every render.
   const [raw, setRaw] = useState('')
 
+  // Lets a V- (Venezuelan document) customer opt into the international
+  // format when their actual phone isn't a local carrier number. Only
+  // meaningful while `isVenezuelan` is true — foreign-document customers are
+  // always international already.
+  const [manualInternational, setManualInternational] = useState(false)
+
+  const usesVenezuelanFormat = isVenezuelan && !manualInternational
+
   // Switching nationality mode must not carry over the previous mode's value.
   useEffect(() => {
     setRaw('')
+    setManualInternational(false)
   }, [isVenezuelan])
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -45,15 +54,29 @@ export function usePhoneInput(isVenezuelan: boolean) {
     resyncGlobalKeyboard()
   }
 
-  const value = isVenezuelan ? formatPhone(raw) : formatInternationalPhone(raw)
-  const isValid = isVenezuelan ? isValidVenezuelanPhone(value) : isValidInternationalPhone(value)
-  const prefixes = isVenezuelan ? VE_PREFIXES : []
+  const switchToInternational = () => {
+    setRaw('')
+    setManualInternational(true)
+  }
+
+  const switchToVenezuelan = () => {
+    setRaw('')
+    setManualInternational(false)
+  }
+
+  const value = usesVenezuelanFormat ? formatPhone(raw) : formatInternationalPhone(raw)
+  const isValid = usesVenezuelanFormat ? isValidVenezuelanPhone(value) : isValidInternationalPhone(value)
+  const prefixes = usesVenezuelanFormat ? VE_PREFIXES : []
 
   return {
     value,
     onChange,
     onPrefixSelect,
     isValid,
-    prefixes
+    prefixes,
+    isInternational: !usesVenezuelanFormat,
+    canSwitchToVenezuelan: isVenezuelan,
+    switchToInternational,
+    switchToVenezuelan
   }
 }
