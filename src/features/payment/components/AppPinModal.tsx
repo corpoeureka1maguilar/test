@@ -32,7 +32,10 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
   const [remaining, setRemaining] = useState(0)
   const [shake, setShake] = useState(false)
 
-  const isLocked = lockedUntil !== null && Date.now() < lockedUntil
+  // lockedUntil se limpia a null desde el useEffect de abajo en cuanto vence
+  // (chequeo cada 1s); no comparar contra Date.now() acá evita una llamada
+  // impura durante el render (react-hooks/purity)
+  const isLocked = lockedUntil !== null
 
   useEffect(() => {
     if (!lockedUntil) return

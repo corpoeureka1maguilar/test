@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createActor, fromPromise } from 'xstate'
+import { createActor, fromPromise, waitFor } from 'xstate'
 import { saleMachine } from './saleMachine'
 import { OdooServerError } from '@/shared/lib/odooEnv'
 import { QueueFullError } from '@/shared/lib/orderQueue'
@@ -33,7 +33,13 @@ const printRejecting = fromPromise<PrinterInvoiceData, PrintInput>(
   async () => { throw new Error('Impresora no responde') }
 )
 
-vi.mock('@/shared/lib/odooRepository', () => ({ createSaleOrder: vi.fn(), setOrderPrinterData: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/shared/lib/odooRepository', () => ({
+  createSaleOrder: vi.fn(),
+  setOrderPrinterData: vi.fn().mockResolvedValue(undefined),
+  // checkingLoyalty invoca esto al salir de browsingProducts (ver saleMachine.ts);
+  // sin motores requeridos avanza directo a selectingMethod
+  validateLoyalty: vi.fn().mockResolvedValue([])
+}))
 vi.mock('@/shared/lib/fiscalPrinter', () => ({
   FiscalPrinterAdapter: vi.fn().mockImplementation(() => ({
     printFactura: vi.fn().mockResolvedValue({ numfactura: '001', fecha: '2026-06-30', hora: '10:00', serial: 'A1' })
@@ -56,15 +62,18 @@ const method: KioskPaymentMethod = {
 }
 const payment: ActivePayment = { methodId: 7, reference: '', amount: 50, igtfAmount: 0 }
 
-function runToEnteringDetails(actor: ReturnType<typeof createActor<typeof saleMachine>>) {
+async function runToEnteringDetails(actor: ReturnType<typeof createActor<typeof saleMachine>>) {
   actor.send({ type: 'START' })
   actor.send({ type: 'FOUND', customer })
   actor.send({ type: 'CHECKOUT', cart })
+  // checkingLoyalty invoca validateLoyalty de forma asincrónica antes de
+  // llegar a selectingMethod (ver saleMachine.ts) — hay que esperarlo
+  await waitFor(actor, (snapshot) => snapshot.matches('selectingMethod'))
   actor.send({ type: 'SELECT_METHOD', method })
 }
 
 describe('saleMachine — happy path transitions', () => {
-  it('walks idle -> enteringCedula -> browsingProducts -> selectingMethod -> enteringDetails', () => {
+  it('walks idle -> enteringCedula -> browsingProducts -> checkingLoyalty -> selectingMethod -> enteringDetails', async () => {
     const actor = createActor(saleMachine)
     actor.start()
     expect(actor.getSnapshot().value).toBe('idle')
@@ -77,8 +86,10 @@ describe('saleMachine — happy path transitions', () => {
     expect(actor.getSnapshot().context.customer).toEqual(customer)
 
     actor.send({ type: 'CHECKOUT', cart })
-    expect(actor.getSnapshot().value).toBe('selectingMethod')
+    expect(actor.getSnapshot().value).toBe('checkingLoyalty')
     expect(actor.getSnapshot().context.cart).toEqual(cart)
+
+    await waitFor(actor, (snapshot) => snapshot.matches('selectingMethod'))
 
     actor.send({ type: 'SELECT_METHOD', method })
     expect(actor.getSnapshot().value).toBe('enteringDetails')
@@ -97,10 +108,10 @@ describe('saleMachine — happy path transitions', () => {
     expect(actor.getSnapshot().value).toBe('browsingProducts')
   })
 
-  it('RESET returns to idle and clears the context from any state', () => {
+  it('RESET returns to idle and clears the context from any state', async () => {
     const actor = createActor(saleMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'RESET' })
     expect(actor.getSnapshot().value).toBe('idle')
     expect(actor.getSnapshot().context.customer).toBeNull()
@@ -115,7 +126,7 @@ describe('saleMachine — payment processing', () => {
     })
     const actor = createActor(failingMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
     await vi.waitFor(() => {
@@ -130,7 +141,7 @@ describe('saleMachine — payment processing', () => {
     })
     const actor = createActor(failingMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
     await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('paymentError'))
 
@@ -145,7 +156,7 @@ describe('saleMachine — payment processing', () => {
     })
     const actor = createActor(successMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
     await vi.waitFor(() => {
@@ -163,7 +174,7 @@ describe('saleMachine — payment processing', () => {
     })
     const actor = createActor(stuckMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
     expect(actor.getSnapshot().value).toBe('processing')
 
@@ -181,7 +192,7 @@ describe('saleMachine — payment processing', () => {
     })
     const actor = createActor(stuckMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
     await vi.waitFor(() => {
@@ -199,7 +210,7 @@ describe('saleMachine — payment processing', () => {
     })
     const actor = createActor(degradedMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
     await vi.waitFor(() => {
@@ -222,7 +233,7 @@ describe('saleMachine — payment processing', () => {
     })
     const actor = createActor(machine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
     await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('printingError'))
 
@@ -238,7 +249,7 @@ describe('saleMachine — payment processing', () => {
     })
     const actor = createActor(machine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
     await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('printingError'))
 
@@ -264,7 +275,7 @@ describe('saleMachine — offline enqueue (transient error while Odoo is unreach
     })
     const actor = createActor(machine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
     await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('enqueuingOffline'))
@@ -280,7 +291,7 @@ describe('saleMachine — offline enqueue (transient error while Odoo is unreach
     })
     const actor = createActor(machine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
     await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('success'))
@@ -295,7 +306,7 @@ describe('saleMachine — offline enqueue (transient error while Odoo is unreach
     })
     const actor = createActor(machine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
     await vi.waitFor(() => expect(actor.getSnapshot().value).toBe('paymentError'))
@@ -312,7 +323,7 @@ describe('saleMachine — offline enqueue (transient error while Odoo is unreach
     })
     const actor = createActor(machine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     const attemptId = actor.getSnapshot().context.saleAttemptId
     actor.send({ type: 'SUBMIT_PAYMENT', payment })
 
@@ -328,7 +339,7 @@ describe('saleMachine — sale attempt dedup id', () => {
     })
     const actor = createActor(failingMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
 
     const firstId = actor.getSnapshot().context.saleAttemptId
     expect(firstId).toBeTruthy()
@@ -342,16 +353,16 @@ describe('saleMachine — sale attempt dedup id', () => {
     expect(actor.getSnapshot().context.saleAttemptId).toBe(firstId)
   })
 
-  it('generates a fresh saleAttemptId after RESET (new sale)', () => {
+  it('generates a fresh saleAttemptId after RESET (new sale)', async () => {
     const actor = createActor(saleMachine)
     actor.start()
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     const firstId = actor.getSnapshot().context.saleAttemptId
 
     actor.send({ type: 'RESET' })
     expect(actor.getSnapshot().context.saleAttemptId).toBeNull()
 
-    runToEnteringDetails(actor)
+    await runToEnteringDetails(actor)
     const secondId = actor.getSnapshot().context.saleAttemptId
     expect(secondId).toBeTruthy()
     expect(secondId).not.toBe(firstId)

@@ -10,7 +10,7 @@ export function NotFoundToast({ code }: Props) {
   return (
     <div className={styles.toastError}>
       <WarningCircle size={24} weight="fill" />
-      <span>Producto no encontrado: "{code}"</span>
+      <span>Producto no encontrado: &quot;{code}&quot;</span>
     </div>
   )
 }
