@@ -23,7 +23,7 @@ export function ProductCard({ product, qty, onAdd, onDecrement, onIncrement }: P
         {product.defaultCode && <span className={styles.code}>{product.defaultCode}</span>}
         <h4 className={styles.name}>
            {product.name}
-           {product.taxRate === 0 && <span style={{ opacity: 0.6, marginLeft: '0.25rem', fontWeight: 'normal' }}>(E)</span>}
+           {product.taxRate === 0 && <span className={styles.taxExemptBadge}>(E)</span>}
         </h4>
       </div>
       <div onClick={(e) => e.stopPropagation()}>

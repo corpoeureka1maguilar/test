@@ -10,7 +10,11 @@ export function useAdvancedMetrics(activeTab: AdvancedTab, requestAdminAction: (
   const [metrics, setMetrics] = useState(() => getMetrics())
 
   useEffect(() => {
+    // getMetrics() lee un store externo (no React) que otras pestañas/vistas
+    // pueden haber mutado mientras tanto; hay que releerlo al reabrir la
+    // pestaña, no es un valor derivable de props/estado local.
     if (activeTab === 'metrics') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMetrics(getMetrics())
     }
   }, [activeTab])

@@ -40,11 +40,11 @@ export function TerminalTab({ form, isTerminalUnlocked, onFieldChange, onSubmit,
           )}
         </div>
         {isTerminalUnlocked ? (
-          <button type="submit" className="btn btn-accent" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }}>
+          <button type="submit" className={`btn btn-accent ${styles.submitBtn}`}>
             Guardar Configuración
           </button>
         ) : (
-          <button type="button" className="btn btn-secondary" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }} onClick={onRequestUnlock}>
+          <button type="button" className={`btn btn-secondary ${styles.submitBtn}`} onClick={onRequestUnlock}>
             Modificar Configuración
           </button>
         )}
@@ -57,9 +57,8 @@ export function TerminalTab({ form, isTerminalUnlocked, onFieldChange, onSubmit,
         </p>
         <button
           type="button"
-          className="btn btn-secondary"
+          className={`btn btn-secondary ${styles.cacheBtn}`}
           onClick={onReloadCache}
-          style={{ width: '100%', maxWidth: '380px' }}
         >
           Recargar Caché
         </button>

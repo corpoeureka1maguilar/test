@@ -48,7 +48,6 @@ export function SessionTab({
               type="button"
               className="btn btn-primary"
               onClick={onRequestOpenSession}
-              style={{ width: '100%' }}
             >
               Aperturar Caja
             </button>
@@ -58,7 +57,6 @@ export function SessionTab({
               type="button"
               className="btn btn-danger"
               onClick={onRequestCloseSession}
-              style={{ width: '100%' }}
             >
               Cerrar Caja
             </button>

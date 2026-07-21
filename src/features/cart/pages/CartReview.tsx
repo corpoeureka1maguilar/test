@@ -16,8 +16,8 @@ export function CartReview() {
 
   const handlePay = () => {
     if (items.length === 0) return
-    send({ type: 'PAY' })
-    navigate('/pago')
+    send({ type: 'CHECKOUT', cart: items })
+    navigate('/lealtad')
   }
 
   return (
@@ -50,7 +50,7 @@ export function CartReview() {
                     <td>
                       <div className={styles.productName}>
                         {item.name}
-                        {item.taxRate === 0 && <span style={{ opacity: 0.6, marginLeft: '0.25rem', fontWeight: 'normal' }}>(E)</span>}
+                        {item.taxRate === 0 && <span className={styles.taxExemptBadge}>(E)</span>}
                       </div>
                       {item.defaultCode && <div className={styles.code}>{item.defaultCode}</div>}
                     </td>
@@ -83,8 +83,8 @@ export function CartReview() {
                 <span>{formatBs(tax.amount)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(tax.amount / rate)}</span>}</span>
               </div>
             ))}
-            <div className={styles.totalRow} style={{ marginTop: '1rem', borderTop: '1px solid var(--color-surface-border)', paddingTop: '2rem' }}>
-              <span style={{ color: 'var(--color-text)', fontSize: '2rem', fontWeight: 600 }}>Total</span>
+            <div className={`${styles.totalRow} ${styles.totalRowFinal}`}>
+              <span className={styles.totalLabel}>Total</span>
               <strong className={styles.totalAmount}>{formatBs(total)}{rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}</strong>
             </div>
           </div>

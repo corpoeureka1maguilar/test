@@ -1,6 +1,7 @@
 import { setup, assign, fromPromise, fromCallback } from 'xstate'
 import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, PrinterInvoiceData, GiftCard } from '@/shared/types/types'
-import { createSaleOrder, setOrderPrinterData, assignCardFromSale } from '@/shared/lib/odooRepository'
+import type { RequiredEngine } from '@/shared/lib/odooRepository'
+import { createSaleOrder, setOrderPrinterData, assignCardFromSale, validateLoyalty } from '@/shared/lib/odooRepository'
 import { FiscalPrinterAdapter, noFiscalItem } from '@/shared/lib/fiscalPrinter'
 import { buildFacturaPayload } from '@/shared/lib/printPayload'
 import { buildSaleOrderPayload } from '@/shared/lib/saleOrderPayload'
@@ -16,6 +17,7 @@ export interface SaleContext {
   customer: KioskPartner | null
   pendingVat: string | null         // cédula ingresada cuando no se encontró partner
   cart: CartItem[]
+  requiredEngines: RequiredEngine[]  // motores de lealtad (ej. Promaker) que exige el carrito actual
   selectedMethod: KioskPaymentMethod | null
   activePayment: ActivePayment | null
   giftCard: GiftCard | null
@@ -36,6 +38,8 @@ export type SaleEvent =
   | { type: 'NOT_FOUND'; vat: string }
   | { type: 'REGISTERED'; customer: KioskPartner }
   | { type: 'CHECKOUT'; cart: CartItem[] }
+  | { type: 'LOYALTY_DONE' }
+  | { type: 'LOYALTY_SKIP' }
   | { type: 'PAY' }
   | { type: 'SELECT_METHOD'; method: KioskPaymentMethod }
   | { type: 'SUBMIT_PAYMENT'; payment: ActivePayment; giftCard?: GiftCard }
@@ -155,13 +159,23 @@ const printFiscalInvoice = fromPromise<
   }
 })
 
+// validateLoyalty ya degrada graciosamente a [] ante cualquier error (modelo
+// inexistente, red caída): jamás debe bloquear la venta.
+const checkLoyalty = fromPromise<RequiredEngine[], { partnerId: number; productIds: number[] }>(
+  async ({ input }) => validateLoyalty(input.partnerId, input.productIds)
+)
+
 // ─── Machine ──────────────────────────────────────────────────────────────────
 
 export const saleMachine = setup({
   types: { context: {} as SaleContext, events: {} as SaleEvent },
-  actors: { submitPaymentToOdoo, printFiscalInvoice, countdownTick, enqueueOfflineOrder },
+  actors: { submitPaymentToOdoo, printFiscalInvoice, countdownTick, enqueueOfflineOrder, checkLoyalty },
   guards: {
-    isDeferrable: ({ event }) => isDeferrableError((event as { error?: unknown }).error)
+    isDeferrable: ({ event }) => isDeferrableError((event as { error?: unknown }).error),
+    hasRequiredEngines: ({ event }) => {
+      const output = (event as { output?: RequiredEngine[] }).output
+      return Array.isArray(output) && output.length > 0
+    }
   },
   actions: {
     setCustomer: assign({
@@ -176,6 +190,10 @@ export const saleMachine = setup({
       cart: ({ event }) =>
         (event as Extract<SaleEvent, { type: 'CHECKOUT' }>).cart
     }),
+    setRequiredEngines: assign({
+      requiredEngines: ({ event }) => (event as { output?: RequiredEngine[] }).output ?? []
+    }),
+    clearRequiredEngines: assign({ requiredEngines: [] }),
     setMethod: assign({
       selectedMethod: ({ event }) =>
         (event as Extract<SaleEvent, { type: 'SELECT_METHOD' }>).method
@@ -251,6 +269,7 @@ export const saleMachine = setup({
         customer: null,
         pendingVat: null,
         cart: [],
+        requiredEngines: [],
         selectedMethod: null,
         activePayment: null,
         giftCard: null,
@@ -271,6 +290,7 @@ export const saleMachine = setup({
     customer: null,
     pendingVat: null,
     cart: [],
+    requiredEngines: [],
     selectedMethod: null,
     activePayment: null,
     giftCard: null,
@@ -304,18 +324,50 @@ export const saleMachine = setup({
  
     browsingProducts: {
       on: {
-        CHECKOUT: { target: 'selectingMethod', actions: 'setCart' },
+        CHECKOUT: { target: 'checkingLoyalty', actions: 'setCart' },
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
 
     reviewingCart: {
       on: {
-        PAY: 'selectingMethod',
+        PAY: 'checkingLoyalty',
         RESET: { target: 'idle', actions: 'resetContext' }
       }
     },
- 
+
+    // Consulta si el carrito activa algún motor de lealtad (ej. Promaker).
+    // Degradación graciosa: cualquier falla se resuelve como "sin motores" y
+    // sigue directo al pago — la lealtad nunca bloquea una venta.
+    checkingLoyalty: {
+      invoke: {
+        src: 'checkLoyalty',
+        input: ({ context }) => ({
+          partnerId: context.customer?.id ?? 0,
+          productIds: context.cart.map((item) => item.productId)
+        }),
+        onDone: [
+          { guard: 'hasRequiredEngines', target: 'loyaltyRequired', actions: 'setRequiredEngines' },
+          { target: 'selectingMethod', actions: 'clearRequiredEngines' }
+        ],
+        onError: { target: 'selectingMethod', actions: 'clearRequiredEngines' }
+      },
+      on: {
+        RESET: { target: 'idle', actions: 'resetContext' }
+      }
+    },
+
+    // El carrito exige registrar/confirmar una o más tarjetas de lealtad
+    // antes de continuar. La pantalla de lealtad resuelve el registro
+    // (o el "omitir" del operador) contra Odoo y notifica el resultado acá.
+    loyaltyRequired: {
+      on: {
+        LOYALTY_DONE: { target: 'selectingMethod', actions: 'clearRequiredEngines' },
+        LOYALTY_SKIP: { target: 'selectingMethod', actions: 'clearRequiredEngines' },
+        RESET: { target: 'idle', actions: 'resetContext' }
+      }
+    },
+
     selectingMethod: {
       on: {
         SELECT_METHOD: { target: 'enteringDetails', actions: 'setMethod' },

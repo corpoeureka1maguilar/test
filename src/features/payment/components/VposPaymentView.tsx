@@ -13,7 +13,7 @@ export function VposPaymentView({ title, vposStatus, iframeUrl, onCancel }: Vpos
     <div className="kiosk-container">
       <h1 className={styles.title}>{title}</h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '2rem' }}>
+      <div className={styles.vposWrapper}>
         {vposStatus === 'checking' ? (
           <>
             <div className={loadingStyles.spinner} />
@@ -23,13 +23,7 @@ export function VposPaymentView({ title, vposStatus, iframeUrl, onCancel }: Vpos
           <iframe
             src={iframeUrl}
             title="VPOS Checkout"
-            style={{
-              width: '100%',
-              maxWidth: '360px',
-              height: '360px',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px'
-            }}
+            className={styles.vposIframe}
           />
         )}
 

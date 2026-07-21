@@ -17,7 +17,7 @@ export function CartItemRow({ item, onDecrement, onIncrement, onRemove }: Props)
       <div className={styles.cartItemInfo}>
         <div className={styles.cartItemName}>
            {item.name}
-           {item.taxRate === 0 && <span style={{ opacity: 0.6, marginLeft: '0.25rem', fontWeight: 'normal' }}>(E)</span>}
+           {item.taxRate === 0 && <span className={styles.taxExemptBadge}>(E)</span>}
         </div>
         <div className={styles.cartItemMeta}>
           {item.defaultCode && <span>{item.defaultCode}</span>}

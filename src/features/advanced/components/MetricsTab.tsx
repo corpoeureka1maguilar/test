@@ -48,7 +48,7 @@ export function MetricsTab({ metrics, rate, onResetMetrics }: Props) {
           <span className={styles.metricSubvalue}>Órdenes devueltas</span>
         </div>
 
-        <div className={styles.metricCard} style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(255, 255, 255, 0.8) 100%)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+        <div className={`${styles.metricCard} ${styles.dangerCard}`}>
           <span className={styles.metricLabel}>Tiempo Muerto</span>
           <span className={styles.metricValue}>
             {(() => {
@@ -94,8 +94,7 @@ export function MetricsTab({ metrics, rate, onResetMetrics }: Props) {
                     <div key={viewPath} className={styles.viewItem}>
                       <div className={styles.viewMeta}>
                         <span
-                          className={styles.itemName}
-                          style={isWelcome ? { color: 'var(--color-text-muted)', fontStyle: 'italic' } : undefined}
+                          className={`${styles.itemName} ${isWelcome ? styles.itemNameMuted : ''}`}
                         >
                           {displayName}
                         </span>
@@ -106,6 +105,7 @@ export function MetricsTab({ metrics, rate, onResetMetrics }: Props) {
                       <div className={styles.progressBarContainer}>
                         <div
                           className={styles.progressBar}
+                          // eslint-disable-next-line react/forbid-dom-props -- ancho calculado en runtime a partir del % de uso, no se puede expresar en una clase estática
                           style={{ width: `${percent}%` }}
                         />
                       </div>
@@ -140,7 +140,7 @@ export function MetricsTab({ metrics, rate, onResetMetrics }: Props) {
 
       <div className={styles.dashboardSection}>
         {/* Top Productos */}
-        <div className={`${styles.sectionCard}`} style={{ gridColumn: 'span 2' }}>
+        <div className={`${styles.sectionCard} ${styles.sectionCardWide}`}>
           <h3 className={styles.sectionTitle}>Productos Más Vendidos</h3>
           <div className={styles.listContainer}>
             {Object.keys(metrics.sales.topProducts).length === 0 ? (

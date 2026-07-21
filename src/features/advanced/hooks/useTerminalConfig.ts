@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { KIOSK_OPERATIONS } from '@/shared/lib/odooRepository'
 import { useUIStore } from '@/shared/stores/ui'
@@ -36,12 +36,16 @@ export function useTerminalConfig(activeTab: AdvancedTab, requestAdminAction: (a
   // La pestaña Terminal es de solo lectura por defecto: hay que confirmar el
   // PIN de administrador para desbloquear la edición. Se vuelve a bloquear
   // al salir de la pestaña para no dejarla editable si alguien la abandona.
-  useEffect(() => {
+  // Ajustado durante el render para que el bloqueo ocurra en el mismo render
+  // que el cambio de pestaña, sin un frame intermedio con la edición abierta.
+  const [prevActiveTab, setPrevActiveTab] = useState(activeTab)
+  if (activeTab !== prevActiveTab) {
+    setPrevActiveTab(activeTab)
     if (activeTab !== 'terminal') {
       setIsTerminalUnlocked(false)
       setForm((f) => ({ ...f, adminPin: '' }))
     }
-  }, [activeTab])
+  }
 
   const requestUnlockTerminal = () => {
     requestAdminAction({

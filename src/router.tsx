@@ -8,6 +8,7 @@ import { CustomerIdentity } from '@/features/customer/pages/CustomerIdentity'
 import { CustomerRegister } from '@/features/customer/pages/CustomerRegister'
 import { ProductCatalog } from '@/features/catalog/pages/ProductCatalog'
 import { CartReview } from '@/features/cart/pages/CartReview'
+import { LoyaltyCheck } from '@/features/loyalty/pages/LoyaltyCheck'
 import { PaymentSelect } from '@/features/payment/pages/PaymentSelect'
 import { PaymentForm } from '@/features/payment/pages/PaymentForm'
 import { PaymentResult } from '@/features/payment/pages/PaymentResult'
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
       { path: '/registro', element: <RequireConfig><CustomerRegister /></RequireConfig> },
       { path: '/productos', element: <RequireConfig><ProductCatalog /></RequireConfig> },
       { path: '/carrito', element: <RequireConfig><CartReview /></RequireConfig> },
+      { path: '/lealtad', element: <RequireConfig><LoyaltyCheck /></RequireConfig> },
       { path: '/pago', element: <RequireConfig><PaymentSelect /></RequireConfig> },
       { path: '/pago/:methodId', element: <RequireConfig><PaymentForm /></RequireConfig> },
       { path: '/resultado', element: <RequireConfig><PaymentResult /></RequireConfig> },

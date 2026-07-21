@@ -20,6 +20,9 @@ export function useOfflineQueue(activeTab: AdvancedTab, requestAdminAction: (act
   }
 
   useEffect(() => {
+    // Fetch de IndexedDB al reabrir la pestaña; loadQueue es async, así que
+    // setQueueEntries corre luego del await, no de forma síncrona en el efecto.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (activeTab === 'cola') loadQueue()
   }, [activeTab])
 

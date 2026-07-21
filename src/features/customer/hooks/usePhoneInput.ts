@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   isValidVenezuelanPhone,
   formatPhone,
@@ -23,10 +23,14 @@ export function usePhoneInput(isVenezuelan: boolean) {
   const usesVenezuelanFormat = isVenezuelan && !manualInternational
 
   // Switching nationality mode must not carry over the previous mode's value.
-  useEffect(() => {
+  // Ajustado durante el render para que el reset ocurra en el mismo render
+  // que el cambio de modo, sin mostrar el valor viejo con el formato nuevo.
+  const [prevIsVenezuelan, setPrevIsVenezuelan] = useState(isVenezuelan)
+  if (isVenezuelan !== prevIsVenezuelan) {
+    setPrevIsVenezuelan(isVenezuelan)
     setRaw('')
     setManualInternational(false)
-  }, [isVenezuelan])
+  }
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     setRaw(e.target.value.replace(/\D/g, ''))

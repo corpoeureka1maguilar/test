@@ -32,7 +32,7 @@ export function ScannerPanel({ lastScannedProduct, getQty, setQty, removeItem, s
       {lastScannedProduct && (
         <div className={styles.lastScannedSection}>
           <div className={styles.lastScannedTitle}>
-            <Sparkle size={18} weight="fill" style={{ color: 'var(--color-accent)', marginRight: '4px' }} />
+            <Sparkle size={18} weight="fill" className={styles.lastScannedAccentIcon} />
             Último Producto Escaneado
           </div>
           <div className={styles.lastScannedCard}>
@@ -43,7 +43,7 @@ export function ScannerPanel({ lastScannedProduct, getQty, setQty, removeItem, s
                 </span>
                 <h3 className={styles.lastScannedName}>
                   {lastScannedProduct.name}
-                  {lastScannedProduct.taxRate === 0 && <span style={{ opacity: 0.6, marginLeft: '0.25rem', fontWeight: 'normal' }}>(E)</span>}
+                  {lastScannedProduct.taxRate === 0 && <span className={styles.taxExemptBadge}>(E)</span>}
                 </h3>
               </div>
               <div className={styles.lastScannedPrice}>

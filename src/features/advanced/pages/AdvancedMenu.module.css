@@ -1,14 +1,14 @@
 .title {
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   font-weight: 800;
-  margin: 0 0 2rem;
+  margin: 0 0 1rem;
   color: var(--color-text);
 }
 
 .search {
-  font-size: 1.75rem !important;
-  height: 80px !important;
-  margin-bottom: 2rem;
+  font-size: 1.3rem !important;
+  height: 60px !important;
+  margin-bottom: 1rem;
 }
 
 .info {
@@ -29,8 +29,8 @@
   composes: glass-card from global;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  padding: 1.5rem 2rem;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
   cursor: pointer;
   text-align: left;
   font-family: var(--app-font-family);
@@ -45,14 +45,14 @@
 .orderName {
   font-weight: 800;
   flex: 1;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: var(--color-text);
 }
 
 .amount {
   font-weight: 900;
   color: var(--color-accent);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 
 .reasonLabel {
@@ -85,15 +85,15 @@
 }
 
 .iconSuccess {
-  width: 160px;
-  height: 160px;
+  width: 100px;
+  height: 100px;
   background: var(--color-accent-subtle);
   color: var(--color-accent);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 6rem;
+  font-size: 4rem;
   margin: 0 auto;
   animation: appleScaleIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -102,12 +102,12 @@
 .tabs {
   display: flex;
   background: var(--color-surface);
-  padding: 0.5rem;
+  padding: 0.3rem;
   border-radius: 20px;
   gap: 0.5rem;
   width: 100%;
   max-width: 600px;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
 }
 
 /* Individual Tab Button */
@@ -115,8 +115,8 @@
   flex: 1;
   border: none;
   background: transparent;
-  padding: 1rem 1.5rem;
-  font-size: 1.15rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--color-text-muted);
   border-radius: 15px;
@@ -141,9 +141,9 @@
 .cierresGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
+  gap: 1rem;
   width: 100%;
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
 }
 
 @media (max-width: 768px) {
@@ -155,12 +155,12 @@
 /* Cierre Button Card */
 .cierreCard {
   border: 1px solid var(--color-surface-border);
-  padding: 3rem 2rem;
+  padding: 1.5rem 1rem;
   border-radius: var(--app-radius);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.75rem;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   text-decoration: none;
@@ -181,12 +181,12 @@
 
 /* Icons styling */
 .cierreIcon {
-  font-size: 3.5rem;
+  font-size: 2.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 90px;
-  height: 90px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: var(--color-surface);
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -198,13 +198,13 @@
 }
 
 .cierreTitle {
-  font-size: 1.6rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: var(--color-text);
 }
 
 .cierreDesc {
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
   line-height: 1.5;
   text-align: center;
@@ -219,7 +219,7 @@
   max-width: 900px;
   background: var(--color-panel);
   border: 1px solid var(--color-surface-border);
-  padding: 3rem;
+  padding: 1.5rem;
   border-radius: var(--app-radius);
   box-shadow: var(--app-shadow);
   animation: appleScaleIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -228,7 +228,7 @@
 .formGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem 2rem;
+  gap: 1rem;
   width: 100%;
 }
 
@@ -253,80 +253,6 @@
 
 .fieldLabel input {
   margin-top: 0.25rem;
-}
-
-@media (max-aspect-ratio: 1.35), (max-height: 800px) {
-  .title {
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-  }
-
-  .search {
-    height: 60px !important;
-    font-size: 1.3rem !important;
-    margin-bottom: 1rem;
-  }
-
-  .resultCard {
-    padding: 1rem 1.5rem;
-    gap: 1rem;
-  }
-
-  .orderName {
-    font-size: 1.1rem;
-  }
-
-  .amount {
-    font-size: 1.25rem;
-  }
-
-  .tabs {
-    margin-bottom: 1.5rem;
-    padding: 0.3rem;
-  }
-
-  .tab {
-    padding: 0.6rem 1rem;
-    font-size: 0.95rem;
-  }
-
-  .cierresGrid {
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .cierreCard {
-    padding: 1.5rem 1rem;
-    gap: 0.75rem;
-  }
-
-  .cierreIcon {
-    font-size: 2.2rem;
-    width: 60px;
-    height: 60px;
-  }
-
-  .cierreTitle {
-    font-size: 1.2rem;
-  }
-
-  .cierreDesc {
-    font-size: 0.85rem;
-  }
-
-  .configForm {
-    padding: 1.5rem;
-  }
-
-  .formGrid {
-    gap: 1rem;
-  }
-
-  .iconSuccess {
-    width: 100px;
-    height: 100px;
-    font-size: 4rem;
-  }
 }
 
 /* ==========================================
@@ -392,6 +318,11 @@
   border-color: rgba(59, 130, 246, 0.3);
 }
 
+.dangerCard {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(255, 255, 255, 0.8) 100%);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
 .metricLabel {
   font-size: 0.85rem;
   font-weight: 700;
@@ -438,6 +369,28 @@
   gap: 1.5rem;
 }
 
+.sectionCardWide {
+  grid-column: span 2;
+}
+
+.queueSectionCard {
+  width: 100%;
+  max-width: 900px;
+}
+
+.queueListContainer {
+  max-height: none;
+}
+
+.queueMeta {
+  padding: 0;
+}
+
+.queueError {
+  padding: 0;
+  color: var(--color-danger);
+}
+
 .sectionTitle {
   font-size: 1.25rem;
   font-weight: 800;
@@ -477,6 +430,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 70%;
+}
+
+.itemNameMuted {
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .itemCount {
@@ -687,44 +645,46 @@
 .cacheCard {
   background: var(--color-panel);
   border: 1px solid var(--color-surface-border);
-  padding: 3rem;
+  padding: 1.5rem;
   border-radius: var(--app-radius);
   box-shadow: var(--app-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 1.25rem;
+  gap: 0.75rem;
   width: 100%;
   max-width: 900px;
   animation: appleScaleIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .cacheTitle {
-  font-size: 1.6rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: var(--color-text);
   margin: 0;
 }
 
 .cacheDesc {
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
   line-height: 1.5;
   margin: 0;
   max-width: 600px;
 }
 
-@media (max-aspect-ratio: 1.35), (max-height: 800px) {
-  .cacheCard {
-    padding: 1.5rem;
-    gap: 0.75rem;
-  }
-  .cacheTitle {
-    font-size: 1.2rem;
-  }
-  .cacheDesc {
-    font-size: 0.85rem;
-  }
+.submitBtn {
+  margin-top: 1.5rem;
+  width: 100%;
+  max-width: 380px;
+}
+
+.cacheBtn {
+  width: 100%;
+  max-width: 380px;
+}
+
+.backBtn {
+  margin-top: auto;
 }
 

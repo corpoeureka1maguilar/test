@@ -42,7 +42,7 @@ export function GiftCardPaymentView({
     <div className="kiosk-container">
       <h1 className={styles.title}>Pago con Tarjeta de Regalo</h1>
 
-      <div className={styles.summaryContainer} style={{ margin: '0 auto 3rem' }}>
+      <div className={`${styles.summaryContainer} ${styles.summaryContainerCentered}`}>
         <div className={styles.summaryCard}>
           <div className={styles.amountRow}>
             <span>Total de la compra</span>
@@ -117,7 +117,7 @@ export function GiftCardPaymentView({
             </div>
           )}
 
-          <div className={styles.actions} style={{ marginTop: '2rem' }}>
+          <div className={`${styles.actions} ${styles.actionsSpaced}`}>
             <button type="button" className="btn btn-secondary" onClick={onBack}>Volver</button>
           </div>
         </div>

@@ -138,10 +138,14 @@ export function CustomerRegister() {
   const [isKeyboardMinimized, setIsKeyboardMinimized] = useState(false)
 
   return (
-    <div className="kiosk-container" style={{ paddingBottom: activeField ? (isKeyboardMinimized ? '80px' : '320px') : '2rem' }}>
+    <div
+      className={`kiosk-container ${styles.container} ${
+        activeField ? (isKeyboardMinimized ? styles.keyboardMinimized : styles.keyboardOpen) : ''
+      }`}
+    >
       <h2 className={styles.title}>Registrate para continuar</h2>
 
-      <div className="card">
+      <div className={`card ${styles.registerCard}`}>
         <form className={styles.form} onSubmit={handleSubmit}>
           <label>Nombre y apellido *
             <input

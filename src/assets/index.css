@@ -8,6 +8,15 @@
   font-display: swap;
 }
 
+/*
+  Escala responsive (mobile-first):
+  - Base: kiosco 9:16, tablets y pantallas chicas. (Cualquier pantalla vertical
+    tiene aspect-ratio < 1.35, así que el kiosco siempre usó esta escala.)
+  - Desktop: el único @media de escala vive al final de este archivo y
+    redefine SOLO tokens + layout global.
+  Las páginas consumen tokens y no declaran media queries de escala;
+  sus @media locales son únicamente estructurales (cambios de layout).
+*/
 :root {
   /* Brand Colors */
   --color-accent: #10b981;
@@ -20,12 +29,12 @@
   --color-bg-gradient: radial-gradient(circle at 50% -20%, #f9fafb 0%, #ffffff 100%);
   --color-text: #111827;
   --color-text-muted: #6b7280;
-  
+
   --color-surface: #f3f4f6;
   --color-surface-hover: #e5e7eb;
   --color-surface-heavy: #d1d5db;
   --color-surface-border: #e5e7eb;
-  
+
   --color-panel: rgba(255, 255, 255, 0.8);
   --color-panel-light: rgba(255, 255, 255, 0.5);
 
@@ -33,18 +42,26 @@
   --color-alert: #f59e0b;
 
   /* Layout & Specs */
-  --app-radius: 28px;
+  --app-radius: 18px;
   --app-font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --app-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
 
-  /* Kiosk scale */
-  --kiosk-btn-height:    90px;
-  --kiosk-btn-font-size: 1.5rem;
-  --kiosk-input-height:  72px;
-  --kiosk-input-font-size: 1.75rem;
-  --kiosk-card-padding:  3rem;
-  --kiosk-max-width:     1200px;
-  --keyboard-height:     0px;
+  /* Kiosk scale (controles táctiles) */
+  --kiosk-btn-height: 68px;
+  --kiosk-btn-font-size: 1.2rem;
+  --kiosk-input-height: 56px;
+  --kiosk-input-font-size: 1.3rem;
+  --kiosk-card-padding: 1.5rem;
+  --kiosk-max-width: 960px;
+  --keyboard-height: 0px;
+
+  /* Type scale */
+  --font-h1: 2.25rem;
+  --font-h2: 1.8rem;
+  --font-h3: 1.4rem;
+  --font-display: 4rem;
+  --font-total: 3rem;
+  --font-lead: 1.2rem;
 }
 
 * {
@@ -59,7 +76,8 @@ body {
   background: var(--color-bg);
   background-image: var(--color-bg-gradient);
   color: var(--color-text);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   height: 100vh;
   width: 100vw;
   -webkit-font-smoothing: antialiased;
@@ -81,23 +99,28 @@ body {
   > button{
     margin: 1rem;
   }
-  
+
 }
 
 .kiosk-container {
   position: relative;
   max-width: var(--kiosk-max-width);
   margin: 0 auto;
-  min-height: calc(100vh - 120px);
-  padding: 2rem 2rem calc(var(--keyboard-height, 0px) + 2rem) 2rem;
+  min-height: calc(100vh - 40px);
+  padding: 1rem 1.5rem;
   transition: padding-bottom 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
   flex-direction: column;
   align-items: center; /* Crucial for Apple centering */
   justify-content: flex-start;
-  gap: 2rem;
+  gap: 1rem;
   animation: appleFadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   text-align: center;
+}
+
+.kiosk-container > h2 {
+  color: rgb(0, 0, 0);
+  padding: 2rem 0;
 }
 
 .glass-card {
@@ -106,19 +129,25 @@ body {
   border: 1px solid var(--color-surface-border);
   border-radius: var(--app-radius);
   box-shadow: var(--app-shadow);
-  padding: 3rem;
+  padding: 1.75rem;
   min-width: 100%;
   max-width: 100%;
 }
 
 /* Typography */
-h1, h2, h3 { 
-  font-weight: 700; 
-  letter-spacing: -0.04em; 
+h1, h2, h3 {
+  font-weight: 700;
+  letter-spacing: -0.04em;
   color: var(--color-text);
   margin-bottom: 1rem;
   text-wrap: balance;
 }
+
+/* !important: los módulos históricamente declaraban sus propios tamaños de
+   título; el tamaño canónico vive acá vía tokens y debe ganar siempre */
+h1 { font-size: var(--font-h1) !important; }
+h2 { font-size: var(--font-h2) !important; }
+h3 { font-size: var(--font-h3) !important; }
 
 p {
   text-wrap: pretty;
@@ -129,7 +158,7 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 3.5rem;
+  padding: 0 2rem;
   height: var(--kiosk-btn-height);
   font-family: var(--app-font-family);
   font-weight: 700;
@@ -144,15 +173,15 @@ p {
   box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.1);
 }
 
-.btn:active { 
-  transform: scale(0.96) translateY(2px); 
+.btn:active {
+  transform: scale(0.96) translateY(2px);
   opacity: 0.9;
   box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.1);
 }
 
-.btn:disabled { 
-  opacity: 0.3; 
-  cursor: not-allowed; 
+.btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
   box-shadow: none;
 }
 
@@ -277,43 +306,46 @@ select:focus {
   }
 }
 
-@media (max-aspect-ratio: 1.35), (max-height: 800px) {
+/* Desktop (PC landscape): pantallas anchas con puntero fino.
+   Nunca matchea el kiosco 9:16 (aspect-ratio ~0.56). Único tier de escala. */
+@media (min-aspect-ratio: 1.35) and (min-width: 1024px) {
   :root {
-    --kiosk-btn-height: 68px;
-    --kiosk-btn-font-size: 1.2rem;
-    --kiosk-input-height: 56px;
-    --kiosk-input-font-size: 1.3rem;
-    --kiosk-card-padding: 1.5rem;
-    --app-radius: 18px;
-    --kiosk-max-width: 960px;
-  }
+    --kiosk-btn-height: 60px;
+    --kiosk-btn-font-size: 1.15rem;
+    --kiosk-input-height: 54px;
+    --kiosk-input-font-size: 1.15rem;
+    --kiosk-card-padding: 2.5rem;
+    --app-radius: 20px;
+    --kiosk-max-width: 1100px;
 
-  body {
-    overflow-y: auto;
+    --font-h1: 2.5rem;
+    --font-h2: 2rem;
+    --font-h3: 1.5rem;
+    --font-display: 4.25rem;
+    --font-total: 3.25rem;
+    --font-lead: 1.25rem;
   }
 
   .kiosk-container {
-    min-height: calc(100vh - 40px);
-    padding: 1rem 1.5rem;
-    gap: 1rem;
-
+    min-height: calc(100vh - 80px);
+    padding: 2rem 3rem calc(var(--keyboard-height, 0px) + 2rem);
+    gap: 1.5rem;
   }
 
   .kiosk-container > h2 {
-    color: rgb(0, 0, 0);
-    padding: 2rem 0;
-
+    padding: 0.5rem 0;
   }
 
   .glass-card {
-    padding: 1.75rem;
+    padding: 2rem;
   }
 
-  h1 { font-size: 2.25rem !important; }
-  h2 { font-size: 1.8rem !important; }
-  h3 { font-size: 1.4rem !important; }
-
   .btn {
-    padding: 0 2rem;
+    padding: 0 2.5rem;
+    max-width: 420px;
+  }
+
+  .card {
+    max-width: 720px;
   }
 }

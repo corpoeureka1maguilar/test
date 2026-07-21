@@ -4,21 +4,33 @@ Kiosco de autopago para FEX (Facturación Express). El cliente se factura a sí 
 
 Forma parte del ecosistema FEX junto con `eu_fex_ppal` (POS de cajero) y el módulo Odoo `eu_pos_base`.
 
+BACKEND IMPLEMENTADO (ODOO 19):
+https://github.com/corporacioneureka/eu_agroo_fex_integration_v19
+
+- eu_agroo_fex_integration_v19/eu_autopay
+- eu_agroo_fex_integration_v19/eu_autopay_bridge
+
+POR IMPLEMENTAR (ODOO 16):
+https://github.com/corporacioneureka/eu_fex_integration
+
+- eu_fex_integration/eu_autopay
+- eu_fex_integration/eu_autopay_bridge
+
 ---
 
 ## Stack
 
-| Capa | Tecnología |
-|---|---|
-| UI | React 18 + TypeScript + SCSS |
-| Estado de flujo | XState v5 (máquina de estados) |
-| Estado global | Zustand v5 |
-| Fetching / mutaciones | TanStack Query v5 |
-| Routing | React Router 6 |
-| Build | Vite 5 |
-| Servidor de producción | Node.js (`server.js`) |
-| Wrapper de escritorio | Electrobun (`fex_wrapper/`) |
-| Backend | Odoo 19 via JSON-RPC |
+| Capa                   | Tecnología                     |
+| ---------------------- | ------------------------------ |
+| UI                     | React 18 + TypeScript + SCSS   |
+| Estado de flujo        | XState v5 (máquina de estados) |
+| Estado global          | Zustand v5                     |
+| Fetching / mutaciones  | TanStack Query v5              |
+| Routing                | React Router 6                 |
+| Build                  | Vite 5                         |
+| Servidor de producción | Node.js (`server.js`)          |
+| Wrapper de escritorio  | Electrobun (`fex_wrapper/`)    |
+| Backend                | Odoo 19 via JSON-RPC           |
 
 ---
 
@@ -85,13 +97,13 @@ server.js               # Servidor de producción (static + proxy)
 
 Al abrir la app por primera vez redirige a `/setup`. Campos requeridos:
 
-| Campo | Descripción |
-|---|---|
-| URL de Odoo | `https://mi-odoo.empresa.com` |
-| Base de datos | Nombre de la BD de Odoo |
-| Usuario de servicio | Email del usuario con permisos de POS |
-| Contraseña | Contraseña del usuario |
-| URL impresora fiscal | `http://127.0.0.1/ServWebImpresion/api/` |
+| Campo                | Descripción                                                |
+| -------------------- | ---------------------------------------------------------- |
+| URL de Odoo          | `https://mi-odoo.empresa.com`                              |
+| Base de datos        | Nombre de la BD de Odoo                                    |
+| Usuario de servicio  | Email del usuario con permisos de POS                      |
+| Contraseña           | Contraseña del usuario                                     |
+| URL impresora fiscal | `http://127.0.0.1/ServWebImpresion/api/`                   |
 | PIN de administrador | 4–6 dígitos. Protege devoluciones y acceso a configuración |
 
 La configuración se guarda en `localStorage`. El PIN se almacena como hash SHA-256.
@@ -117,6 +129,7 @@ npm run preview     # Levanta server.js en localhost:4173
 ```
 
 `server.js` hace tres cosas:
+
 1. Sirve los archivos de `dist/` (SPA con fallback a `index.html`)
 2. Expone `POST /__odoo-proxy-target` para configurar el destino del proxy
 3. Proxea `/jsonrpc` y `/web` hacia Odoo
@@ -134,6 +147,7 @@ cd fex_wrapper && bun run dev
 ```
 
 Para apuntar a un servidor distinto:
+
 ```bash
 AUTOPAY_URL=http://192.168.1.10:4173 bun run dev
 ```
@@ -146,11 +160,11 @@ Al desplegar en Vercel, el enrutamiento está configurado en [vercel.json](file:
 
 Es necesario configurar las siguientes variables de entorno en la consola de Vercel:
 
-| Variable | Valor Recomendado | Descripción |
-|---|---|---|
+| Variable                  | Valor Recomendado       | Descripción                                                                                                                                                                                            |
+| ------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `VITE_PRINTER_PROXY_BASE` | `http://localhost:9191` | **Requerido para imprimir**. Es la base de la URL para el proxy de la impresora fiscal. Redirige las peticiones seguras de Vercel (HTTPS) hacia el agente de impresión local HTTP de la PC del cajero. |
-| `VITE_PROXY_BASE` | *(Dejar vacío)* | Base de la URL para el proxy de Odoo. Si se deja vacío, las peticiones se realizan de forma relativa usando el propio dominio de la SPA en Vercel. |
-| `VITE_ODOO_TARGET` | *(Opcional)* | URL de fallback del servidor de Odoo (ej. `https://latinbien-test.agroo.net.ve`) en caso de que no se especifique dinámicamente. |
+| `VITE_PROXY_BASE`         | _(Dejar vacío)_         | Base de la URL para el proxy de Odoo. Si se deja vacío, las peticiones se realizan de forma relativa usando el propio dominio de la SPA en Vercel.                                                     |
+| `VITE_ODOO_TARGET`        | _(Opcional)_            | URL de fallback del servidor de Odoo (ej. `https://latinbien-test.agroo.net.ve`) en caso de que no se especifique dinámicamente.                                                                       |
 
 ---
 

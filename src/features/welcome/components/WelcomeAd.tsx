@@ -15,10 +15,14 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const progressInterval = useRef<number | null>(null)
 
-  // Reset index if the configs list changes to avoid out of bounds
-  useEffect(() => {
+  // Reset index if the configs list changes to avoid out of bounds. Ajustado
+  // durante el render (no en un efecto) para no dejar pasar un frame con un
+  // índice fuera de rango antes de que el efecto lo corrija.
+  const [prevConfigsLength, setPrevConfigsLength] = useState(activeConfigs.length)
+  if (activeConfigs.length !== prevConfigsLength) {
+    setPrevConfigsLength(activeConfigs.length)
     setCurrentIndex(0)
-  }, [activeConfigs.length])
+  }
 
   const currentAd = activeConfigs[currentIndex]
   const duration = currentAd?.type === 'video' ? 10000 : 5000 // 10s video, 5s static
@@ -111,8 +115,9 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
               className={styles.adImage}
             />
           ) : (
-            <div 
+            <div
               className={styles.adGradient}
+              // eslint-disable-next-line react/forbid-dom-props -- colores configurables por anuncio desde el admin, no son un set discreto de estados
               style={{
                 background: `linear-gradient(135deg, ${currentAd.colorStart ?? '#059669'}, ${currentAd.colorEnd ?? '#10b981'})`
               }}

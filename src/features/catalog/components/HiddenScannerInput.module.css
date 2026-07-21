@@ -1,0 +1,6 @@
+.input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  left: -9999px;
+}

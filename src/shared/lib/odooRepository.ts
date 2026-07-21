@@ -49,3 +49,6 @@ export { syncMetrics } from './odoo/metricsRepository'
 
 export type { AssignCardFromSaleInput } from './odoo/giftCardRepository'
 export { searchGiftCard, assignCardFromSale } from './odoo/giftCardRepository'
+
+export type { RequiredEngine, RegisterCardResponse } from './odoo/promoRepository'
+export { validateLoyalty, registerLoyaltyCard, checkLoyaltyCardExists } from './odoo/promoRepository'

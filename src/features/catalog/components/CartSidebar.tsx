@@ -67,9 +67,9 @@ export function CartSidebar({
 
         {items.length === 0 && (
           <div className={styles.cartEmpty}>
-            <ShoppingCart size={48} weight="light" style={{ marginBottom: '0.5rem', opacity: 0.7 }} />
+            <ShoppingCart size={48} weight="light" className={styles.cartEmptyIcon} />
             <p>Tu carrito está vacío</p>
-            <span style={{ fontSize: '0.9rem', opacity: 0.6 }}>
+            <span className={styles.cartEmptyHint}>
               Escanéa códigos para agregar
             </span>
           </div>

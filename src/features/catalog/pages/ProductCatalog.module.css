@@ -1,13 +1,15 @@
 .wrapper {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 1rem;
   height: 100%;
-  padding: 2rem 2rem calc(var(--keyboard-height, 0px) + 2rem) 2rem;
+  padding: 1rem;
   transition: padding-bottom 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   background: var(--color-bg);
   overflow: hidden;
   max-width: 100vw;
+  justify-content: center;
+  align-items: center;
 }
 
 /* --- COLUMNA IZQUIERDA: OPERACIÓN DE ESCANEO / BÚSQUEDA --- */
@@ -41,7 +43,7 @@
 }
 
 .greeting {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 500;
   color: var(--color-text-muted);
 
@@ -95,7 +97,7 @@
 .scannerZone {
   width: 100%;
   max-width: 500px;
-  height: 200px;
+  height: 180px;
   scale: 0.6;
   background: var(--color-surface);
   border: 3px dashed var(--color-surface-heavy);
@@ -135,7 +137,7 @@
 }
 
 .barcodeIcon {
-  font-size: 5rem;
+  font-size: 3.5rem;
   opacity: 0.45;
   filter: grayscale(1);
   animation: pulseBarcode 2s infinite ease-in-out;
@@ -148,7 +150,7 @@
 }
 
 .scanInstruction {
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--color-text);
   text-align: center;
@@ -184,7 +186,7 @@
   background: #fff;
   border: 2px solid var(--color-accent);
   border-radius: var(--app-radius);
-  padding: 1.75rem;
+  padding: 1.25rem;
   box-shadow: 0 15px 30px -10px var(--color-accent-glow);
   display: flex;
   flex-direction: column;
@@ -210,7 +212,7 @@
 }
 
 .lastScannedName {
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: var(--color-text);
   line-height: 1.2;
@@ -218,7 +220,7 @@
 }
 
 .lastScannedPrice {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: var(--color-accent);
   text-align: right;
@@ -254,12 +256,12 @@
   gap: 1.5rem;
 
   button {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     border: none;
     background: #fff;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--color-text);
     cursor: pointer;
@@ -275,7 +277,7 @@
   }
 
   span {
-    font-size: 1.6rem;
+    font-size: 1.3rem;
     font-weight: 800;
     min-width: 30px;
     text-align: center;
@@ -473,7 +475,7 @@
 }
 
 .cartTitle {
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 800;
   margin-bottom: 0;
   display: flex;
@@ -637,11 +639,17 @@
   font-size: 1.2rem;
   gap: 1rem;
   padding: 3rem 1rem;
+}
 
-  svg {
-    font-size: 3rem;
-    opacity: 0.3;
-  }
+.cartEmptyIcon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.7;
+}
+
+.cartEmptyHint {
+  font-size: 0.9rem;
+  opacity: 0.6;
 }
 
 .totalsSection {
@@ -683,7 +691,7 @@
 }
 
 .totalAmount {
-  font-size: 2.1rem;
+  font-size: 1.8rem;
   color: var(--color-accent);
   font-weight: 900;
   line-height: 1;
@@ -697,14 +705,14 @@
 
 .cancelBtn {
   flex: 1;
-  height: 64px !important;
-  font-size: 1.15rem !important;
+  height: 54px !important;
+  font-size: 1.1rem !important;
 }
 
 .checkoutBtn {
   flex: 2;
-  height: 64px !important;
-  font-size: 1.35rem !important;
+  height: 54px !important;
+  font-size: 1.1rem !important;
 }
 
 /* --- VIRTUAL KEYBOARD PADDING ADJUSTMENT --- */
@@ -726,67 +734,6 @@
 
   .cartSidebar {
     height: 500px;
-  }
-}
-
-@media (max-aspect-ratio: 1.35), (max-height: 800px) {
-  .wrapper {
-    padding: 1rem;
-    gap: 1rem;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .greeting {
-    font-size: 1.2rem;
-  }
-
-  .scannerZone {
-    height: 180px;
-  }
-
-  .barcodeIcon {
-    font-size: 3.5rem;
-  }
-
-  .scanInstruction {
-    font-size: 1.15rem;
-  }
-
-  .lastScannedCard {
-    padding: 1.25rem;
-  }
-
-  .lastScannedName {
-    font-size: 1.3rem;
-  }
-
-  .lastScannedPrice {
-    font-size: 1.5rem;
-  }
-
-  .qtyControlGiant {
-    button {
-      width: 38px;
-      height: 38px;
-      font-size: 1.2rem;
-    }
-    span {
-      font-size: 1.3rem;
-    }
-  }
-
-  .cartTitle {
-    font-size: 1.3rem;
-  }
-
-  .totalAmount {
-    font-size: 1.8rem;
-  }
-
-  .cancelBtn, .checkoutBtn {
-    height: 54px !important;
-    font-size: 1.1rem !important;
   }
 }
 
@@ -898,6 +845,17 @@
   border-radius: 24px !important;
   padding: 2.5rem !important;
   justify-content: flex-start !important;
+}
+
+.taxExemptBadge {
+  opacity: 0.6;
+  margin-left: 0.25rem;
+  font-weight: normal;
+}
+
+.lastScannedAccentIcon {
+  color: var(--color-accent);
+  margin-right: 4px;
 }
 
 .amountUsd {
@@ -1116,6 +1074,10 @@
 
 .giftCardModalActions button {
   flex: 1;
+}
+
+.giftCardModalPlaceholder {
+  opacity: 0.3;
 }
 
 @keyframes fadeIn {

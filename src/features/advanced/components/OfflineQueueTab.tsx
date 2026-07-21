@@ -9,9 +9,9 @@ interface Props {
 
 export function OfflineQueueTab({ queueEntries, onRequeue, onDiscard }: Props) {
   return (
-    <div className={styles.sectionCard} style={{ width: '100%', maxWidth: '900px' }}>
+    <div className={`${styles.sectionCard} ${styles.queueSectionCard}`}>
       <h3 className={styles.sectionTitle}>Cola de Ventas Offline</h3>
-      <div className={styles.listContainer} style={{ maxHeight: 'none' }}>
+      <div className={`${styles.listContainer} ${styles.queueListContainer}`}>
         {queueEntries.length === 0 ? (
           <p className={styles.emptyState}>No hay ventas pendientes de sincronización</p>
         ) : (
@@ -24,11 +24,11 @@ export function OfflineQueueTab({ queueEntries, onRequeue, onDiscard }: Props) {
                     {entry.status === 'failed' ? 'FALLIDA' : entry.status === 'draining' ? 'SINCRONIZANDO' : 'PENDIENTE'}
                   </span>
                 </div>
-                <span className={styles.info} style={{ padding: 0 }}>
+                <span className={`${styles.info} ${styles.queueMeta}`}>
                   Encolada: {new Date(entry.enqueuedAt).toLocaleString()} · Intentos: {entry.attempts}
                 </span>
                 {entry.lastError && (
-                  <span className={styles.info} style={{ padding: 0, color: 'var(--color-danger)' }}>
+                  <span className={`${styles.info} ${styles.queueError}`}>
                     Último error: {entry.lastError}
                   </span>
                 )}

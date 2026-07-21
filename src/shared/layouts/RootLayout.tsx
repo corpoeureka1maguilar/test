@@ -11,6 +11,7 @@ import { syncMetrics } from '@/shared/lib/odooRepository'
 import { useConfigStore } from '@/shared/stores/config'
 import { OfflineOverlay } from '@/shared/components/OfflineOverlay'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
+import styles from './RootLayout.module.css'
 
 const INACTIVITY_WARNING_MS = 60_000
 const INACTIVITY_COUNTDOWN_S = 30
@@ -125,21 +126,12 @@ export function RootLayout() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div className={styles.wrapper}>
       <AppStepper />
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className={styles.content}>
         <Outlet />
       </div>
-      <div
-        style={{
-          flexShrink: 0,
-          textAlign: 'center',
-          padding: '0.4rem 0',
-          fontSize: '0.9rem',
-          color: 'var(--color-text-muted)',
-          opacity: 0.6,
-        }}
-      >
+      <div className={styles.footer}>
         Desarrollado por <strong>CorpoEureka</strong>
       </div>
       {showInactivityWarning && (

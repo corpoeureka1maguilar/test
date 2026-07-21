@@ -1,9 +1,6 @@
+/* Tamaño lo maneja el h2 global (tokens --font-h2) */
 .title {
-  font-size: 3rem;
-  font-weight: 700;
-  margin: 0 0 3rem;
-  color: var(--color-text);
-  letter-spacing: -0.03em;
+  margin: 0 0 1.5rem;
 }
 
 .empty {
@@ -11,9 +8,9 @@
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  padding: 8rem 4rem;
+  padding: 3rem 1.5rem;
   color: var(--color-text-muted);
-  font-size: 1.75rem;
+  font-size: 1.3rem;
   font-weight: 400;
 }
 
@@ -29,15 +26,15 @@
   border-collapse: collapse;
 
   th, td {
-    padding: 2rem 2.5rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--color-surface-border);
-    font-size: 1.4rem;
+    font-size: 1.1rem;
     color: var(--color-text);
   }
 
   th {
     font-weight: 500;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--color-text-muted);
@@ -48,25 +45,31 @@
   td:not(:first-child) { text-align: right; }
 }
 
-.productName { font-weight: 700; font-size: 1.5rem; letter-spacing: -0.02em; color: var(--color-text); }
-.code { font-size: 1rem; color: var(--color-text-muted); font-weight: 500; }
+.productName { font-weight: 400; font-size: 1.15rem; letter-spacing: -0.02em; color: var(--color-text); }
+.code { font-size: 0.85rem; color: var(--color-text-muted); font-weight: 500; }
+
+.taxExemptBadge {
+  opacity: 0.6;
+  margin-left: 0.25rem;
+  font-weight: normal;
+}
 
 .qtyControl {
   display: inline-flex;
   align-items: center;
-  gap: 1.5rem;
-  background: var(--color-surface);
-  padding: 0.4rem;
+  gap: 1rem;
+  background: #fff;
+  padding: 0.25rem;
   border-radius: 50px;
 
   button {
-    width: 56px;
-    height: 56px;
+    width: 40px;
+    height: 40px;
     border: none;
     border-radius: 50%;
-    background: #fff;
+    background: var(--color-surface-heavy);
     color: var(--color-text);
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     font-weight: 300;
     cursor: pointer;
     font-family: var(--app-font-family);
@@ -83,7 +86,7 @@
   }
 
   span {
-    font-size: 1.75rem;
+    font-size: 1.2rem;
     font-weight: 600;
     min-width: 2rem;
     text-align: center;
@@ -91,10 +94,11 @@
   }
 }
 
+/* !important: debe ganarle a la regla `.table td` (mayor especificidad) */
 .subtotal {
   font-weight: 700;
   color: var(--color-text);
-  font-size: 1.5rem !important;
+  font-size: 1.2rem !important;
   font-variant-numeric: tabular-nums;
 }
 
@@ -102,9 +106,9 @@
   background: transparent;
   border: none;
   color: var(--color-text-muted);
-  font-size: 1.5rem;
-  width: 56px;
-  height: 56px;
+  font-size: 1.2rem;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -117,7 +121,7 @@
 }
 
 .totalSection {
-  margin-top: 3rem;
+  margin-top: 1.5rem;
   width: 100%;
 }
 
@@ -126,15 +130,27 @@
   justify-content: space-between;
   align-items: baseline;
   padding: 1rem 0;
-  font-size: 1.75rem;
+  font-size: 1.3rem;
   font-weight: 500;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
-.totalAmount { 
-  font-size: 5rem; 
-  font-weight: 700; 
+.totalRowFinal {
+  margin-top: 1rem;
+  border-top: 1px solid var(--color-surface-border);
+  padding-top: 2rem;
+}
+
+.totalLabel {
+  color: var(--color-text);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.totalAmount {
+  font-size: var(--font-total);
+  font-weight: 700;
   color: var(--color-accent);
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
@@ -142,96 +158,17 @@
 
 .actions {
   display: flex;
-  gap: 2rem;
-  margin-top: 4rem;
+  gap: 1rem;
+  margin-top: 1.5rem;
   width: 100%;
 
-  .btn { 
-    flex: 1; 
-    height: 100px;
-    font-size: 1.75rem;
+  .btn {
+    flex: 1;
+    height: 70px;
+    font-size: 1.3rem;
     font-weight: 700;
   }
 }
-
-@media (max-aspect-ratio: 1.35), (max-height: 800px) {
-  .title {
-    font-size: 2rem;
-    margin: 0 0 1.5rem;
-  }
-
-  .empty {
-    padding: 3rem 1.5rem;
-    font-size: 1.3rem;
-  }
-
-  .table th, .table td {
-    padding: 1rem 1.25rem;
-    font-size: 1.1rem;
-  }
-
-  .table th {
-    font-size: 0.9rem;
-  }
-
-  .productName {
-    font-size: 1.15rem;
-    font-weight: 400;
-  }
-
-  .code {
-    font-size: 0.85rem;
-  }
-
-  .qtyControl {
-    gap: 1rem;
-    padding: 0.25rem;
-    background-color: #fff;
-    button {
-      width: 40px;
-      height: 40px;
-      background-color: var(--color-surface-heavy);
-      font-size: 1.1rem;
-    }
-
-    span {
-      font-size: 1.2rem;
-    }
-  }
-
-  .subtotal {
-    font-size: 1.2rem !important;
-  }
-
-  .removeBtn {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-  }
-
-  .totalSection {
-    margin-top: 1.5rem;
-  }
-
-  .totalRow {
-    font-size: 1.3rem;
-  }
-
-  .totalAmount {
-    font-size: 3rem;
-  }
-
-  .actions {
-    margin-top: 1.5rem;
-    gap: 1rem;
-
-    .btn {
-      height: 70px;
-      font-size: 1.3rem;
-    }
-  }
-}
-
 
 .amountUsd {
   display: block;
@@ -242,4 +179,15 @@
   margin-top: 0.1em;
   font-variant-numeric: tabular-nums;
   text-align: end;
+}
+
+/* Desktop: estructura, no escala (los botones no se estiran a todo el ancho) */
+@media (min-aspect-ratio: 1.35) and (min-width: 1024px) {
+  .actions {
+    justify-content: center;
+
+    .btn {
+      flex: 0 1 340px;
+    }
+  }
 }

@@ -1,0 +1,92 @@
+.eyebrow {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  margin-bottom: -0.5rem;
+}
+
+.title {
+  text-align: center;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.message {
+  color: var(--color-text-muted);
+  font-size: var(--font-lead);
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+  padding: 1rem 1.25rem;
+  border-radius: calc(var(--app-radius) - 6px);
+  font-size: 1rem;
+
+  strong {
+    font-size: 1.2rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+.statusOk {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-hover);
+}
+
+.statusMissing {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  text-align: center;
+}
+
+.scannerInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.inputLabel {
+  gap: 0.6rem;
+
+  input {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+    font-weight: 600;
+  }
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: 0.95rem;
+  text-align: center;
+  margin-top: -0.5rem;
+}
+
+.hint {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  align-items: center;
+  margin-top: 0.25rem;
+
+  .btn {
+    max-width: 100%;
+  }
+}

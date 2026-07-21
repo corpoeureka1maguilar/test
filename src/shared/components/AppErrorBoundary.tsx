@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react'
+import styles from './AppErrorBoundary.module.css'
 
 interface Props {
   children: ReactNode
@@ -35,36 +36,16 @@ export class AppErrorBoundary extends Component<Props, State> {
     if (!this.state.hasError) return this.props.children
 
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '1.5rem',
-          height: '100vh',
-          padding: '2rem',
-          textAlign: 'center',
-          fontFamily: 'system-ui, sans-serif'
-        }}
-      >
-        <div style={{ fontSize: '4rem' }}>⚠</div>
-        <h1 style={{ fontSize: '2rem', margin: 0 }}>Algo salió mal</h1>
-        <p style={{ fontSize: '1.25rem', margin: 0, color: '#555' }}>
+      <div className={styles.wrapper}>
+        <div className={styles.icon}>⚠</div>
+        <h1 className={styles.title}>Algo salió mal</h1>
+        <p className={styles.message}>
           El kiosko se reiniciará automáticamente en unos segundos.
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          style={{
-            fontSize: '1.5rem',
-            padding: '1rem 3rem',
-            borderRadius: '0.75rem',
-            border: 'none',
-            background: '#1a73e8',
-            color: '#fff',
-            cursor: 'pointer'
-          }}
+          className={styles.button}
         >
           Volver a empezar
         </button>

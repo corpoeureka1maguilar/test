@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useConfigStore } from '@/shared/stores/config'
 import { useUIStore } from '@/shared/stores/ui'
@@ -22,13 +22,10 @@ export function Setup() {
     adminPin: ''
   })
 
-  const [isConnected, setIsConnected] = useState(false)
-
-  useEffect(() => {
-    if (config.isConfigured) {
-      setIsConnected(true)
-    }
-  }, [config])
+  // Si el kiosko ya está configurado (config cargada desde disco), la conexión
+  // se da por verificada sin pedir que el usuario la repita manualmente.
+  const [manuallyVerified, setManuallyVerified] = useState(false)
+  const isConnected = config.isConfigured || manuallyVerified
 
   const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -49,11 +46,11 @@ export function Setup() {
       })
       await odooEnv.authenticate(form.serviceUser)
       
-      setIsConnected(true)
+      setManuallyVerified(true)
       pushToast('success', 'Conexión exitosa con Odoo')
     } catch (err) {
       pushToast('error', `Error de conexión: ${(err as Error).message}`)
-      setIsConnected(false)
+      setManuallyVerified(false)
     } finally {
       setLoading(false)
     }
@@ -91,7 +88,7 @@ export function Setup() {
       <h1 className={styles.title}>Configuración del kiosco</h1>
 
       <form className={styles.form} onSubmit={handleSubmit}>
-        <h3 style={{ margin: '0.5rem 0 1rem 0', color: '#64748b', fontSize: '1.1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+        <h3 className={`${styles.sectionHeading} ${styles.sectionHeadingFirst}`}>
           1. Conexión con Odoo
         </h3>
         <label>URL de Odoo
@@ -107,13 +104,13 @@ export function Setup() {
           <input type="password" value={form.servicePassword} onChange={set('servicePassword')} required />
         </label>
 
-        <button type="button" className="btn btn-secondary" onClick={handleConnect} style={{ margin: '0.5rem 0 1.5rem 0' }}>
+        <button type="button" className={`btn btn-secondary ${styles.connectBtn}`} onClick={handleConnect}>
           {isConnected ? '✓ Conexión Verificada' : 'Conectar y Buscar Estaciones'}
         </button>
 
         {isConnected && (
           <>
-            <h3 style={{ margin: '1rem 0', color: '#64748b', fontSize: '1.1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+            <h3 className={`${styles.sectionHeading} ${styles.sectionHeadingSecond}`}>
               2. Vincular Estación
             </h3>
 
@@ -134,9 +131,9 @@ export function Setup() {
             </label>
 
             <label>URL impresora fiscal
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input type="text" value={form.printerUrl} onChange={set('printerUrl')} required style={{ flex: 1 }} />
-                <button type="button" className="btn btn-secondary" onClick={() => navigate('/test-printer')} style={{ whiteSpace: 'nowrap' }}>
+              <div className={styles.printerUrlRow}>
+                <input type="text" value={form.printerUrl} onChange={set('printerUrl')} required className={styles.printerUrlInput} />
+                <button type="button" className={`btn btn-secondary ${styles.testPrinterBtn}`} onClick={() => navigate('/test-printer')}>
                   Probar conexion
                 </button>
               </div>
@@ -148,7 +145,7 @@ export function Setup() {
               <input type="password" value={form.adminPin} onChange={set('adminPin')} maxLength={6} required />
             </label>
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '1.5rem' }}>Guardar y Finalizar</button>
+            <button type="submit" className={`btn btn-primary ${styles.saveBtn}`}>Guardar y Finalizar</button>
           </>
         )}
       </form>

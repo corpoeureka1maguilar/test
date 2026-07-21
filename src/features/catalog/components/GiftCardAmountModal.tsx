@@ -20,7 +20,7 @@ export function GiftCardAmountModal({ amountStr, setAmountStr, onConfirm, onCanc
         <div className={styles.giftCardModalInputWrapper}>
           <span className={styles.giftCardModalLabel}>Monto ($)</span>
           <div className={styles.giftCardModalInput}>
-            {amountStr ? `$ ${amountStr}` : <span style={{ opacity: 0.3 }}>$ 0.00</span>}
+            {amountStr ? `$ ${amountStr}` : <span className={styles.giftCardModalPlaceholder}>$ 0.00</span>}
           </div>
         </div>
         <AppNumericKeyboard

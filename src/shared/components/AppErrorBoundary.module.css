@@ -1,0 +1,36 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  height: 100vh;
+  padding: 2rem;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+}
+
+.icon {
+  font-size: 4rem;
+}
+
+.title {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.message {
+  font-size: 1.25rem;
+  margin: 0;
+  color: #555;
+}
+
+.button {
+  font-size: 1.5rem;
+  padding: 1rem 3rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: #1a73e8;
+  color: #fff;
+  cursor: pointer;
+}

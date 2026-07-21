@@ -135,7 +135,7 @@ export function AdvancedMenu() {
         />
       )}
 
-      <button type="button" className="btn" style={{ marginTop: 'auto' }} onClick={() => navigate('/')}>
+      <button type="button" className={`btn ${styles.backBtn}`} onClick={() => navigate('/')}>
         Volver al inicio
       </button>
     </div>

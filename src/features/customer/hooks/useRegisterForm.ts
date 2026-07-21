@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { z } from 'zod'
 import { isValidVenezuelanPhone, isValidInternationalPhone } from '@/shared/lib/paymentUtils'
 import { usePhoneInput } from '@/features/customer/hooks/usePhoneInput'
@@ -49,14 +49,21 @@ export function useRegisterForm({ branchState, vat }: UseRegisterFormProps) {
 
   const phoneInput = usePhoneInput(isVenezuelan)
 
-  useEffect(() => {
+  // Un vat/branchState nuevo implica un cliente nuevo: el formulario no debe
+  // arrastrar datos del cliente anterior. Ajustado durante el render para que
+  // el reset ocurra en el mismo render que el cambio, sin mostrar el dato
+  // viejo un frame de más.
+  const resetKey = `${vat}|${branchState}`
+  const [prevResetKey, setPrevResetKey] = useState(resetKey)
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey)
     setForm({
       name: '',
       estado: branchState,
       street: '',
       email: ''
     })
-  }, [vat, branchState])
+  }
 
   const set = (field: keyof Omit<RegisterFormData, 'phone'>) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {

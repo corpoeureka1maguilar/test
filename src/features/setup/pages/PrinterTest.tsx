@@ -99,7 +99,7 @@ export function PrinterTest() {
   }
 
   return (
-    <div className="kiosk-container" style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+    <div className={`kiosk-container ${styles.container}`}>
       <h1 className={styles.title}>Prueba de Impresora Fiscal</h1>
 
       <div className={styles.form}>
@@ -124,23 +124,21 @@ export function PrinterTest() {
           />
         </label>
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+        <div className={styles.actionsRow}>
           <button
             type="button"
-            className="btn btn-secondary"
+            className={`btn btn-secondary ${styles.actionBtn}`}
             onClick={handleTestConnection}
             disabled={testingConnection || printingTest}
-            style={{ flex: 1 }}
           >
             {testingConnection ? 'Probando...' : 'Probar Conexión'}
           </button>
 
           <button
             type="button"
-            className="btn btn-primary"
+            className={`btn btn-primary ${styles.actionBtn}`}
             onClick={handleSendTestPrint}
             disabled={testingConnection || printingTest}
-            style={{ flex: 1 }}
           >
             {printingTest ? 'Imprimiendo...' : 'Imprimir Ticket de Prueba'}
           </button>
@@ -148,25 +146,17 @@ export function PrinterTest() {
 
         {testResult && (
           <div
-            style={{
-              marginTop: '1.5rem',
-              padding: '1rem',
-              borderRadius: '8px',
-              border: `1px solid ${testResult.success ? '#22c55e' : '#ef4444'}`,
-              backgroundColor: testResult.success ? '#f0fdf4' : '#fef2f2',
-              color: testResult.success ? '#166534' : '#991b1b'
-            }}
+            className={`${styles.resultBox} ${testResult.success ? styles.resultBoxSuccess : styles.resultBoxError}`}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>{testResult.message}</h4>
-            {testResult.details && <p style={{ margin: 0, fontSize: '0.9rem', fontFamily: 'monospace' }}>{testResult.details}</p>}
+            <h4 className={styles.resultTitle}>{testResult.message}</h4>
+            {testResult.details && <p className={styles.resultDetails}>{testResult.details}</p>}
           </div>
         )}
 
         <button
           type="button"
-          className="btn"
+          className={`btn ${styles.backBtn}`}
           onClick={() => navigate('/setup')}
-          style={{ marginTop: '2rem', width: '100%', border: '1px solid #ccc' }}
         >
           Volver a Configuración
         </button>

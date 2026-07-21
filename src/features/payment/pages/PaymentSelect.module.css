@@ -1,17 +1,16 @@
+/* Tamaño lo maneja el h2 global (tokens --font-h2) */
 .title {
-  font-size: 3.5rem;
   font-weight: 800;
   margin-bottom: 0.5rem;
   text-align: center;
-  color: var(--color-text);
   letter-spacing: -0.05em;
   text-wrap: balance;
 }
 
 .total {
-  font-size: 1.5rem;
+  font-size: calc(var(--font-lead) * 1.25);
   color: var(--color-text-muted);
-  margin-bottom: 3.5rem;
+  margin-bottom: 1.5rem;
   font-weight: 500;
   display: flex;
   align-items: baseline;
@@ -28,10 +27,10 @@
 .grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem;
+  gap: 0.75rem;
   width: 100%;
   max-width: 960px;
-  margin-bottom: 4rem;
+  margin-bottom: 2rem;
   animation: appleFadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -46,20 +45,4 @@
   color: var(--color-text-muted);
   font-weight: 400;
   font-variant-numeric: tabular-nums;
-}
-
-@media (max-aspect-ratio: 1.35), (max-height: 800px) {
-  .title {
-    font-size: 2.25rem;
-  }
-
-  .total {
-    font-size: 1.2rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .grid {
-    gap: 0.75rem;
-    margin-bottom: 2rem;
-  }
 }

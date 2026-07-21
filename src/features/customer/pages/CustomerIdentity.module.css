@@ -1,28 +1,24 @@
+/* Tamaño y peso del título los maneja el h2 global (tokens --font-h2) */
 .title {
-  font-size: 3.5rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
   text-align: center;
-  color: var(--color-text);
-  letter-spacing: -0.04em;
 }
 
 .prefixRow {
   display: flex;
   gap: 0.75rem;
   justify-content: center;
-  margin: 0 auto 3rem;
+  margin: 0 auto 1.5rem;
   width: 100%;
-  max-width: 540px;
+  max-width: 400px;
   background: var(--color-surface);
-  padding: 0.6rem;
+  padding: 0.4rem;
   border-radius: 50px;
 }
 
 .prefixBtn {
   flex: 1;
-  height: 80px;
-  font-size: 1.75rem;
+  height: 56px;
+  font-size: 1.25rem;
   font-weight: 600;
   font-family: var(--app-font-family);
   background: transparent;
@@ -45,12 +41,12 @@
 }
 
 .display {
-  font-size: 6rem;
+  font-size: var(--font-display);
   font-weight: 300;
   letter-spacing: -0.02em;
   text-align: center;
-  margin: 0 auto 4rem;
-  min-height: 140px;
+  margin: 0 auto 1.5rem;
+  min-height: 80px;
   width: 100%;
   max-width: 800px;
   color: var(--color-text);
@@ -61,7 +57,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.placeholder { 
+.placeholder {
   color: var(--color-surface-heavy);
   letter-spacing: 0.1em;
 }
@@ -75,39 +71,9 @@
 .actions {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 3rem;
+  gap: 1rem;
+  margin-top: 1.5rem;
   width: 100%;
   max-width: 480px;
   align-items: center;
 }
-
-@media (max-aspect-ratio: 1.35), (max-height: 800px) {
-  .title {
-    font-size: 2.25rem;
-    margin-bottom: 1rem;
-  }
-
-  .prefixRow {
-    margin-bottom: 1.5rem;
-    padding: 0.4rem;
-    max-width: 400px;
-  }
-
-  .prefixBtn {
-    height: 56px;
-    font-size: 1.25rem;
-  }
-
-  .display {
-    font-size: 4rem;
-    min-height: 80px;
-    margin-bottom: 1.5rem;
-  }
-
-  .actions {
-    margin-top: 1.5rem;
-    gap: 1rem;
-  }
-}
-

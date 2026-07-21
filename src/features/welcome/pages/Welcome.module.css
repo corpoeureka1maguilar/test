@@ -367,3 +367,66 @@
   line-height: 1.5;
   margin-bottom: 0.75rem;
 }
+
+/* Desktop (PC landscape) */
+@media (min-aspect-ratio: 1.35) and (min-width: 1024px) {
+  .content {
+    gap: 1.5rem;
+  }
+
+  .logoText {
+    font-size: 7rem;
+  }
+
+  .logoSub {
+    font-size: 1.1rem;
+    letter-spacing: 0.6em;
+  }
+
+  .hero {
+    gap: 1rem;
+  }
+
+  .headline {
+    font-size: 3.25rem;
+  }
+
+  .sub {
+    font-size: 1.35rem;
+    max-width: 560px;
+  }
+
+  .mainBtn {
+    width: min(100%, 460px);
+    height: 72px;
+    font-size: 1.5rem;
+  }
+
+  .actions {
+    margin-top: 1rem;
+    gap: 1rem;
+  }
+
+  .devolucionBtn {
+    height: 56px !important;
+    font-size: 1.05rem !important;
+  }
+
+  .header {
+    padding: 1.5rem 2rem;
+  }
+
+  .companyLogo {
+    height: 70px;
+    max-width: 200px;
+  }
+
+  .footer {
+    padding-bottom: 1.25rem;
+    gap: 2.5rem;
+  }
+
+  .footer .logoText {
+    font-size: 3rem !important;
+  }
+}

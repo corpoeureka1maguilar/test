@@ -41,6 +41,9 @@ export function useVposCheckout({
   useEffect(() => {
     if (!method?.withMerchant) return
 
+    // Patrón estándar de data fetching en efecto: resetea el status antes de
+    // arrancar el ping al terminal VPOS (fetch real, con cleanup por abajo).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVposStatus('checking')
     let cancelled = false
     let timeoutId: ReturnType<typeof setTimeout> | undefined

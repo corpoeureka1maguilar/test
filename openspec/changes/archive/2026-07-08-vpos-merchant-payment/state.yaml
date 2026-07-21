@@ -1,0 +1,38 @@
+change: vpos-merchant-payment
+artifact_store: openspec
+created: 2026-07-08
+updated: 2026-07-08
+
+phases:
+  explore:
+    status: skipped
+  proposal:
+    status: done
+    artifact: proposal.md
+  spec:
+    status: done
+    artifact:
+      - specs/vpos-merchant-payment/spec.md
+  design:
+    status: done
+    artifact: design.md
+  tasks:
+    status: done
+    artifact: tasks.md
+  apply:
+    status: done
+  verify:
+    status: done
+    artifact: verify-report.md
+  archive:
+    status: done
+    artifact: ../../../specs/vpos-merchant-payment/spec.md
+
+next_recommended: []
+
+open_questions:
+  - Real VPOS terminal base URL and auth mechanism (pending vendor integration)
+resolved_decisions:
+  - "iframe + postMessage contract chosen over direct fetch (PCI-adjacent separation, vendor-agnostic)"
+  - "Ping before waiting; 60s timeout while waiting"
+  - "Mock checkout page proxies to mock's own POST /vpos/metodo (single response source)"

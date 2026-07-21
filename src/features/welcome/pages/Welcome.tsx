@@ -28,10 +28,6 @@ export function Welcome() {
   const sessionState = useSessionStore((s) => s.sessionState)
   const checkSession = useSessionStore((s) => s.checkSession)
 
-  const [isLoading, setIsLoading] = useState(() => {
-    return isConfigured && !isConnectionReady
-  })
-
   // Configuración de publicidad de respaldo (se usa mientras carga o si el backend no devuelve anuncios)
   const fallbackAdConfigs: AdConfig[] = [
     {
@@ -62,21 +58,17 @@ export function Welcome() {
   const { data: backendAdConfigs, isLoading: isLoadingAds } = useAdvertisements(isConnectionReady)
   const adConfigs = backendAdConfigs && backendAdConfigs.length > 0 ? backendAdConfigs : fallbackAdConfigs
 
-  useEffect(() => {
-    if (!isConnectionReady) {
-      if (!isConfigured) {
-        setIsLoading(false)
-      }
-      return
-    }
+  // Mientras la conexión no está lista, se muestra loading solo si el kiosko
+  // ya está configurado (está esperando esa conexión); una vez lista, sigue
+  // el estado de carga de los anuncios.
+  const isLoading = isConnectionReady ? isLoadingAds : isConfigured
 
-    // Verificar estado de sesión en Odoo
-    if (stationId) {
+  // Verificar estado de sesión en Odoo apenas la conexión esté lista
+  useEffect(() => {
+    if (isConnectionReady && stationId) {
       checkSession(stationId)
     }
-
-    setIsLoading(isLoadingAds)
-  }, [isConnectionReady, isConfigured, isLoadingAds, stationId, checkSession])
+  }, [isConnectionReady, stationId, checkSession])
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
