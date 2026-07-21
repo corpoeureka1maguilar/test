@@ -20,6 +20,8 @@ jobs:
       # Vitest 4.x mis-detects Bun's `__esModule` interop quirk, which drops
       # named exports (e.g. zod's `z`). Run vitest itself under Node until
       # https://github.com/vitest-dev/vitest/pull/10363 lands in a stable release.
-      - run: apk add --no-cache nodejs
+      # icu-data-full: Alpine's nodejs only ships icu-data-en by default,
+      # so Intl.NumberFormat falls back to English formatting for other locales (es-VE, etc).
+      - run: apk add --no-cache nodejs icu-data-full
 
       - run: node node_modules/.bin/vitest run
