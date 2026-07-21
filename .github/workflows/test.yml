@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
+    container: oven/bun:1.3.5-alpine
     steps:
       - uses: actions/checkout@v4
 
