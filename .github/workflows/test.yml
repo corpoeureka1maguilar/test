@@ -9,10 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    container: oven/bun:1-alpine
     steps:
       - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
 
       - run: bun install --frozen-lockfile
 
