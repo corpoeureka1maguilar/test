@@ -78,7 +78,7 @@ describe('buildSaleOrderPayload', () => {
       attemptId
     )
     expect(payload.payments).toHaveLength(1)
-    const p = payload.payments[0]
+    const p = payload.payments[0]!
     expect(p.ref).toBe('REF-001')
     expect(p.amount).toBe(119.48)   // 116 Bs * 1.03 (3% IGTF)
     expect(p.currency).toBe(2)
@@ -90,7 +90,7 @@ describe('buildSaleOrderPayload', () => {
 
   it('defaults the payment reference to an empty string when missing', () => {
     const payload = buildSaleOrderPayload(customer, cart, { ...payment, reference: '' }, method, attemptId)
-    expect(payload.payments[0].ref).toBe('')
+    expect(payload.payments[0]!.ref).toBe('')
   })
 
   it('sends national currency payments in VES in the payload', () => {
@@ -104,7 +104,7 @@ describe('buildSaleOrderPayload', () => {
       attemptId
     )
     
-    const p = payload.payments[0]
+    const p = payload.payments[0]!
     expect(p.amount).toBe(116)   // totalBs en bolivares
     expect(p.montoIgtf).toBe(0)
     expect(p.rate).toBe(40)

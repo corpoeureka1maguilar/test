@@ -3,6 +3,7 @@ import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { useProducts } from '@/features/catalog/hooks/useProducts'
 import { useBarcodeScanner } from '@/features/catalog/hooks/useBarcodeScanner'
 import { useProductFilters } from '@/features/catalog/hooks/useProductFilters'
+import { useProductSearch } from '@/features/catalog/hooks/useProductSearch'
 import { useProductNotFoundAlert } from '@/features/catalog/hooks/useProductNotFoundAlert'
 import { useCatalogCart } from '@/features/catalog/hooks/useCatalogCart'
 import { useCartTotal, useCartCount, useCartSubtotal, useCartTaxBreakdown } from '@/features/cart/stores/cart'
@@ -17,8 +18,13 @@ import { GiftCardAmountModal } from '@/features/catalog/components/GiftCardAmoun
 import { BarcodeIcon, MagnifyingGlass } from '@phosphor-icons/react'
 
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
+import { useConfigStore } from '@/shared/stores/config'
+import { searchProducts } from '@/shared/lib/odooRepository'
 import { matchBarcode } from '@/shared/lib/paymentUtils'
+import type { KioskProduct } from '@/shared/types/types'
 import styles from './ProductCatalog.module.css'
+
+const MANUAL_GRID_LIMIT = 20
 
 export function ProductCatalog() {
   const { send } = useSaleMachine()
@@ -63,27 +69,56 @@ export function ProductCatalog() {
 
   const { activeCategoryId, setActiveCategoryId, categories, filtered } = useProductFilters(products, debouncedSearch)
 
+  // Búsqueda online contra el catálogo completo; cae al filtro local offline
+  const { online, results, isSearching, searchFailed } = useProductSearch(debouncedSearch)
+  const isOffline = useConfigStore((s) => s.isOffline)
+  const pricelistId = useConfigStore((s) => s.pricelistId)
+
+  // Grid de la búsqueda manual: online usa los resultados del backend (aplicando
+  // el filtro de categoría del lado del cliente); offline o si el RPC falla usa
+  // el filtro local sobre el caché. Sin patrón, siempre navegación local.
+  let gridProducts = filtered
+  let gridLoading = isLoading
+  if (online && !searchFailed && results !== undefined) {
+    gridProducts = (activeCategoryId === null
+      ? results
+      : results.filter(p => p.categId === activeCategoryId)
+    ).slice(0, MANUAL_GRID_LIMIT)
+  } else if (online && !searchFailed) {
+    gridLoading = isSearching // primera respuesta del backend en camino
+  }
+
   const { showNotFoundAlert, notFoundCode, triggerNotFound } = useProductNotFoundAlert()
 
-  const processSearchSubmit = () => {
+  const findExactMatch = (list: KioskProduct[], term: string) =>
+    list.find(p => p.defaultCode?.toLowerCase() === term || matchBarcode(p.barcode, term))
+
+  const processSearchSubmit = async () => {
     const originalQ = search.trim().toLowerCase()
     if (!originalQ) return
+    setSearch('') // Limpiar siempre el input para el próximo escaneo
 
-    // Intentar coincidencia exacta con el código original
-    let exactMatch = products.find(p =>
-      p.defaultCode?.toLowerCase() === originalQ ||
-      matchBarcode(p.barcode, originalQ)
-    )
+    // 1) Coincidencia exacta local (rápido y funciona offline)
+    let exactMatch = findExactMatch(products, originalQ)
 
-    // Si no encuentra, verificar si es un código de barras duplicado/doble (bounce del scanner)
+    // 2) Si no está, revisar rebote de doble-lectura del scanner (código duplicado)
+    let cleanedQ = originalQ
     if (!exactMatch && originalQ.length % 2 === 0) {
       const half = originalQ.length / 2
-      const cleanedQ = originalQ.slice(0, half)
-      if (originalQ.slice(half) === cleanedQ) {
-        exactMatch = products.find(p =>
-          p.defaultCode?.toLowerCase() === cleanedQ ||
-          matchBarcode(p.barcode, cleanedQ)
-        )
+      if (originalQ.slice(half) === originalQ.slice(0, half)) {
+        cleanedQ = originalQ.slice(0, half)
+        exactMatch = findExactMatch(products, cleanedQ)
+      }
+    }
+
+    // 3) Si sigue sin aparecer y hay conexión, preguntar al backend por el
+    // catálogo completo: el producto puede existir fuera de los 200 precargados
+    if (!exactMatch && !isOffline) {
+      try {
+        const remote = await searchProducts(cleanedQ, pricelistId)
+        exactMatch = findExactMatch(remote, cleanedQ) ?? findExactMatch(remote, originalQ)
+      } catch (err) {
+        console.error('[ProductCatalog] Error buscando producto en el backend:', err)
       }
     }
 
@@ -92,12 +127,11 @@ export function ProductCatalog() {
     } else {
       triggerNotFound(originalQ)
     }
-    setSearch('') // Limpiar siempre el input para el próximo escaneo
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      processSearchSubmit()
+      void processSearchSubmit()
     }
   }
 
@@ -167,8 +201,8 @@ export function ProductCatalog() {
           categories={categories}
           activeCategoryId={activeCategoryId}
           setActiveCategoryId={setActiveCategoryId}
-          isLoading={isLoading}
-          filtered={filtered}
+          isLoading={gridLoading}
+          filtered={gridProducts}
           getQty={getQty}
           setQty={setQty}
           removeItem={removeItem}
@@ -214,7 +248,7 @@ export function ProductCatalog() {
           onChange={setSearch}
           onClose={() => setShowKeyboard(false)}
           onEnter={() => {
-            processSearchSubmit()
+            void processSearchSubmit()
             setIsKeyboardMinimized(true)
           }}
           isMinimized={isKeyboardMinimized}

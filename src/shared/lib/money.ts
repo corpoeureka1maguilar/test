@@ -48,7 +48,7 @@ export function formatVES(d: VESDinero): string {
     const formattedInt = new Intl.NumberFormat('es-VE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(parseInt(intPart, 10))
+    }).format(parseInt(intPart!, 10))
     return `Bs.${formattedInt},${paddedDec}`
   })
 }

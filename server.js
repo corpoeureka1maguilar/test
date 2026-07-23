@@ -17,7 +17,9 @@ try {
 } catch { /* primera vez, sin config */ }
 
 function saveTarget(target) {
-  try { fs.writeFileSync(CONFIG_FILE, JSON.stringify({ target })) } catch {}
+  try { fs.writeFileSync(CONFIG_FILE, JSON.stringify({ target })) } catch {
+    // ignorar error de escritura en disco
+  }
 }
 
 // ── Prevenir crashes del proceso ────────────────────────────────────────────
@@ -66,7 +68,7 @@ const server = http.createServer((req, res) => {
         res.setHeader('Content-Type', 'application/json')
         res.setHeader('Access-Control-Allow-Origin', '*')
         res.end(JSON.stringify({ ok: true, target: newTarget }))
-      } catch (e) {
+      } catch {
         res.statusCode = 400
         res.end('Bad Request')
       }

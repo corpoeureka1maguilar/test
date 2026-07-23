@@ -125,9 +125,11 @@
   font-family: var(--app-font-family);
 }
 
-.tab:hover {
-  color: var(--color-text);
-  background: rgba(255, 255, 255, 0.4);
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover {
+    color: var(--color-text);
+    background: rgba(255, 255, 255, 0.4);
+  }
 }
 
 /* Active Tab */
@@ -169,10 +171,12 @@
   box-shadow: var(--app-shadow);
 }
 
-.cierreCard:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.12);
-  border-color: var(--color-accent);
+@media (hover: hover) and (pointer: fine) {
+  .cierreCard:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.12);
+    border-color: var(--color-accent);
+  }
 }
 
 .cierreCard:active {
@@ -192,9 +196,11 @@
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.cierreCard:hover .cierreIcon {
-  background: var(--color-accent-subtle);
-  transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .cierreCard:hover .cierreIcon {
+    background: var(--color-accent-subtle);
+    transform: scale(1.1);
+  }
 }
 
 .cierreTitle {
@@ -302,9 +308,11 @@
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.metricCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+@media (hover: hover) and (pointer: fine) {
+  .metricCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+  }
 }
 
 /* Gradients sutiles para tarjetas destacadas */
@@ -419,8 +427,10 @@
   transition: background-color 0.2s;
 }
 
-.listItem:hover {
-  background: var(--color-surface-hover);
+@media (hover: hover) and (pointer: fine) {
+  .listItem:hover {
+    background: var(--color-surface-hover);
+  }
 }
 
 .itemName {
@@ -512,10 +522,12 @@
   transition: all 0.25s;
 }
 
-.resetBtn:hover {
-  background: var(--color-danger);
-  color: #fff;
-  border-color: var(--color-danger);
+@media (hover: hover) and (pointer: fine) {
+  .resetBtn:hover {
+    background: var(--color-danger);
+    color: #fff;
+    border-color: var(--color-danger);
+  }
 }
 
 /* Session Management Card */

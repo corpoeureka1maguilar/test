@@ -6,7 +6,7 @@ const path = require('path');
 let z;
 try {
   z = require('zod').z;
-} catch (e) {
+} catch {
   console.warn("Zod no está instalado en node_modules. Saltando validación por Zod.");
   process.exit(0);
 }

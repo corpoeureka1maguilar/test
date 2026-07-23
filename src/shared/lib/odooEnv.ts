@@ -114,7 +114,7 @@ class JSONRpcEnv implements OdooEnvService {
     let message = error.data?.message ?? error.message ?? fallback
     if (message.includes('\n')) {
       const lines = message.split('\n')
-      message = lines.find(l => l.includes('Exception:') || l.includes('Error:')) ?? lines[0]
+      message = lines.find(l => l.includes('Exception:') || l.includes('Error:')) ?? lines[0]!
     }
     return message
   }

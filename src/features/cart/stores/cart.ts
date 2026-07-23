@@ -154,7 +154,7 @@ export function useCartTaxBreakdown(): CartTaxBreakdownItem[] {
       }
       // El tramo Exento no tiene impuesto que mostrar (es 0 por definición);
       // lo que interesa ahí es la base exenta, no el impuesto generado
-      const amount = rate === 0 ? baseByRate[rate] : taxByRate[rate]
+      const amount = rate === 0 ? baseByRate[rate]! : taxByRate[rate]!
       return { rate, label, amount }
     }).sort((a, b) => b.rate - a.rate)
   }, [items])

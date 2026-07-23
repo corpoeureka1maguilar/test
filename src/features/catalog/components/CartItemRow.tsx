@@ -1,6 +1,6 @@
 import type { CartItem } from '@/shared/types/types'
 import { formatBs, formatUSD } from '@/shared/lib/money'
-import { Trash } from '@phosphor-icons/react'
+import { TrashIcon } from '@phosphor-icons/react'
 import styles from '../pages/ProductCatalog.module.css'
 
 interface Props {
@@ -52,9 +52,9 @@ export function CartItemRow({ item, onDecrement, onIncrement, onRemove }: Props)
           type="button"
           className={styles.removeBtnMini}
           onClick={onRemove}
-          title="Eliminar"
+          aria-label="Eliminar"
         >
-          <Trash size={18} />
+          <TrashIcon size={18} />
         </button>
       </div>
     </div>

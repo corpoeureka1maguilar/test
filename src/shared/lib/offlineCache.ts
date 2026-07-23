@@ -16,7 +16,7 @@ interface CatalogRow<T> {
   kind: CatalogKind
   items: T[]
   updatedAt: number
-  instanceKey?: string  // ausente = fila legacy pre-scoping (design ADR-6); se taggea lazily
+  instanceKey?: string | undefined  // ausente = fila legacy pre-scoping (design ADR-6); se taggea lazily
 }
 
 async function replaceCatalog<T>(kind: CatalogKind, items: T[]): Promise<boolean> {
@@ -36,7 +36,7 @@ async function replaceCatalog<T>(kind: CatalogKind, items: T[]): Promise<boolean
 // para no filtrarse a una instancia distinta más adelante.
 async function getCatalog<T>(kind: CatalogKind): Promise<T[]> {
   const instanceKey = getInstanceKey()
-  if (instanceKey == null) return []
+  if (instanceKey === null) return []
 
   const row = await getRecord<CatalogRow<T>>(CATALOG_STORE, kind)
   if (!row) return []

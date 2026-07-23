@@ -34,7 +34,9 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
       title: 'Confirma para procesar la devolución',
       operationRef: KIOSK_OPERATIONS.saleReturn,
       auditMessage: `Devolución de la orden ${order.name} (${reason})`,
-      run: handleReturn
+      run: () => {
+        void handleReturn()
+      }
     })
   }
 

@@ -113,10 +113,12 @@
   width: 100%;
 }
 
-.retryBtn:hover:not(:disabled) {
-  background: #1e293b;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+@media (hover: hover) and (pointer: fine) {
+  .retryBtn:hover:not(:disabled) {
+    background: #1e293b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  }
 }
 
 .retryBtn:active:not(:disabled) {

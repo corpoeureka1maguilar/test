@@ -54,7 +54,7 @@ describe('buildFacturaPayload', () => {
       10
     )
     expect(payload.Items).toHaveLength(1)
-    expect(payload.Items[0].descripcion).toBe('A')
+    expect(payload.Items[0]!.descripcion).toBe('A')
   })
 
   it('maps known tax rates to their printer tax code and falls back to "1" otherwise', () => {

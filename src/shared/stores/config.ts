@@ -1,11 +1,12 @@
 import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { devtools, persist, subscribeWithSelector } from 'zustand/middleware'
 import { odooEnv, isMissingRecordError } from '@/shared/lib/odooEnv'
 import { useUIStore } from '@/shared/stores/ui'
 import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState, fetchBranchFixedProducts, fetchBranchDefaultPricelist } from '@/shared/lib/odooRepository'
 import { hashPin, verifyPinHash, isLegacyPinHash, randomUUID } from '@/shared/lib/cryptoUtils'
 import { saveSecret, loadSecret, deleteSecret } from '@/shared/lib/secureStorage'
-import { DEFAULT_ACCENT, normalizeAccent, applyAccentColor } from '@/shared/lib/theme'
+import { DEFAULT_ACCENT, normalizeAccent } from '@/shared/lib/theme'
+import type { AdConfig } from '@/shared/types/types'
 
 // La password del usuario de servicio vive cifrada (ver secureStorage), nunca
 // en el JSON plano de zustand/persist
@@ -25,6 +26,46 @@ async function setProxyTarget(url: string) {
   } catch {
     // ignorar si el proxy no está corriendo
   }
+}
+
+// Campos de estación/sucursal que saveConfig resuelve o conserva. Se extraen
+// para que las ramas con/sin token compartan el mismo set() final.
+type StationFields = Pick<
+  ConfigState,
+  'stationId' | 'stationName' | 'branchId' | 'branchState' | 'fixedProductIds' | 'pricelistId' | 'appToken'
+>
+
+function pick<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+  const out = {} as Pick<T, K>
+  for (const key of keys) out[key] = obj[key]
+  return out
+}
+
+// Vincula la estación con un token nuevo y recarga los datos de sucursal.
+// Cada catch degrada a un valor vacío para que un fallo de sucursal no aborte
+// la configuración completa (mismo criterio que tenía saveConfig inline).
+async function linkStationFields(configToken: string): Promise<StationFields> {
+  const appToken = randomUUID()
+  const station = await linkStation(configToken, appToken)
+  const branchState = station.branchId ? await fetchBranchState().catch(() => '') : ''
+  const fixedProductIds = station.branchId ? await fetchBranchFixedProducts(station.branchId).catch(() => []) : []
+  const pricelistId = station.branchId ? await fetchBranchDefaultPricelist(station.branchId).catch(() => 0) : 0
+  return {
+    stationId: station.id,
+    stationName: station.name,
+    branchId: station.branchId || 0,
+    branchState,
+    fixedProductIds,
+    pricelistId,
+    appToken
+  }
+}
+
+export interface StationCustomConfig {
+  x_use_gift_card?: boolean
+  x_gift_card_product?: number | string
+  x_accent_color?: string
+  ad_configs?: AdConfig[]
 }
 
 interface ConfigState {
@@ -65,10 +106,13 @@ interface ConfigActions {
   clearConfig(): void
   verifyPin(pin: string): Promise<boolean>
   reauthenticate(): Promise<void>
+  markOnline(): void
+  markConnectionLost(): void
 }
 
 export const useConfigStore = create<ConfigState & ConfigActions>()(
   devtools(
+    subscribeWithSelector(
     persist(
       (set, get) => ({
       odooUrl: '',
@@ -95,7 +139,6 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
 
       async saveConfig(data) {
         const pinHash = hashPin(data.adminPin)
-        const appToken = randomUUID()
 
         await setProxyTarget(data.odooUrl)
 
@@ -111,72 +154,35 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
 
         const companyLogo = await fetchCompanyLogo().catch(() => '')
 
-        const customConfig = await odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config').catch(() => ({} as Record<string, any>))
-        const useGiftCard = !!customConfig.x_use_gift_card
+        const customConfig = await odooEnv.callMethod<StationCustomConfig>('x.pos.station', 'action_get_custom_config').catch(() => ({} as StationCustomConfig))
+        const useGiftCard = Boolean(customConfig.x_use_gift_card)
         const giftCardProductId = Number(customConfig.x_gift_card_product || 0)
         const accentColor = normalizeAccent(customConfig.x_accent_color)
-        applyAccentColor(accentColor)
 
-        if (data.configToken) {
-          const station = await linkStation(data.configToken, appToken)
-          const branchState = station.branchId
-            ? await fetchBranchState().catch(() => '')
-            : ''
-          const fixedProductIds = station.branchId
-            ? await fetchBranchFixedProducts(station.branchId).catch(() => [])
-            : []
-          const pricelistId = station.branchId
-            ? await fetchBranchDefaultPricelist(station.branchId).catch(() => 0)
-            : 0
-          set({
-            odooUrl: data.odooUrl,
-            odooDb: data.odooDb,
-            serviceUser: data.serviceUser,
-            servicePassword: data.servicePassword,
-            printerUrl: data.printerUrl,
-            printerModel: data.printerModel,
-            adminPinHash: pinHash,
-            stationId: station.id,
-            stationName: station.name,
-            branchId: station.branchId || 0,
-            branchState,
-            fixedProductIds,
-            pricelistId,
-            appToken,
-            companyLogo,
-            useGiftCard,
-            giftCardProductId,
-            accentColor,
-            isConfigured: true,
-            isConnectionReady: true,
-            isOffline: false
-          })
-        } else {
-          const { stationId, stationName, branchId, branchState, fixedProductIds, pricelistId, appToken: existingToken } = get()
-          set({
-            odooUrl: data.odooUrl,
-            odooDb: data.odooDb,
-            serviceUser: data.serviceUser,
-            servicePassword: data.servicePassword,
-            printerUrl: data.printerUrl,
-            printerModel: data.printerModel,
-            adminPinHash: pinHash,
-            stationId,
-            stationName,
-            branchId,
-            branchState,
-            fixedProductIds,
-            pricelistId,
-            appToken: existingToken,
-            companyLogo,
-            useGiftCard,
-            giftCardProductId,
-            accentColor,
-            isConfigured: true,
-            isConnectionReady: true,
-            isOffline: false
-          })
-        }
+        // Con token: se vincula la estación y se recargan los datos de sucursal
+        // (genera un appToken nuevo). Sin token: se reconfirman las credenciales
+        // conservando estación, sucursal y token ya vinculados.
+        const stationFields = data.configToken
+          ? await linkStationFields(data.configToken)
+          : pick(get(), ['stationId', 'stationName', 'branchId', 'branchState', 'fixedProductIds', 'pricelistId', 'appToken'])
+
+        set({
+          odooUrl: data.odooUrl,
+          odooDb: data.odooDb,
+          serviceUser: data.serviceUser,
+          servicePassword: data.servicePassword,
+          printerUrl: data.printerUrl,
+          printerModel: data.printerModel,
+          adminPinHash: pinHash,
+          ...stationFields,
+          companyLogo,
+          useGiftCard,
+          giftCardProductId,
+          accentColor,
+          isConfigured: true,
+          isConnectionReady: true,
+          isOffline: false
+        })
       },
 
       clearConfig() {
@@ -203,6 +209,22 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           isConnectionReady: false,
           isOffline: false
         })
+      },
+
+      // Transición de conexión ONLINE. Única fuente del par de flags que
+      // representa "conectado": la escriben tanto reauthenticate como el
+      // synchronizer al detectar la reconexión. Centralizar el par acá evita
+      // que un caller externo setee medio estado (ej. isOffline sin
+      // isConnectionReady) y desacopla a syncManager de la forma interna.
+      markOnline() {
+        set({ isConnectionReady: true, isOffline: false })
+      },
+
+      // Transición de conexión OFFLINE transitoria (red caída): se pierde la
+      // conexión pero el kiosko sigue configurado y opera contra la cola
+      // offline. NO es el caso fatal de estación borrada (ese desvincula).
+      markConnectionLost() {
+        set({ isConnectionReady: false, isOffline: true })
       },
 
       async verifyPin(pin) {
@@ -238,12 +260,11 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           const [station, companyLogo, customConfig] = await Promise.all([
             pingStation(stationId),
             fetchCompanyLogo().catch(() => get().companyLogo),
-            odooEnv.callMethod<Record<string, any>>('x.pos.station', 'action_get_custom_config', [stationId]).catch(() => ({} as Record<string, any>))
+            odooEnv.callMethod<StationCustomConfig>('x.pos.station', 'action_get_custom_config', [stationId]).catch(() => ({} as StationCustomConfig))
           ])
-          const useGiftCard = !!customConfig.x_use_gift_card
+          const useGiftCard = Boolean(customConfig.x_use_gift_card)
           const giftCardProductId = Number(customConfig.x_gift_card_product || 0)
           const accentColor = normalizeAccent(customConfig.x_accent_color)
-          applyAccentColor(accentColor)
           const branchState = station.branchId
             ? await fetchBranchState().catch(() => get().branchState)
             : get().branchState
@@ -270,7 +291,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
             )
             return
           }
-          set({ isConnectionReady: false, isOffline: true })
+          get().markConnectionLost()
           throw err
         }
       }
@@ -299,6 +320,7 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         isConfigured: state.isConfigured
       })
     }
+    )
     ),
     { name: 'config' }
   )

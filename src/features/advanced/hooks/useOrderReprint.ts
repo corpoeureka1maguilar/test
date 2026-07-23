@@ -20,7 +20,9 @@ export function useOrderReprint(order: KioskOrder | null, requestAdminAction: (a
       auditMessage: order.printerNumber
         ? `Reimpresión de la factura ${order.printerNumber} (orden ${order.name})`
         : `Reimpresión no fiscal de la orden ${order.name} (sin número fiscal registrado)`,
-      run: handleReprint
+      run: () => {
+        void handleReprint()
+      }
     })
   }
 

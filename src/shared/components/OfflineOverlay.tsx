@@ -46,10 +46,12 @@ export function OfflineOverlay() {
           <span>Intentando reconectar automáticamente...</span>
         </div>
 
-        <button 
-          type="button" 
-          className={styles.retryBtn} 
-          onClick={handleRetry}
+        <button
+          type="button"
+          className={styles.retryBtn}
+          onClick={() => {
+            void handleRetry()
+          }}
           disabled={isRetrying}
         >
           <ArrowClockwise size={20} className={isRetrying ? styles.spin : ''} />

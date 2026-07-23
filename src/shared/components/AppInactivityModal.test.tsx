@@ -16,16 +16,16 @@ describe('AppInactivityModal', () => {
     expect(screen.getByText('30')).toBeInTheDocument()
   })
 
-  it('decrements the countdown every second', () => {
+  it('decrements the countdown every second', async () => {
     render(<AppInactivityModal seconds={30} onContinue={vi.fn()} onCancel={vi.fn()} onTimeout={vi.fn()} />)
-    act(() => vi.advanceTimersByTime(3000))
+    await act(() => vi.advanceTimersByTime(3000))
     expect(screen.getByText('27')).toBeInTheDocument()
   })
 
-  it('calls onTimeout when the countdown reaches zero', () => {
+  it('calls onTimeout when the countdown reaches zero', async () => {
     const onTimeout = vi.fn()
     render(<AppInactivityModal seconds={5} onContinue={vi.fn()} onCancel={vi.fn()} onTimeout={onTimeout} />)
-    act(() => vi.advanceTimersByTime(5000))
+    await act(() => vi.advanceTimersByTime(5000))
     expect(onTimeout).toHaveBeenCalledTimes(1)
   })
 

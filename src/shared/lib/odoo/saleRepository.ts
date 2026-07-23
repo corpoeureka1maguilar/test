@@ -75,8 +75,8 @@ async function fetchLineTaxRates(rawLines: RawOrderLine[]): Promise<Map<number, 
     const amountById = new Map(taxes.map(t => [t.id, t.amount / 100]))
     for (const p of products) {
       const firstTaxId = p.taxes_id?.[0]
-      const rate = firstTaxId != null ? amountById.get(firstTaxId) : undefined
-      if (rate != null) taxRateByProduct.set(p.id, rate)
+      const rate = firstTaxId !== undefined ? amountById.get(firstTaxId) : undefined
+      if (rate !== undefined) taxRateByProduct.set(p.id, rate)
     }
   } catch (err) {
     console.error('[fetchOrder] Error fetching line tax rates:', err)
@@ -91,11 +91,11 @@ export async function fetchOrder(id: number): Promise<KioskOrder> {
   )
   const [rawLines, [rawPartner]] = await Promise.all([
     odooEnv.callMethod<RawOrderLine[]>(
-      'sale.order.line', 'read', [rawOrder.order_line],
+      'sale.order.line', 'read', [rawOrder!.order_line],
       { fields: ['id', 'product_id', 'product_uom_qty', 'price_unit', 'price_subtotal'] }
     ),
     odooEnv.callMethod<RawPartner[]>(
-      'res.partner', 'read', [[rawOrder.partner_id[0]]],
+      'res.partner', 'read', [[rawOrder!.partner_id[0]]],
       { fields: ['id', 'name', 'cedula', 'phone', 'street'] }
     )
   ])
@@ -108,7 +108,7 @@ export async function fetchOrder(id: number): Promise<KioskOrder> {
     priceSubtotal: l.price_subtotal,
     taxRate: taxRateByProduct.get(l.product_id[0])
   }))
-  return { ...mapOrderHeader(rawOrder), lines, partner: mapPartner(rawPartner) }
+  return { ...mapOrderHeader(rawOrder!), lines, partner: mapPartner(rawPartner!) }
 }
 
 export async function searchOrders(pattern: string): Promise<KioskOrder[]> {

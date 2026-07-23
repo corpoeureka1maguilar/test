@@ -52,8 +52,8 @@ export function useGiftCardPayment({ method, total, globalRate, send, navigate, 
     e.preventDefault()
     if (!method || !foundCard) return
 
-    const orderTotalUSD = total / globalRate
-    if (foundCard.balance < orderTotalUSD) {
+    const giftCardAmountUSD = total / globalRate
+    if (foundCard.balance < giftCardAmountUSD) {
       pushToast('error', 'El saldo de la tarjeta es insuficiente.')
       return
     }
@@ -69,7 +69,7 @@ export function useGiftCardPayment({ method, total, globalRate, send, navigate, 
       giftCard: {
         id: foundCard.id,
         code: foundCard.code,
-        amount: orderTotalUSD,
+        amount: giftCardAmountUSD,
         balance: foundCard.balance,
         state: 'available'
       }

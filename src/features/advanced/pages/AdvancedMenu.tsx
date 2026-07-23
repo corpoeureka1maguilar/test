@@ -107,9 +107,13 @@ export function AdvancedMenu() {
           form={terminal.form}
           isTerminalUnlocked={terminal.isTerminalUnlocked}
           onFieldChange={terminal.setFormField}
-          onSubmit={terminal.handleSaveConfig}
+          onSubmit={(e) => {
+            void terminal.handleSaveConfig(e)
+          }}
           onRequestUnlock={terminal.requestUnlockTerminal}
-          onReloadCache={terminal.handleReloadCache}
+          onReloadCache={() => {
+            void terminal.handleReloadCache()
+          }}
         />
       )}
 

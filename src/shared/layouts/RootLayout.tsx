@@ -34,7 +34,7 @@ export function RootLayout() {
     send({ type: 'RESET' })
     // La compra cancelada puede haber dejado precios/stock cacheados; el
     // próximo cliente debe arrancar con datos frescos, no con lo que quedó en caché
-    queryClient.invalidateQueries({ queryKey: ['products'] })
+    void queryClient.invalidateQueries({ queryKey: ['products'] })
     navigate('/')
   }, [send, navigate, queryClient])
 

@@ -69,7 +69,7 @@ export function PaymentForm() {
         cardError={giftCard.cardError}
         showKeyboard={giftCard.showKeyboard}
         onShowKeyboardChange={giftCard.setShowKeyboard}
-        onSearchCard={giftCard.handleSearchCard}
+        onSearchCard={() => { void giftCard.handleSearchCard() }}
         onGiftCardSubmit={giftCard.handleGiftCardSubmit}
         onUseAnotherCard={giftCard.handleUseAnotherCard}
         onBack={handleBack}

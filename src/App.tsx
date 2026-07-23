@@ -73,7 +73,7 @@ function AppInit() {
       }
     }
 
-    run()
+    void run()
     return () => {
       cancelled = true
       clearTimeout(timer)
@@ -92,11 +92,27 @@ export function App() {
       console.error('[App] Error inicializando el synchronizer offline:', err)
     })
 
+    // Suscripción declarativa a cambios en accentColor para aplicar el tema sin acoplar side-effects al store
+    const unsubscribeAccent = useConfigStore.subscribe(
+      (state) => state.accentColor,
+      (accentColor) => {
+        if (accentColor) {
+          import('@/shared/lib/theme').then(({ applyAccentColor }) => {
+            applyAccentColor(accentColor)
+          }).catch((err) => {
+            console.error('[App] Error aplicando accentColor:', err)
+          })
+        }
+      },
+      { fireImmediately: true }
+    )
+
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault()
     }
     document.addEventListener('contextmenu', handleContextMenu)
     return () => {
+      unsubscribeAccent()
       document.removeEventListener('contextmenu', handleContextMenu)
     }
   }, [])
@@ -108,6 +124,7 @@ export function App() {
         <RouterProvider router={router} />
         <AppToast />
         <AppLoading />
+  
       </SaleMachineProvider>
     </QueryClientProvider>
   )

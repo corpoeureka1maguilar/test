@@ -13,7 +13,9 @@ export function useFiscalReports(requestAdminAction: (action: PendingAdminAction
       title: `Confirma para imprimir: ${reportName}`,
       operationRef: tipo === 'Z' ? KIOSK_OPERATIONS.sessionClose : KIOSK_OPERATIONS.shiftClose,
       auditMessage: `Impresión de reporte ${tipo}: ${reportName}`,
-      run: () => handlePrintReport(tipo, reportName)
+      run: () => {
+        void handlePrintReport(tipo, reportName)
+      }
     })
   }
 

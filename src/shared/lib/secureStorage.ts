@@ -14,21 +14,21 @@ const STORE = 'keys'
 const DEVICE_KEY_ID = 'device-key'
 const SECRET_PREFIX = 'autopay-secret:'
 
-const hasSubtle = typeof crypto !== 'undefined' && !!crypto.subtle
+const hasSubtle = typeof crypto !== 'undefined' && Boolean(crypto.subtle)
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1)
     req.onupgradeneeded = () => req.result.createObjectStore(STORE)
     req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(new Error(req.error?.message ?? 'IndexedDB error'))
   })
 }
 
 function idbRequest<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(new Error(req.error?.message ?? 'IndexedDB error'))
   })
 }
 

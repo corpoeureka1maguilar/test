@@ -50,7 +50,7 @@ describe('PaymentForm — conversión de moneda del monto a pagar', () => {
     fireEvent.click(screen.getByText('Confirmar pago'))
 
     expect(send).toHaveBeenCalledTimes(1)
-    const call = send.mock.calls[0][0]
+    const call = send.mock.calls[0]![0]
 
     // Total con IVA = 232 Bs. El monto en USD correcto (mismo que se muestra
     // en pantalla como "Total a pagar" -> formatUSD(totalWithIgtfBs / globalRate))

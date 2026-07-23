@@ -11,28 +11,28 @@ describe('useDebounce', () => {
     expect(result.current).toBe('a')
   })
 
-  it('does not update before the delay elapses', () => {
+  it('does not update before the delay elapses', async () => {
     const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), { initialProps: { value: 'a' } })
     rerender({ value: 'b' })
-    act(() => vi.advanceTimersByTime(299))
+    await act(() => vi.advanceTimersByTime(299))
     expect(result.current).toBe('a')
   })
 
-  it('updates to the latest value once the delay elapses', () => {
+  it('updates to the latest value once the delay elapses', async () => {
     const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), { initialProps: { value: 'a' } })
     rerender({ value: 'b' })
-    act(() => vi.advanceTimersByTime(300))
+    await act(() => vi.advanceTimersByTime(300))
     expect(result.current).toBe('b')
   })
 
-  it('resets the timer when the value changes again before the delay elapses', () => {
+  it('resets the timer when the value changes again before the delay elapses', async () => {
     const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), { initialProps: { value: 'a' } })
     rerender({ value: 'b' })
-    act(() => vi.advanceTimersByTime(200))
+    await act(() => vi.advanceTimersByTime(200))
     rerender({ value: 'c' })
-    act(() => vi.advanceTimersByTime(200))
+    await act(() => vi.advanceTimersByTime(200))
     expect(result.current).toBe('a')
-    act(() => vi.advanceTimersByTime(100))
+    await act(() => vi.advanceTimersByTime(100))
     expect(result.current).toBe('c')
   })
 })

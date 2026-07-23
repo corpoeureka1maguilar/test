@@ -59,7 +59,7 @@ export interface PrintLine {
   name: string
   qty: number
   price: number
-  taxRate?: number
+  taxRate?: number | undefined
 }
 
 export interface NotaCreditoPayload {

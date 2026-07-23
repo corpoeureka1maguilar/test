@@ -67,7 +67,11 @@ export function CustomerIdentity() {
     }
   }
 
-  const handleConfirm = () => performSearch(prefix, digits)
+  const handleConfirm = () => {
+    performSearch(prefix, digits).catch((err) => {
+      pushToast('error', `Error al buscar: ${(err as Error).message}`)
+    })
+  }
 
   const handleScannerKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
@@ -79,12 +83,12 @@ export function CustomerIdentity() {
 
     if (withPrefix) {
       const p = withPrefix[1] as Prefix
-      const d = withPrefix[2]
+      const d = withPrefix[2]!
       setPrefix(p)
       setDigits(d)
       await performSearch(p, d)
     } else if (digitsOnly) {
-      const d = digitsOnly[1]
+      const d = digitsOnly[1]!
       setDigits(d)
       await performSearch(prefix, d)
     } else {
@@ -99,7 +103,11 @@ export function CustomerIdentity() {
         type="text"
         aria-hidden="true"
         className={styles.scannerInput}
-        onKeyDown={handleScannerKeyDown}
+        onKeyDown={(e) => {
+          handleScannerKeyDown(e).catch((err) => {
+            pushToast('error', `Error al buscar: ${(err as Error).message}`)
+          })
+        }}
         readOnly={isPending}
       />
       <h2 className={styles.title}>¿Cuál es tu cédula o RIF?</h2>

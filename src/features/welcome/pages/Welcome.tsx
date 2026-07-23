@@ -66,7 +66,7 @@ export function Welcome() {
   // Verificar estado de sesión en Odoo apenas la conexión esté lista
   useEffect(() => {
     if (isConnectionReady && stationId) {
-      checkSession(stationId)
+      void checkSession(stationId)
     }
   }, [isConnectionReady, stationId, checkSession])
 
@@ -78,7 +78,7 @@ export function Welcome() {
     audio.loop = false
     audioRef.current = audio
 
-    if (!isMuted) {
+    if (localStorage.getItem('autopay_muted') !== 'true') {
       audio.play().catch((err) => {
         console.warn('El navegador previno la autoreproducción hasta la interacción:', err)
       })
@@ -127,7 +127,7 @@ export function Welcome() {
           type="button"
           className={styles.advancedBtn}
           onClick={() => setShowPinModal(true)}
-          title="Opciones Avanzadas"
+          aria-label="Opciones Avanzadas"
         >
           <List size={28} />
         </button>
@@ -146,7 +146,7 @@ export function Welcome() {
           type="button"
           className={styles.muteBtn}
           onClick={toggleMute}
-          title={isMuted ? 'Activar sonido' : 'Silenciar'}
+          aria-label={isMuted ? 'Activar sonido' : 'Silenciar'}
         >
           {isMuted ? <SpeakerSimpleSlash size={32} /> : <SpeakerSimpleHigh size={32} />}
         </button>

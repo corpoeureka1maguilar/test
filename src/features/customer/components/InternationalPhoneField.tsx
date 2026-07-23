@@ -7,7 +7,7 @@ interface InternationalPhoneFieldProps {
   onFocus: () => void
   onBlur: (e: FocusEvent<HTMLInputElement>) => void
   /** Present when the customer got here by opting out of the Venezuelan carrier field, so they can undo it. */
-  onBackToVenezuelan?: () => void
+  onBackToVenezuelan?: (() => void) | undefined
 }
 
 /**

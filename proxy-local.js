@@ -26,7 +26,9 @@ try {
 } catch { /* primera vez */ }
 
 function saveTarget(t) {
-  try { fs.writeFileSync(CONFIG_FILE, JSON.stringify({ target: t })) } catch {}
+  try { fs.writeFileSync(CONFIG_FILE, JSON.stringify({ target: t })) } catch {
+    // ignorar error de escritura en disco
+  }
 }
 
 process.on('uncaughtException', e => console.error('[proxy] error:', e.message))
@@ -58,6 +60,7 @@ http.createServer((req, res) => {
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({ ok: true }))
       } catch {
+        // ignorar error si el cuerpo no es JSON válido
         res.statusCode = 400
         res.end('Bad Request')
       }

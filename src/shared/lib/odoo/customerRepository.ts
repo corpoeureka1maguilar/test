@@ -26,15 +26,15 @@ export async function searchPartnerByCedula(cedula: string): Promise<KioskPartne
     [[['cedula', '=', cedula]]],
     { fields: ['id', 'name', 'cedula', 'phone', 'street', 'email'], limit: 1 }
   )
-  return results.length ? mapPartner(results[0]) : null
+  return results.length ? mapPartner(results[0]!) : null
 }
 
 export interface CreatePartnerInput {
   name: string
   cedula: string
-  phone?: string
-  street?: string
-  email?: string
+  phone?: string | undefined
+  street?: string | undefined
+  email?: string | undefined
 }
 
 export async function createPartner(data: CreatePartnerInput): Promise<KioskPartner> {
@@ -46,5 +46,5 @@ export async function createPartner(data: CreatePartnerInput): Promise<KioskPart
     'res.partner', 'read', [[newId]],
     { fields: ['id', 'name', 'cedula', 'phone', 'street', 'email'] }
   )
-  return mapPartner(raw)
+  return mapPartner(raw!)
 }

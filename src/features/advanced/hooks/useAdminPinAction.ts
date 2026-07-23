@@ -6,7 +6,7 @@ import type { KioskOperationRef } from '@/shared/lib/odooRepository'
 export interface PendingAdminAction {
   title: string
   operationRef: KioskOperationRef
-  auditMessage?: string
+  auditMessage?: string | undefined
   run: () => void
 }
 

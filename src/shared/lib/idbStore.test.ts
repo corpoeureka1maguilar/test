@@ -14,7 +14,7 @@ async function deleteOfflineDb(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const req = indexedDB.deleteDatabase(DB_NAME)
     req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(new Error(req.error?.message ?? 'IndexedDB error'))
     req.onblocked = () => resolve()
   })
 }
@@ -37,7 +37,7 @@ describe('idbStore', () => {
 
     const all = await getAllRecords<{ kind: string; items: number[] }>(CATALOG_STORE)
     expect(all).toHaveLength(1)
-    expect(all[0].items).toEqual([1, 2, 3])
+    expect(all[0]!.items).toEqual([1, 2, 3])
   })
 
   it('isQuotaExceededError recognizes a DOMException named QuotaExceededError', () => {
@@ -65,6 +65,6 @@ describe('idbStore', () => {
 
     const all = await getAllRecords<{ kind: string; items: number[] }>(CATALOG_STORE)
     expect(all).toHaveLength(1)
-    expect(all[0].items).toEqual([1])
+    expect(all[0]!.items).toEqual([1])
   })
 })

@@ -10,6 +10,7 @@ import {
   createPartner,
   fetchPaymentMethods,
   fetchProducts,
+  searchProducts,
   createSaleOrder,
   fetchActiveSession,
   openOdooSession,
@@ -103,7 +104,7 @@ describe('fetchPaymentMethods', () => {
 
     const methods = await fetchPaymentMethods()
 
-    expect(methods[0].currencyId).toBe(0)
+    expect(methods[0]!.currencyId).toBe(0)
     expect(callMethod).toHaveBeenCalledTimes(1)
   })
 })
@@ -138,8 +139,8 @@ describe('fetchProducts', () => {
 
     const products = await fetchProducts()
 
-    expect(products[0].price).toBe(20)
-    expect(products[0].taxRate).toBe(0.16)
+    expect(products[0]!.price).toBe(20)
+    expect(products[0]!.taxRate).toBe(0.16)
   })
 
   it('fetches branch fixed products by id when the catalog domain left them out', async () => {
@@ -196,7 +197,7 @@ describe('fetchProducts', () => {
       [[['product_id', 'in', [1]]]],
       { fields: ['product_id', 'name'] }
     )
-    expect(products[0].barcode).toBe('111,222,333')
+    expect(products[0]!.barcode).toBe('111,222,333')
   })
 
   it('uses only the secondary barcodes when the product has no main barcode', async () => {
@@ -209,7 +210,50 @@ describe('fetchProducts', () => {
 
     const products = await fetchProducts()
 
-    expect(products[0].barcode).toBe('222')
+    expect(products[0]!.barcode).toBe('222')
+  })
+})
+
+describe('searchProducts', () => {
+  it('returns [] without hitting the backend when the pattern is empty', async () => {
+    expect(await searchProducts('   ')).toEqual([])
+    expect(callMethod).not.toHaveBeenCalled()
+  })
+
+  it('searches the FULL catalog by name/code/barcode (ilike) with the catalog base domain', async () => {
+    useExchangeRateStore.getState().setRate(36)
+    callMethod
+      .mockResolvedValueOnce([
+        { id: 417118, name: 'PROMAKER BROCA P/METAL HSS 3/16 1UND', default_code: false, barcode: false, list_price: 5, taxes_id: [], categ_id: [9, 'Herramientas'], uom_id: [1, 'Unidad'] }
+      ])
+      .mockResolvedValueOnce([]) // product.barcode.multi
+
+    const results = await searchProducts('promaker broca')
+
+    expect(callMethod).toHaveBeenNthCalledWith(
+      1, 'product.product', 'search_read',
+      [[
+        ['sale_ok', '=', true],
+        ['active', '=', true],
+        ['invoice_policy', '=', 'order'],
+        '|', '|',
+        ['name', 'ilike', 'promaker broca'],
+        ['default_code', 'ilike', 'promaker broca'],
+        ['barcode', 'ilike', 'promaker broca']
+      ]],
+      { fields: ['id', 'name', 'default_code', 'barcode', 'list_price', 'taxes_id', 'categ_id', 'uom_id'], limit: 50 }
+    )
+    expect(results).toEqual([{
+      id: 417118, name: 'PROMAKER BROCA P/METAL HSS 3/16 1UND', defaultCode: '', barcode: undefined,
+      price: 180, priceUsd: 5, taxRate: 0.16,
+      categId: 9, categName: 'Herramientas', uomName: 'Unidad', isGiftCard: false
+    }])
+  })
+
+  it('returns [] and skips enrichment when the backend finds nothing', async () => {
+    callMethod.mockResolvedValueOnce([])
+    expect(await searchProducts('inexistente')).toEqual([])
+    expect(callMethod).toHaveBeenCalledTimes(1)
   })
 })
 

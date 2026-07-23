@@ -26,12 +26,6 @@ export const useUIStore = create<UIState & UIActions>()(devtools((set) => ({
   pushToast(type, message, sticky = false) {
     const id = randomUUID()
     set((s) => ({ toasts: [...s.toasts, { id, type, message, sticky }] }))
-
-    if (!sticky) {
-      setTimeout(() => {
-        set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
-      }, 4000)
-    }
   },
 
   dismissToast(id) {

@@ -87,7 +87,12 @@ export function Setup() {
     <div className="kiosk-container">
       <h1 className={styles.title}>Configuración del kiosco</h1>
 
-      <form className={styles.form} onSubmit={handleSubmit}>
+      <form
+        className={styles.form}
+        onSubmit={(e) => {
+          void handleSubmit(e)
+        }}
+      >
         <h3 className={`${styles.sectionHeading} ${styles.sectionHeadingFirst}`}>
           1. Conexión con Odoo
         </h3>
@@ -104,7 +109,13 @@ export function Setup() {
           <input type="password" value={form.servicePassword} onChange={set('servicePassword')} required />
         </label>
 
-        <button type="button" className={`btn btn-secondary ${styles.connectBtn}`} onClick={handleConnect}>
+        <button
+          type="button"
+          className={`btn btn-secondary ${styles.connectBtn}`}
+          onClick={() => {
+            void handleConnect()
+          }}
+        >
           {isConnected ? '✓ Conexión Verificada' : 'Conectar y Buscar Estaciones'}
         </button>
 

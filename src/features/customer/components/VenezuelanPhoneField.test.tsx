@@ -59,7 +59,7 @@ describe('VenezuelanPhoneField', () => {
     fireEvent.change(input, { target: { value: '12' } })
 
     expect(onChange).toHaveBeenCalled()
-    const calledEvent = onChange.mock.calls[0][0]
+    const calledEvent = onChange.mock.calls[0]![0]
     expect(calledEvent.target.value).toBe('042412')
   })
 })

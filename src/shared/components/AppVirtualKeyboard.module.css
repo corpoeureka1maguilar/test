@@ -43,8 +43,10 @@
   transition: opacity 0.3s;
 }
 
-.headerBar:hover .handle {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .headerBar:hover .handle {
+    opacity: 1;
+  }
 }
 
 .headerTitle {
@@ -244,9 +246,11 @@
   transition: all 0.2s;
 }
 
-.minimizeHeaderBtn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--color-text);
+@media (hover: hover) and (pointer: fine) {
+  .minimizeHeaderBtn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--color-text);
+  }
 }
 
 .minimizeHeaderBtn:active {

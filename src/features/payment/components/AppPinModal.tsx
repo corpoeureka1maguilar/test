@@ -14,7 +14,7 @@ interface Props {
    * operationRef, o sin conexión, se valida contra el PIN local de la terminal.
    */
   operationRef?: KioskOperationRef
-  auditMessage?: string
+  auditMessage?: string | undefined
   onConfirmed: () => void
   onCancel: () => void
 }
@@ -90,7 +90,7 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
       return
     }
 
-    setNoAllowed(!!res.noAllowed)
+    setNoAllowed(Boolean(res.noAllowed))
     const next = attempts + 1
     setAttempts(next)
     setPin('')
@@ -103,7 +103,11 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
     }
   }, [attempts, isLocked, verifyAdmin, onConfirmed])
 
-  const handleConfirm = useCallback(() => attempt(pin), [attempt, pin])
+  const handleConfirm = useCallback(() => {
+    attempt(pin).catch((err) => {
+      console.error('[AppPinModal] Error validando PIN:', err)
+    })
+  }, [attempt, pin])
 
   const handleScannerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
@@ -111,7 +115,9 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
     e.currentTarget.value = ''
     if (raw.length > 0) {
       setPin(raw)
-      attempt(raw)
+      attempt(raw).catch((err) => {
+        console.error('[AppPinModal] Error validando PIN:', err)
+      })
     }
   }
 

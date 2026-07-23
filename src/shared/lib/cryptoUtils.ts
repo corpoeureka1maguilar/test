@@ -14,8 +14,8 @@ export function randomUUID(): string {
 
   // UUID v4 manual (RFC 4122) sobre getRandomValues
   const b = crypto.getRandomValues(new Uint8Array(16))
-  b[6] = (b[6] & 0x0f) | 0x40
-  b[8] = (b[8] & 0x3f) | 0x80
+  b[6] = (b[6]! & 0x0f) | 0x40
+  b[8] = (b[8]! & 0x3f) | 0x80
   const hex = HEX(b)
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
@@ -53,29 +53,29 @@ export function sha256Bytes(message: Uint8Array): Uint8Array {
   for (let off = 0; off < paddedLen; off += 64) {
     for (let i = 0; i < 16; i++) w[i] = dv.getUint32(off + i * 4)
     for (let i = 16; i < 64; i++) {
-      const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3)
-      const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10)
-      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0
+      const s0 = rotr(w[i - 15]!, 7) ^ rotr(w[i - 15]!, 18) ^ (w[i - 15]! >>> 3)
+      const s1 = rotr(w[i - 2]!, 17) ^ rotr(w[i - 2]!, 19) ^ (w[i - 2]! >>> 10)
+      w[i] = (w[i - 16]! + s0 + w[i - 7]! + s1) >>> 0
     }
 
-    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7]
+    let a = H[0]!, b = H[1]!, c = H[2]!, d = H[3]!, e = H[4]!, f = H[5]!, g = H[6]!, h = H[7]!
     for (let i = 0; i < 64; i++) {
       const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)
       const ch = (e & f) ^ (~e & g)
-      const t1 = (h + S1 + ch + K[i] + w[i]) >>> 0
+      const t1 = (h + S1 + ch + K[i]! + w[i]!) >>> 0
       const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)
       const maj = (a & b) ^ (a & c) ^ (b & c)
       const t2 = (S0 + maj) >>> 0
       h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0
     }
 
-    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0
-    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0
+    H[0] = (H[0]! + a) >>> 0; H[1] = (H[1]! + b) >>> 0; H[2] = (H[2]! + c) >>> 0; H[3] = (H[3]! + d) >>> 0
+    H[4] = (H[4]! + e) >>> 0; H[5] = (H[5]! + f) >>> 0; H[6] = (H[6]! + g) >>> 0; H[7] = (H[7]! + h) >>> 0
   }
 
   const out = new Uint8Array(32)
   const outDv = new DataView(out.buffer)
-  for (let i = 0; i < 8; i++) outDv.setUint32(i * 4, H[i])
+  for (let i = 0; i < 8; i++) outDv.setUint32(i * 4, H[i]!)
   return out
 }
 
@@ -123,7 +123,7 @@ export function verifyPinHash(pin: string, stored: string): boolean {
 }
 
 export function isLegacyPinHash(stored: string): boolean {
-  return !!stored && !stored.startsWith(`${PIN_HASH_VERSION}:`)
+  return Boolean(stored) && !stored.startsWith(`${PIN_HASH_VERSION}:`)
 }
 
 export function generateGiftCardCode(): string {

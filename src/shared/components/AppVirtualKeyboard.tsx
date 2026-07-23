@@ -234,7 +234,7 @@ export function AppVirtualKeyboard(props: AppVirtualKeyboardProps) {
   return (
     <div className={styles.wrapper} data-layout={layoutType}>
       {/* Sleek top header handle bar for quick minimizing */}
-      <div className={styles.headerBar} onClick={() => setInternalMinimized(true)} title="Minimizar teclado">
+      <div className={styles.headerBar} onClick={() => setInternalMinimized(true)} role="button" aria-label="Minimizar teclado">
         <div className={styles.handle} />
         <span className={styles.headerTitle}>
           {layoutType === 'tel' ? 'Teclado Numérico' : 'Teclado Alfanumérico'}

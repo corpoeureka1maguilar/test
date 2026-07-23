@@ -72,7 +72,7 @@ export async function fetchActiveSession(stationId: number): Promise<{ id: numbe
     { fields: ['id', 'opening_date'], limit: 1 }
   )
   if (sessions && sessions.length > 0) {
-    return { id: sessions[0].id, openingDate: sessions[0].opening_date }
+    return { id: sessions[0]!.id, openingDate: sessions[0]!.opening_date }
   }
   return null
 }

@@ -10,7 +10,7 @@ export { searchPartnerByCedula, createPartner } from './odoo/customerRepository'
 
 export { fetchPaymentMethods } from './odoo/paymentMethodRepository'
 
-export { fetchExchangeRate, fetchProducts } from './odoo/catalogRepository'
+export { fetchExchangeRate, fetchProducts, searchProducts } from './odoo/catalogRepository'
 
 export {
   createSaleOrder,

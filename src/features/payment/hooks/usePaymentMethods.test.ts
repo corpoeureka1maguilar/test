@@ -24,7 +24,7 @@ async function deleteOfflineDb(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const req = indexedDB.deleteDatabase(DB_NAME)
     req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(new Error(req.error?.message ?? 'IndexedDB error'))
     req.onblocked = () => resolve()
   })
 }
@@ -33,7 +33,7 @@ beforeEach(async () => {
   fetchPaymentMethodsMock.mockReset()
   fetchPaymentMethodsMock.mockResolvedValue([])
   for (let i = 0; i < 5; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
   }
   resetOfflineDbForTests()
   await deleteOfflineDb()

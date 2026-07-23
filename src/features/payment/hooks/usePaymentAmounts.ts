@@ -37,7 +37,7 @@ export function usePaymentAmounts(method: KioskPaymentMethod | null, total: numb
   }
 
   const fields = getPaymentFormFields(method.paymentType)
-  const isForeign = !!method.currencyRate && method.currencyRate > 1
+  const isForeign = method.currencyRate !== undefined && method.currencyRate > 1
   const currencySymbol = method.currencySymbol || '$'
 
   // Bs siempre disponible desde el carrito

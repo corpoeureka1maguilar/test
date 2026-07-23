@@ -33,7 +33,7 @@ async function deleteOfflineDb(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const req = indexedDB.deleteDatabase(DB_NAME)
     req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(new Error(req.error?.message ?? 'IndexedDB error'))
     req.onblocked = () => resolve()
   })
 }
@@ -102,9 +102,9 @@ describe('syncManager.drain — ADR-3 partial-failure semantics', () => {
 
     const all = await peekAll()
     expect(all).toHaveLength(1)
-    expect(all[0].id).toBe('a')
-    expect(all[0].status).toBe('failed')
-    expect(all[0].attempts).toBe(1)
+    expect(all[0]!.id).toBe('a')
+    expect(all[0]!.status).toBe('failed')
+    expect(all[0]!.attempts).toBe(1)
   })
 
   it('reverts an AccessDenied (session not ready yet) item to pending instead of permanently failing it', async () => {
@@ -116,7 +116,7 @@ describe('syncManager.drain — ADR-3 partial-failure semantics', () => {
     await drain()
 
     const all = await peekAll()
-    expect(all[0].status).toBe('pending')
+    expect(all[0]!.status).toBe('pending')
     expect(createSaleOrderMock).toHaveBeenCalledTimes(1)
   })
 
@@ -129,7 +129,7 @@ describe('syncManager.drain — ADR-3 partial-failure semantics', () => {
 
     const all = await peekAll()
     expect(all.map((e) => e.id)).toEqual(['a', 'b'])
-    expect(all[0].status).toBe('pending')
+    expect(all[0]!.status).toBe('pending')
     expect(createSaleOrderMock).toHaveBeenCalledTimes(1)
   })
 })
@@ -228,7 +228,7 @@ describe('syncManager.drain — AccessDenied recovery (expected/happy path)', ()
       new OdooServerError('Access Denied', 'odoo.exceptions.AccessDenied')
     )
     await drain()
-    expect((await peekAll())[0].status).toBe('pending')
+    expect((await peekAll())[0]!.status).toBe('pending')
 
     createSaleOrderMock.mockResolvedValueOnce({ id: 1 })
     useConfigStore.setState({ isOffline: true })
@@ -248,7 +248,7 @@ describe('syncManager.drain — AccessDenied recovery (expected/happy path)', ()
     await drain()
 
     const all = await peekAll()
-    expect(all[0].status).toBe('failed')
+    expect(all[0]!.status).toBe('failed')
     expect(createSaleOrderMock).toHaveBeenCalledTimes(1)
   })
 })
@@ -301,7 +301,7 @@ describe('syncManager — reconnection + backoff poll', () => {
       await drain()
 
       expect(setTimeoutSpy).toHaveBeenCalledTimes(1)
-      const delay = setTimeoutSpy.mock.calls[0][1] as number
+      const delay = setTimeoutSpy.mock.calls[0]![1] as number
       expect(delay).toBeGreaterThanOrEqual(0)
       expect(delay).toBeLessThanOrEqual(BACKOFF_BASE_MS)
     } finally {
@@ -403,8 +403,8 @@ describe('syncManager — instance scoping (design ADR-6)', () => {
     expect(createSaleOrderMock).not.toHaveBeenCalled()
     const all = await peekAll()
     expect(all).toHaveLength(1)
-    expect(all[0].status).toBe('pending')
-    expect(all[0].attempts).toBe(0)
+    expect(all[0]!.status).toBe('pending')
+    expect(all[0]!.attempts).toBe(0)
   })
 
   it('drains the current instance own entries while a foreign entry stays dormant alongside them', async () => {

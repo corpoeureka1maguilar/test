@@ -71,8 +71,10 @@
     width: 84px;
     font-size: 2rem;
 
-    &:hover {
-      background: var(--color-surface-hover);
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: var(--color-surface-hover);
+      }
     }
   }
 

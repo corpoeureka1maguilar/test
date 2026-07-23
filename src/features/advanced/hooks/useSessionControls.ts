@@ -48,7 +48,9 @@ export function useSessionControls(requestAdminAction: (action: PendingAdminActi
     requestAdminAction({
       title: 'Confirma para aperturar caja',
       operationRef: KIOSK_OPERATIONS.openSession,
-      run: handleOpenSession
+      run: () => {
+        void handleOpenSession()
+      }
     })
   }
 
@@ -56,7 +58,9 @@ export function useSessionControls(requestAdminAction: (action: PendingAdminActi
     requestAdminAction({
       title: 'Confirma para cerrar caja',
       operationRef: KIOSK_OPERATIONS.sessionClose,
-      run: handleCloseSession
+      run: () => {
+        void handleCloseSession()
+      }
     })
   }
 

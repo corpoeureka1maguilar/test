@@ -66,9 +66,11 @@
   align-items: center;
   gap: 0.5rem;
 
-  &:hover {
-    background: var(--color-surface-hover);
-    transform: translateY(-1px);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: var(--color-surface-hover);
+      transform: translateY(-1px);
+    }
   }
 
   &:active {
@@ -352,8 +354,10 @@
   text-align: center;
   justify-content: space-between;
 
-  &:hover {
-    border-color: var(--color-accent);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      border-color: var(--color-accent);
+    }
   }
 
   &:active {
@@ -519,7 +523,7 @@
   font-variant-numeric: tabular-nums;
   border: 1px solid var(--color-surface-border);
   border-radius: 20px;
-  padding: 1rem 1.25rem;
+  padding: 2rem 2.25rem;
   display: flex;
   flex-direction: row;
 
@@ -529,9 +533,11 @@
   transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
   animation: appleFadeIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  &:hover {
-    border-color: var(--color-surface-heavy);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.02);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      border-color: var(--color-surface-heavy);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.02);
+    }
   }
 }
 
@@ -552,7 +558,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-size: 0.85rem;
+  font-size: 1rem;
   color: var(--color-text-muted);
   font-weight: 600;
 }
@@ -624,8 +630,10 @@
   padding: 0.25rem;
   transition: color 0.2s;
 
-  &:hover {
-    color: var(--color-danger);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: var(--color-danger);
+    }
   }
 }
 
@@ -833,9 +841,11 @@
   transition: background-color 0.2s ease-out, transform 0.15s ease-out !important;
 }
 
-.scanMode .manualToggleBtn:hover {
-  background: #e9ecef !important;
-  transform: scale(1.01) !important;
+@media (hover: hover) and (pointer: fine) {
+  .scanMode .manualToggleBtn:hover {
+    background: #e9ecef !important;
+    transform: scale(1.01) !important;
+  }
 }
 
 .scanMode .cartSidebar {
@@ -940,9 +950,11 @@
   align-items: center;
   gap: 0.5rem;
 
-  &:hover {
-    background: var(--color-surface-hover);
-    transform: translateY(-1px);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: var(--color-surface-hover);
+      transform: translateY(-1px);
+    }
   }
 
   &:active {

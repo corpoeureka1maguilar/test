@@ -25,7 +25,7 @@ export interface QueueEntry {
   attempts: number
   lastError: string | null
   enqueuedAt: number
-  instanceKey?: string  // ausente = entrada legacy pre-scoping (design ADR-6); se taggea lazily
+  instanceKey?: string | undefined  // ausente = entrada legacy pre-scoping (design ADR-6); se taggea lazily
 }
 
 // Instance scoping (design ADR-6): normaliza undefined/null a null antes de
@@ -168,7 +168,7 @@ export async function resetDrainingToPending(): Promise<void> {
 // No-op si el kiosko arranca sin instancia configurada.
 export async function tagLegacyEntries(): Promise<void> {
   const instanceKey = getInstanceKey()
-  if (instanceKey == null) return
+  if (instanceKey === null) return
   const all = await peekAll()
   const db = await getOfflineDb()
   for (const entry of all) {

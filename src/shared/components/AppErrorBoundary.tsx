@@ -16,23 +16,23 @@ const AUTO_RELOAD_MS = 15_000
 // muestra un mensaje y recarga la app sola (la configuración persiste en
 // localStorage, así que el kiosko vuelve operativo sin re-setup).
 export class AppErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false }
+  override state: State = { hasError: false }
   private reloadTimer?: number
 
   static getDerivedStateFromError(): State {
     return { hasError: true }
   }
 
-  componentDidCatch(error: unknown, info: unknown) {
+  override componentDidCatch(error: unknown, info: unknown) {
     console.error('[AppErrorBoundary] Error no controlado en la UI:', error, info)
     this.reloadTimer = window.setTimeout(() => window.location.reload(), AUTO_RELOAD_MS)
   }
 
-  componentWillUnmount() {
+  override componentWillUnmount() {
     clearTimeout(this.reloadTimer)
   }
 
-  render() {
+  override render() {
     if (!this.state.hasError) return this.props.children
 
     return (

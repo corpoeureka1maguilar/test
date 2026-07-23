@@ -128,7 +128,9 @@ export function PrinterTest() {
           <button
             type="button"
             className={`btn btn-secondary ${styles.actionBtn}`}
-            onClick={handleTestConnection}
+            onClick={() => {
+              void handleTestConnection()
+            }}
             disabled={testingConnection || printingTest}
           >
             {testingConnection ? 'Probando...' : 'Probar Conexión'}
@@ -137,7 +139,9 @@ export function PrinterTest() {
           <button
             type="button"
             className={`btn btn-primary ${styles.actionBtn}`}
-            onClick={handleSendTestPrint}
+            onClick={() => {
+              void handleSendTestPrint()
+            }}
             disabled={testingConnection || printingTest}
           >
             {printingTest ? 'Imprimiendo...' : 'Imprimir Ticket de Prueba'}

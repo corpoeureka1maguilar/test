@@ -22,7 +22,7 @@ async function deleteOfflineDb(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const req = indexedDB.deleteDatabase(DB_NAME)
     req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(new Error(req.error?.message ?? 'IndexedDB error'))
     req.onblocked = () => resolve()
   })
 }
@@ -68,7 +68,7 @@ describe('orderQueue — bounded FIFO', () => {
     await enqueue('abc-123', payload)
 
     const [entry] = await peekAll()
-    expect(entry.payload).toEqual(payload)
+    expect(entry!.payload).toEqual(payload)
   })
 
   it('patchFiscal stores the printer result on the queue entry', async () => {
@@ -76,7 +76,7 @@ describe('orderQueue — bounded FIFO', () => {
     await patchFiscal('a', { code: '001', date: '2026-07-06', serial: 'A1' })
 
     const [entry] = await peekAll()
-    expect(entry.fiscal).toEqual({ code: '001', date: '2026-07-06', serial: 'A1' })
+    expect(entry!.fiscal).toEqual({ code: '001', date: '2026-07-06', serial: 'A1' })
   })
 
   it('dequeue removes the entry from the queue', async () => {
@@ -104,8 +104,8 @@ describe('orderQueue — bounded FIFO', () => {
     await requeueFailed('a')
 
     const [entry] = await peekAll()
-    expect(entry.status).toBe('pending')
-    expect(entry.lastError).toBeNull()
+    expect(entry!.status).toBe('pending')
+    expect(entry!.lastError).toBeNull()
   })
 
   it('requeueFailed is a no-op on a pending entry (does not touch attempts or status)', async () => {
@@ -114,8 +114,8 @@ describe('orderQueue — bounded FIFO', () => {
     await requeueFailed('a')
 
     const [entry] = await peekAll()
-    expect(entry.status).toBe('pending')
-    expect(entry.attempts).toBe(0)
+    expect(entry!.status).toBe('pending')
+    expect(entry!.attempts).toBe(0)
   })
 
   it('requeueFailed is a no-op when the id does not exist', async () => {
@@ -130,7 +130,7 @@ describe('orderQueue — bounded FIFO', () => {
     await resetDrainingToPending()
 
     const [entry] = await peekAll()
-    expect(entry.status).toBe('pending')
+    expect(entry!.status).toBe('pending')
   })
 })
 
@@ -188,13 +188,13 @@ describe('orderQueue — instance scoping (design ADR-6)', () => {
     await resetDrainingToPending()
 
     const [entry] = await peekAll()
-    expect(entry.status).toBe('draining')
+    expect(entry!.status).toBe('draining')
 
     useConfigStore.setState({ odooUrl: 'https://odoo.test', odooDb: 'test-db', stationId: 1 })
     await resetDrainingToPending()
 
     const [entryAfter] = await peekAll()
-    expect(entryAfter.status).toBe('pending')
+    expect(entryAfter!.status).toBe('pending')
   })
 
   it('tagLegacyEntries stamps untagged entries with the current instance', async () => {
@@ -207,7 +207,7 @@ describe('orderQueue — instance scoping (design ADR-6)', () => {
     await tagLegacyEntries()
 
     const [entry] = await peekAll()
-    expect(entry.instanceKey).toBe('https://odoo.test|test-db|1')
+    expect(entry!.instanceKey).toBe('https://odoo.test|test-db|1')
   })
 
   it('tagLegacyEntries is a no-op when the kiosk is unconfigured', async () => {
@@ -221,11 +221,11 @@ describe('orderQueue — instance scoping (design ADR-6)', () => {
     await tagLegacyEntries()
 
     const [entry] = await peekAll()
-    expect(entry.instanceKey).toBeUndefined()
+    expect(entry!.instanceKey).toBeUndefined()
   })
 
   it('matchesInstance treats an untagged entry and a null current instance as matching (same "no instance" bucket)', () => {
-    const entry = { instanceKey: undefined } as QueueEntry
+    const entry = { instanceKey: undefined } as unknown as QueueEntry
     expect(matchesInstance(entry, null)).toBe(true)
     expect(matchesInstance(entry, 'x')).toBe(false)
   })

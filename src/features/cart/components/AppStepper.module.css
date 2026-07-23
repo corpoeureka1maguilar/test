@@ -6,6 +6,7 @@
   padding: 1rem 1.5rem 0;
   gap: 1rem;
   animation: appleFadeIn 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: var(--color-bg);
 }
 
 .customerInfo {

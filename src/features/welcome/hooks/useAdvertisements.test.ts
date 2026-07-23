@@ -34,7 +34,7 @@ describe('useAdvertisements', () => {
 
   it('does not fetch when enabled=false', async () => {
     renderHook(() => useAdvertisements(false), { wrapper: createWrapper() })
-    await new Promise((r) => setTimeout(r, 10))
+    await new Promise((r) => { setTimeout(r, 10) })
     expect(fetchAdvertisementsMock).not.toHaveBeenCalled()
   })
 

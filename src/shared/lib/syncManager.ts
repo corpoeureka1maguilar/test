@@ -12,146 +12,162 @@ export const BACKOFF_BASE_MS = 5_000
 export const BACKOFF_FACTOR = 2
 export const BACKOFF_CAP_MS = 60_000
 
-let initialized = false
-let draining = false
-let pollTimer: ReturnType<typeof setTimeout> | null = null
-let attempt = 0
-let unsubscribeConfig: (() => void) | null = null
+export class SyncManager {
+  private initialized = false
+  private draining = false
+  private pollTimer: ReturnType<typeof setTimeout> | null = null
+  private attempt = 0
+  private unsubscribeConfig: (() => void) | null = null
 
-function clearPoll(): void {
-  if (pollTimer) {
-    clearTimeout(pollTimer)
-    pollTimer = null
-  }
-}
-
-// Backoff exponencial con full jitter (base 5s, factor 2, tope 60s). Se
-// reinicia (attempt=0) en cada paso de drain exitoso o cuando la cola queda
-// vacía; solo corre mientras haya algo pendiente por drenar.
-function scheduleBackoffPoll(): void {
-  clearPoll()
-  const cap = Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * BACKOFF_FACTOR ** attempt)
-  const delay = Math.random() * cap
-  attempt++
-  pollTimer = setTimeout(() => {
-    pollTimer = null
-    void pollAndDrain()
-  }, delay)
-}
-
-// El poll propio existe porque un kiosko idle y offline no genera tráfico
-// espontáneo que dispare la suscripción a isOffline (ver design ADR-3,
-// rechazado: "confiar solo en una señal oportunista"). pingStation es solo un
-// intento de reconexión — si falla, drain() de todas formas vuelve a fallar
-// transitoriamente y se reprograma el próximo backoff.
-async function pollAndDrain(): Promise<void> {
-  const stationId = useConfigStore.getState().stationId
-  if (stationId) {
-    try {
-      await pingStation(stationId)
-      useConfigStore.setState({ isOffline: false, isConnectionReady: true })
-    } catch {
-      // Seguimos sin conexión: drain() abajo va a volver a fallar transitoriamente
-      // y reprogramar el próximo intento con backoff creciente.
+  private clearPoll(): void {
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer)
+      this.pollTimer = null
     }
   }
-  await drain()
-}
 
-// Drena la cola FIFO (por 'seq', vía peekAll) de a un item a la vez. Los items
-// 'failed' (rechazo permanente de Odoo) se saltan pero NO se eliminan — quedan
-// para revisión manual (ver design Failure Modes: ya se imprimió un
-// comprobante fiscal, no se puede borrar la evidencia).
-export async function drain(): Promise<void> {
-  if (draining) return
-  // Instance scoping (design ADR-6): un kiosko sin instancia configurada
-  // nunca drena nada; una entrada de OTRA instancia nunca se toca (ni se
-  // envía, ni se marca failed, ni se borra — queda dormida).
-  const instanceKey = getInstanceKey()
-  if (instanceKey == null) return
-  draining = true
-  try {
-    for (;;) {
-      const all = await peekAll()
-      const target = all.find((e) => e.status !== 'failed' && matchesInstance(e, instanceKey))
-      if (!target) {
-        clearPoll()
-        attempt = 0
-        return
-      }
+  // Backoff exponencial con full jitter (base 5s, factor 2, tope 60s). Se
+  // reinicia (attempt=0) en cada paso de drain exitoso o cuando la cola queda
+  // vacía; solo corre mientras haya algo pendiente por drenar.
+  private scheduleBackoffPoll(): void {
+    this.clearPoll()
+    const cap = Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * BACKOFF_FACTOR ** this.attempt)
+    const delay = Math.random() * cap
+    this.attempt++
+    this.pollTimer = setTimeout(() => {
+      this.pollTimer = null
+      void this.pollAndDrain()
+    }, delay)
+  }
 
-      await markStatus(target.id, 'draining')
-
-      let odooOrderId: number | undefined
+  // El poll propio existe porque un kiosko idle y offline no genera tráfico
+  // espontáneo que dispare la suscripción a isOffline (ver design ADR-3,
+  // rechazado: "confiar solo en una señal oportunista"). pingStation es solo un
+  // intento de reconexión — si falla, drain() de todas formas vuelve a fallar
+  // transitoriamente y se reprograma el próximo backoff.
+  private async pollAndDrain(): Promise<void> {
+    const stationId = useConfigStore.getState().stationId
+    if (stationId) {
       try {
-        // Reenvío EXACTO del payload guardado — nunca se reconstruye (ver
-        // ADR-1/ADR-2 del design: reconstruir podría driftear tasa/líneas y
-        // romper la deduplicación por x_fex_id en el backend)
-        const result = (await createSaleOrder(target.payload)) as { id?: number } | null | undefined
-        odooOrderId = result?.id
-      } catch (err) {
-        if (err instanceof OdooServerError && !isAccessDeniedError(err)) {
-          // Permanente: se marca 'failed' (se conserva) y se SALTA al
-          // siguiente item — un rechazo de negocio no debe wedgear la cola
-          await markFailed(target.id, err.message)
-          continue
+        await pingStation(stationId)
+        useConfigStore.getState().markOnline()
+      } catch {
+        // Seguimos sin conexión: drain() abajo va a volver a fallar transitoriamente
+        // y reprogramar el próximo intento con backoff creciente.
+      }
+    }
+    await this.drain()
+  }
+
+  // Drena la cola FIFO (por 'seq', vía peekAll) de a un item a la vez. Los items
+  // 'failed' (rechazo permanente de Odoo) se saltan pero NO se eliminan — quedan
+  // para revisión manual (ver design Failure Modes: ya se imprimió un
+  // comprobante fiscal, no se puede borrar la evidencia).
+  public async drain(): Promise<void> {
+    if (this.draining) return
+    // Instance scoping (design ADR-6): un kiosko sin instancia configurada
+    // nunca drena nada; una entrada de OTRA instancia nunca se toca (ni se
+    // envía, ni se marca failed, ni se borra — queda dormida).
+    const instanceKey = getInstanceKey()
+    if (instanceKey === null) return
+    this.draining = true
+    try {
+      for (;;) {
+        const all = await peekAll()
+        const target = all.find((e) => e.status !== 'failed' && matchesInstance(e, instanceKey))
+        if (!target) {
+          this.clearPoll()
+          this.attempt = 0
+          return
         }
-        // Transitorio (red, o AccessDenied por sesión aún no restablecida
-        // tras un refresh): se revierte a 'pending' y se DETIENE el drain —
-        // el resto de la cola espera al próximo intento (backoff o reconexión)
-        await markStatus(target.id, 'pending')
-        scheduleBackoffPoll()
-        return
-      }
 
-      if (target.fiscal && odooOrderId != null) {
-        await setOrderPrinterData(odooOrderId, target.fiscal.code, target.fiscal.date, target.fiscal.serial).catch((err) => {
-          console.error('[syncManager] Error registrando dato fiscal post-drain:', err)
-        })
-      }
+        await markStatus(target.id, 'draining')
 
-      await dequeue(target.id)
-      attempt = 0
+        let odooOrderId: number | undefined
+        try {
+          // Reenvío EXACTO del payload guardado — nunca se reconstruye (ver
+          // ADR-1/ADR-2 del design: reconstruir podría driftear tasa/líneas y
+          // romper la deduplicación por x_fex_id en el backend)
+          const result = (await createSaleOrder(target.payload)) as { id?: number } | null | undefined
+          odooOrderId = result?.id
+        } catch (err) {
+          if (err instanceof OdooServerError && !isAccessDeniedError(err)) {
+            // Permanente: se marca 'failed' (se conserva) y se SALTA al
+            // siguiente item — un rechazo de negocio no debe wedgear la cola
+            await markFailed(target.id, err.message)
+            continue
+          }
+          // Transitorio (red, o AccessDenied por sesión aún no restablecida
+          // tras un refresh): se revierte a 'pending' y se DETIENE el drain —
+          // el resto de la cola espera al próximo intento (backoff o reconexión)
+          await markStatus(target.id, 'pending')
+          this.scheduleBackoffPoll()
+          return
+        }
+
+        if (target.fiscal && odooOrderId !== undefined) {
+          await setOrderPrinterData(odooOrderId, target.fiscal.code, target.fiscal.date, target.fiscal.serial).catch((err) => {
+            console.error('[syncManager] Error registrando dato fiscal post-drain:', err)
+          })
+        }
+
+        await dequeue(target.id)
+        this.attempt = 0
+      }
+    } finally {
+      this.draining = false
     }
-  } finally {
-    draining = false
+  }
+
+  // Arranque: recupera items que quedaron 'draining' a mitad de un drain
+  // interrumpido (spec: App Restart Mid-Drain Recovery) y se suscribe a la
+  // transición isOffline true->false para drenar automáticamente al reconectar.
+  public async initSyncManager(): Promise<void> {
+    if (this.initialized) return
+    this.initialized = true
+
+    // Orden importa (design ADR-6): taguear legacy ANTES de resetear
+    // 'draining', para que el reset ya pueda filtrar correctamente por
+    // instancia.
+    await tagLegacyEntries()
+    await resetDrainingToPending()
+
+    this.unsubscribeConfig = useConfigStore.subscribe((state, prevState) => {
+      if (prevState.isOffline && !state.isOffline) {
+        void this.drain()
+      }
+    })
+
+    const instanceKey = getInstanceKey()
+    if (instanceKey !== null) {
+      const all = await peekAll()
+      if (all.some((e) => e.status !== 'failed' && matchesInstance(e, instanceKey))) {
+        void this.drain()
+      }
+    }
+  }
+
+  // Solo para tests: revierte el singleton para que cada test arranque limpio
+  public resetSyncManagerForTests(): void {
+    this.initialized = false
+    this.draining = false
+    this.attempt = 0
+    this.clearPoll()
+    this.unsubscribeConfig?.()
+    this.unsubscribeConfig = null
   }
 }
 
-// Arranque: recupera items que quedaron 'draining' a mitad de un drain
-// interrumpido (spec: App Restart Mid-Drain Recovery) y se suscribe a la
-// transición isOffline true->false para drenar automáticamente al reconectar.
-export async function initSyncManager(): Promise<void> {
-  if (initialized) return
-  initialized = true
+const defaultSyncManager = new SyncManager()
 
-  // Orden importa (design ADR-6): taguear legacy ANTES de resetear
-  // 'draining', para que el reset ya pueda filtrar correctamente por
-  // instancia.
-  await tagLegacyEntries()
-  await resetDrainingToPending()
-
-  unsubscribeConfig = useConfigStore.subscribe((state, prevState) => {
-    if (prevState.isOffline && !state.isOffline) {
-      void drain()
-    }
-  })
-
-  const instanceKey = getInstanceKey()
-  if (instanceKey != null) {
-    const all = await peekAll()
-    if (all.some((e) => e.status !== 'failed' && matchesInstance(e, instanceKey))) {
-      void drain()
-    }
-  }
+export function drain(): Promise<void> {
+  return defaultSyncManager.drain()
 }
 
-// Solo para tests: revierte el singleton para que cada test arranque limpio
+export function initSyncManager(): Promise<void> {
+  return defaultSyncManager.initSyncManager()
+}
+
 export function resetSyncManagerForTests(): void {
-  initialized = false
-  draining = false
-  attempt = 0
-  clearPoll()
-  unsubscribeConfig?.()
-  unsubscribeConfig = null
+  defaultSyncManager.resetSyncManagerForTests()
 }

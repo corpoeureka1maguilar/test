@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
   let target;
   try {
     target = new URL(targetHeader);
-  } catch (e) {
+  } catch {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({

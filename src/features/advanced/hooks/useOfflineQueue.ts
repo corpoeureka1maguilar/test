@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { KIOSK_OPERATIONS } from '@/shared/lib/odooRepository'
 import { useUIStore } from '@/shared/stores/ui'
 import { peekAll, requeueFailed, dequeue, matchesInstance, type QueueEntry } from '@/shared/lib/orderQueue'
@@ -13,25 +13,31 @@ export function useOfflineQueue(activeTab: AdvancedTab, requestAdminAction: (act
 
   // Solo se muestran/tocan entradas de LA instancia actual (design ADR-6):
   // una entrada de otra instancia queda dormida y no debe exponerse acá.
-  const loadQueue = async () => {
-    const instanceKey = getInstanceKey()
-    const all = await peekAll()
-    setQueueEntries(all.filter((e) => matchesInstance(e, instanceKey)))
-  }
+  const loadQueue = useCallback(async () => {
+    try {
+      const instanceKey = getInstanceKey()
+      const all = await peekAll()
+      setQueueEntries(all.filter((e) => matchesInstance(e, instanceKey)))
+    } catch (err) {
+      pushToast('error', `Error al cargar la cola offline: ${(err as Error).message}`)
+    }
+  }, [pushToast])
 
   useEffect(() => {
     // Fetch de IndexedDB al reabrir la pestaña; loadQueue es async, así que
     // setQueueEntries corre luego del await, no de forma síncrona en el efecto.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (activeTab === 'cola') loadQueue()
-  }, [activeTab])
+    if (activeTab === 'cola') void loadQueue()
+  }, [activeTab, loadQueue])
 
   const requestRequeue = (entry: QueueEntry) => {
     requestAdminAction({
       title: `Confirma para reintentar la venta ${entry.id}`,
       operationRef: KIOSK_OPERATIONS.terminalConfig,
       auditMessage: `Reintento manual de sincronización offline (venta ${entry.id})`,
-      run: () => handleRequeue(entry.id)
+      run: () => {
+        void handleRequeue(entry.id)
+      }
     })
   }
 
@@ -54,7 +60,9 @@ export function useOfflineQueue(activeTab: AdvancedTab, requestAdminAction: (act
       title: `Confirma para DESCARTAR definitivamente la venta ${entry.id}`,
       operationRef: KIOSK_OPERATIONS.terminalConfig,
       auditMessage: `Descarte manual de venta offline fallida (venta ${entry.id})`,
-      run: () => handleDiscard(entry.id)
+      run: () => {
+        void handleDiscard(entry.id)
+      }
     })
   }
 

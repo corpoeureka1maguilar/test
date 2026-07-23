@@ -96,7 +96,7 @@ export function CustomerRegister() {
   const formatVatForUI = (v: string) => {
     const parts = v.split('-')
     if (parts.length === 2 && parts[0] === 'V') {
-      const digits = parts[1].replace(/^0+/, '')
+      const digits = parts[1]!.replace(/^0+/, '')
       const formattedDigits = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
       return `V-${formattedDigits || '0'}`
     }
@@ -146,7 +146,7 @@ export function CustomerRegister() {
       <h2 className={styles.title}>Registrate para continuar</h2>
 
       <div className={`card ${styles.registerCard}`}>
-        <form className={styles.form} onSubmit={handleSubmit}>
+        <form className={styles.form} onSubmit={(e) => { void handleSubmit(e) }}>
           <label>Nombre y apellido *
             <input
               type="text"

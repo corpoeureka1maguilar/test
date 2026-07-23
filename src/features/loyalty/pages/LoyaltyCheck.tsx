@@ -19,8 +19,8 @@ function deriveInputMask(regex: string): MaskSegment[] | null {
     const segments: MaskSegment[] = []
     let match: RegExpExecArray | null
     while ((match = segmentPattern.exec(stripped)) !== null) {
-      const len = parseInt(match[1], 10)
-      const rawSep = match[2].replace(/[\\^$*+?.()|[\]{}]/g, '')
+      const len = parseInt(match[1]!, 10)
+      const rawSep = match[2]!.replace(/[\\^$*+?.()|[\]{}]/g, '')
       segments.push({ len, sep: rawSep })
     }
     return segments.length > 0 ? segments : null
@@ -230,7 +230,11 @@ export function LoyaltyCheck() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={handleRegister}
+                onClick={() => {
+                  handleRegister().catch((err) => {
+                    setValidationError((err as Error).message || 'Error al registrar la tarjeta.')
+                  })
+                }}
                 disabled={!canRegister || registering}
               >
                 {registering ? 'Registrando...' : 'Registrar'}

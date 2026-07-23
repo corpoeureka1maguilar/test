@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { AdConfig } from '@/shared/types/types'
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import styles from './WelcomeAd.module.css'
@@ -27,12 +27,12 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
   const currentAd = activeConfigs[currentIndex]
   const duration = currentAd?.type === 'video' ? 10000 : 5000 // 10s video, 5s static
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setCurrentIndex((prev) => {
       if (activeConfigs.length === 0) return 0
       return (prev + 1) % activeConfigs.length
     })
-  }
+  }, [activeConfigs.length])
 
   const handlePrev = () => {
     setCurrentIndex((prev) => {
@@ -66,7 +66,7 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
         clearInterval(progressInterval.current)
       }
     }
-  }, [currentIndex, duration, activeConfigs.length])
+  }, [currentIndex, duration, activeConfigs.length, currentAd, handleNext])
 
   // Align video mute state
   useEffect(() => {

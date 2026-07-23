@@ -27,9 +27,11 @@
   flex-shrink: 0;
 }
 
-.arrowBtn:hover {
-  color: var(--color-text, #0f172a);
-  transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .arrowBtn:hover {
+    color: var(--color-text, #0f172a);
+    transform: scale(1.1);
+  }
 }
 
 .arrowBtn:active {
@@ -53,9 +55,11 @@
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.adContainer:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.15);
+@media (hover: hover) and (pointer: fine) {
+  .adContainer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .adVideo,
@@ -143,8 +147,10 @@
   padding: 0;
 }
 
-.dot:hover {
-  transform: scale(1.2);
+@media (hover: hover) and (pointer: fine) {
+  .dot:hover {
+    transform: scale(1.2);
+  }
 }
 
 .activeDot {
