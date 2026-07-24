@@ -65,6 +65,22 @@ export interface KioskPaymentMethod {
   currencyRate?: number
   useForChange: boolean
   withMerchant?: boolean
+  /** Código de tender de la impresora fiscal (ServWebImpresion, ej. '01', '05'). Vacío/'' si Odoo no lo tiene configurado — nunca inventar un default (fiscal-tender-code-mapping). */
+  printerCode?: string
+}
+
+/**
+ * Una pierna VPOS ya cobrada (pago parcial N-piernas, generic-partial-payment).
+ * La gift card NO se modela como PaymentLeg — sigue siendo el campo singular
+ * `giftCardLeg` del contexto de la máquina (ver design.md Decision 1).
+ */
+export interface PaymentLeg {
+  method: KioskPaymentMethod  // trae printerCode, journalId, currencyId, igtf
+  amountBs: number            // base + IGTF de la pierna -> payments[].amount
+  baseBs: number               // base sin IGTF -> decrementa remainingAmount
+  montoIgtf: number           // calcIgtf(method, baseBs)
+  reference: string           // numeroReferencia | numSeq del terminal
+  ts: number
 }
 
 export interface ActivePayment {

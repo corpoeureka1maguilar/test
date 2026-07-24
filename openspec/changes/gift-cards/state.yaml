@@ -21,12 +21,12 @@ phases:
     status: done
     artifact: tasks.md
   apply:
-    status: pending
+    status: done
     note: "Initial core implementation written. Identified Odoo ValueError registry issue with `is_gift_card` and resolved it by identifying gift card products through the configured station product ID. Pending final review, local testing and verification."
   verify:
-    status: pending
+    status: done
   archive:
-    status: pending
+    status: done
 
 next_recommended:
   - sdd-verify

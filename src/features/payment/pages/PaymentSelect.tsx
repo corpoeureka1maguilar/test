@@ -7,19 +7,33 @@ import { AppPaymentMethodCard } from '@/features/payment/components/AppPaymentMe
 import type { KioskPaymentMethod } from '@/shared/types/types'
 import { formatBs, formatUSD } from '@/shared/lib/money'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
+import { MAX_PAYMENT_LEGS } from '@/shared/lib/paymentConfig'
 import styles from './PaymentSelect.module.css'
 
 export function PaymentSelect() {
-  const { send } = useSaleMachine()
+  const { send, context } = useSaleMachine()
   const navigate = useNavigate()
-  const { data: methods = [], isLoading } = usePaymentMethods()
+  const { data: rawMethods = [], isLoading } = usePaymentMethods()
   const total = useCartTotal()
   const items = useCartStore((s) => s.items)
   const useGiftCard = useConfigStore((s) => s.useGiftCard)
   const rate = useExchangeRateStore((s) => s.rate)
 
   const isGiftCardOrder = items.some(i => i.isGiftCard)
-  const showGiftCardOption = useGiftCard && !isGiftCardOrder
+  // generic-partial-payment / payment-flow "Same VPOS Method Selectable":
+  // la gift card sigue siendo singleton (giftCardLeg persiste mientras
+  // dure la venta) — nunca vuelve a ofrecerse una vez consumida. Los
+  // métodos VPOS de `methods` SÍ pueden reelegirse para piernas sucesivas
+  // (deliberadamente sin de-dup por method.id acá abajo).
+  const showGiftCardOption = useGiftCard && !isGiftCardOrder && !context.giftCardLeg
+
+  // fiscal-tender-code-mapping "Empty printer_code Blocks Method From
+  // Split": un método sin printer_code real configurado en Odoo nunca se
+  // ofrece para pagar — nunca se inventa un código default (ver
+  // printPayload.ts, que explota si un tender llega sin código). El método
+  // sintético de tarjeta de regalo (-999) NO pasa por este filtro: su
+  // código fiscal es fijo (GIFT_CARD_TENDER_CODE), no viene de Odoo.
+  const methods = rawMethods.filter(m => !!m.printerCode)
 
   const giftCardMethod: KioskPaymentMethod = {
     id: -999,
@@ -32,7 +46,17 @@ export function PaymentSelect() {
     useForChange: false
   }
 
+  // generic-partial-payment "Leg Cap Enforcement": la gift card cuenta como
+  // 1 pierna (design.md Cap note). Al llegar al tope se bloquea TODA
+  // selección (incluida la propia gift card) con un mensaje claro — el
+  // componente nunca despacha nada acá, así que `legs`/`remainingAmount`
+  // quedan intactos en el context.
+  const legs = context.legs ?? []
+  const tenderCount = (context.giftCardLeg ? 1 : 0) + legs.length
+  const capReached = tenderCount >= MAX_PAYMENT_LEGS
+
   const handleSelect = (method: KioskPaymentMethod) => {
+    if (capReached) return
     send({ type: 'SELECT_METHOD', method })
     navigate(`/pago/${method.id}`)
   }
@@ -45,7 +69,20 @@ export function PaymentSelect() {
         {rate > 0 && <span className={styles.amountUsd}>{formatUSD(total / rate)}</span>}
       </p>
 
-      {isLoading ? (
+      {legs.length > 0 && (
+        <p className={styles.legsSummary} data-testid="legs-summary">
+          Piernas cobradas: <strong>{legs.length}</strong>
+          {context.remainingAmount !== null && context.remainingAmount !== undefined && (
+            <> — Restante:&nbsp;<strong>{formatBs(context.remainingAmount)}</strong></>
+          )}
+        </p>
+      )}
+
+      {capReached ? (
+        <p className={styles.capMessage}>
+          Máximo {MAX_PAYMENT_LEGS} medios de pago por venta. No es posible agregar otra pierna de pago.
+        </p>
+      ) : isLoading ? (
         <p className={styles.loading}>Cargando métodos de pago...</p>
       ) : (
         <div className={styles.grid}>
@@ -66,7 +103,7 @@ export function PaymentSelect() {
         Volver a productos
       </button>
       </div>
-      
+
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { sanitize, buildFacturaPayload, buildNotaCreditoPayload } from './printPayload'
+import { sanitize, buildFacturaPayload, buildNotaCreditoPayload, GIFT_CARD_TENDER_CODE } from './printPayload'
+import { calcIgtf } from './paymentUtils'
 import type { KioskPaymentMethod } from '@/shared/types/types'
 
 describe('sanitize', () => {
@@ -21,19 +22,13 @@ describe('sanitize', () => {
   })
 })
 
-describe('buildFacturaPayload', () => {
-  const method: KioskPaymentMethod = {
-    id: 1, name: 'Efectivo', paymentType: 'cash', applyIgtf: false, igtfPercent: 0,
-    journalId: 1, currencyId: 1, useForChange: false
-  }
-
+describe('buildFacturaPayload — single tender (regression, pre-generalization contract)', () => {
   it('builds the partner, totals and item lines from the cart', () => {
     const payload = buildFacturaPayload(
       'María Pérez',
       'V-12345678',
       [{ name: 'Producto A', qty: 2, price: 50, taxRate: 0.16 }],
-      method,
-      100
+      [{ code: '01', amountBs: 100, igtfBs: 0 }]
     )
 
     expect(payload.nombre).toBe('Maria Perez')
@@ -50,8 +45,7 @@ describe('buildFacturaPayload', () => {
       'Juan',
       'V-1',
       [{ name: 'A', qty: 1, price: 10 }, { name: 'B', qty: 0, price: 5 }],
-      method,
-      10
+      [{ code: '01', amountBs: 10, igtfBs: 0 }]
     )
     expect(payload.Items).toHaveLength(1)
     expect(payload.Items[0]!.descripcion).toBe('A')
@@ -66,16 +60,100 @@ describe('buildFacturaPayload', () => {
         { name: 'C', qty: 1, price: 10, taxRate: 0.5 },
         { name: 'D', qty: 1, price: 10 }
       ],
-      method,
-      40
+      [{ code: '01', amountBs: 40, igtfBs: 0 }]
     )
     expect(payload.Items.map(i => i.tasa)).toEqual(['2', '3', '1', '1'])
   })
 
-  it('includes the IGTF amount in montoigtf when the method applies it', () => {
-    const igtfMethod: KioskPaymentMethod = { ...method, applyIgtf: true, igtfPercent: 3 }
-    const payload = buildFacturaPayload('Juan', 'V-1', [{ name: 'A', qty: 1, price: 100 }], igtfMethod, 100)
+  it('includes the IGTF amount in montoigtf when the tender carries one (calcIgtf, never hardcoded)', () => {
+    const igtfMethod: KioskPaymentMethod = {
+      id: 1, name: 'Efectivo', paymentType: 'cash', applyIgtf: true, igtfPercent: 3,
+      journalId: 1, currencyId: 1, useForChange: false
+    }
+    const igtfBs = calcIgtf(igtfMethod, 100)
+    const payload = buildFacturaPayload(
+      'Juan', 'V-1',
+      [{ name: 'A', qty: 1, price: 100 }],
+      [{ code: '01', amountBs: 100, igtfBs }]
+    )
     expect(payload.montoigtf).toBe('300')
+  })
+})
+
+describe('buildFacturaPayload — tenders[] generalization (generic-partial-payment / fiscal-tender-code-mapping)', () => {
+  it('two legs with distinct real printerCodes produce two separate pago<code> lines — never pago01/pago15 hardcoded for both', () => {
+    const payload = buildFacturaPayload(
+      'Juan', 'V-1',
+      [{ name: 'A', qty: 1, price: 80 }],
+      [
+        { code: '05', amountBs: 50, igtfBs: 0 },
+        { code: '07', amountBs: 30, igtfBs: 0 }
+      ]
+    )
+    expect(payload['pago05']).toBe('5000')
+    expect(payload['pago07']).toBe('3000')
+    expect(payload).not.toHaveProperty('pago01')
+    expect(payload).not.toHaveProperty('pago15')
+  })
+
+  it('two legs sharing the same printerCode accumulate into one tender line instead of the last write winning', () => {
+    const payload = buildFacturaPayload(
+      'Juan', 'V-1',
+      [{ name: 'A', qty: 1, price: 80 }],
+      [
+        { code: '05', amountBs: 20, igtfBs: 0 },
+        { code: '05', amountBs: 60, igtfBs: 0 }
+      ]
+    )
+    expect(payload['pago05']).toBe('8000')
+  })
+
+  it('a tender with empty/falsy printerCode throws instead of silently defaulting to a code', () => {
+    expect(() => buildFacturaPayload(
+      'Juan', 'V-1',
+      [{ name: 'A', qty: 1, price: 50 }],
+      [{ code: '', amountBs: 50, igtfBs: 0 }]
+    )).toThrow()
+  })
+
+  it('a gift-card tender (fixed GIFT_CARD_TENDER_CODE) coexists with a real-printerCode tender, each on its own line, summing to the order total', () => {
+    const payload = buildFacturaPayload(
+      'Juan', 'V-1',
+      [{ name: 'A', qty: 1, price: 116 }],
+      [
+        { code: GIFT_CARD_TENDER_CODE, amountBs: 80, igtfBs: 0 },
+        { code: '05', amountBs: 36, igtfBs: 0 }
+      ]
+    )
+    expect(payload['pago15']).toBe('8000')
+    expect(payload['pago05']).toBe('3600')
+
+    const pago15 = Number(payload['pago15']) / 100
+    const pago05 = Number(payload['pago05']) / 100
+    expect(pago15 + pago05).toBe(116)
+  })
+
+  it('montoigtf is the sum of every tender\'s igtfBs, not just the first tender\'s', () => {
+    const payload = buildFacturaPayload(
+      'Juan', 'V-1',
+      [{ name: 'A', qty: 1, price: 100 }],
+      [
+        { code: '05', amountBs: 50, igtfBs: 1.5 },
+        { code: '07', amountBs: 50, igtfBs: 0.75 }
+      ]
+    )
+    expect(payload.montoigtf).toBe('225') // (1.5 + 0.75) * 100
+  })
+
+  it('regression: a single-tender sale (today\'s shipped shape) produces a byte-identical payload to the pre-generalization contract', () => {
+    const payload = buildFacturaPayload(
+      'Juan', 'V-1',
+      [{ name: 'A', qty: 1, price: 100 }],
+      [{ code: '01', amountBs: 100, igtfBs: 0 }]
+    )
+    expect(payload.montoigtf).toBe('0')
+    expect(payload['pago01']).toBe('10000')
+    expect(payload).not.toHaveProperty('pago15')
   })
 })
 
@@ -134,5 +212,16 @@ describe('buildNotaCreditoPayload', () => {
     expect(payload).not.toHaveProperty('Items')
     expect(payload.montoigtf).toBe('0')
     expect(payload['pago01']).toBe('10000')
+  })
+
+  it('uses the fixed gift-card tender code when the original method.id === -999, even without a real printerCode', () => {
+    const giftCardMethod: KioskPaymentMethod = { ...method, id: -999 }
+    const payload = buildNotaCreditoPayload(
+      '1234', '01072026', '1430', 'Juan', 'V-1',
+      [{ name: 'A', qty: 1, price: 50 }],
+      giftCardMethod,
+      100
+    )
+    expect(payload['pago15']).toBe('10000')
   })
 })

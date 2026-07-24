@@ -333,9 +333,9 @@
 
 .grid {
   flex: 1;
-  min-height: 0;
+  flex-direction: row;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
   gap: 1.25rem;
   overflow-y: auto;
   padding-bottom: 1.5rem;
@@ -870,12 +870,13 @@
 
 .amountUsd {
   display: block;
-  font-size: 0.75em;
+  font-size: 1.5em;
   color: var(--color-text-muted);
   font-weight: 400;
   letter-spacing: 0.01em;
   margin-top: 0.1em;
   font-variant-numeric: tabular-nums;
+  padding: 0.5rem
 }
 
 /* --- MODAL BÚSQUEDA MANUAL --- */

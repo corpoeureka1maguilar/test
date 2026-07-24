@@ -21,15 +21,42 @@ export function useGiftCardPayment({ method, total, globalRate, send, navigate, 
   const [foundCard, setFoundCard] = useState<GiftCard | null>(null)
   const [cardError, setCardError] = useState<string | null>(null)
   const [showKeyboard, setShowKeyboard] = useState(false)
+  const [consumedAmountInput, setConsumedAmountInput] = useState('')
 
   const orderTotalUSD = total / globalRate
-  const hasSufficientBalance = foundCard ? foundCard.balance >= orderTotalUSD : false
+  const maxConsumableUSD = foundCard ? Math.min(foundCard.balance, orderTotalUSD) : 0
+
+  const parsedInput = Number(consumedAmountInput)
+  const isValidConsumedAmount = foundCard
+    ? consumedAmountInput.trim() !== '' && !Number.isNaN(parsedInput) && parsedInput > 0 && parsedInput <= maxConsumableUSD + 0.0001
+    : false
+
+  const consumedAmountUSD = isValidConsumedAmount ? Math.min(parsedInput, maxConsumableUSD) : 0
+  const hasSufficientBalance = foundCard ? consumedAmountUSD >= orderTotalUSD - 0.0001 : false
+  const remainingBs = foundCard ? Math.max(0, total - consumedAmountUSD * globalRate) : 0
+
+  const handleConsumedAmountChange = (raw: string) => {
+    if (!foundCard) return
+    if (raw === '') {
+      setConsumedAmountInput('')
+      return
+    }
+    const parsed = Number(raw)
+    if (Number.isNaN(parsed)) return
+    const maxAllowed = Math.min(foundCard.balance, orderTotalUSD)
+    if (parsed > maxAllowed) {
+      setConsumedAmountInput(String(maxAllowed))
+    } else {
+      setConsumedAmountInput(raw)
+    }
+  }
 
   const handleSearchCard = async () => {
     if (!giftCardCode.trim()) return
     setSearchingCard(true)
     setCardError(null)
     setFoundCard(null)
+    setConsumedAmountInput('')
     try {
       const card = await searchGiftCard(giftCardCode.trim())
       if (!card) {
@@ -38,6 +65,8 @@ export function useGiftCardPayment({ method, total, globalRate, send, navigate, 
         setCardError('Esta tarjeta de regalo no está activa o ya fue consumida.')
       } else {
         setFoundCard(card)
+        const initialMax = Math.min(card.balance, orderTotalUSD)
+        setConsumedAmountInput(String(initialMax))
       }
     } catch (err) {
       console.error(err)
@@ -52,34 +81,54 @@ export function useGiftCardPayment({ method, total, globalRate, send, navigate, 
     e.preventDefault()
     if (!method || !foundCard) return
 
-    const giftCardAmountUSD = total / globalRate
-    if (foundCard.balance < giftCardAmountUSD) {
+    // Bloqueo duro: solo para saldo agotado o monto inválido.
+    if (foundCard.balance <= 0 || !isValidConsumedAmount) {
       pushToast('error', 'El saldo de la tarjeta es insuficiente.')
       return
     }
 
+    if (hasSufficientBalance) {
+      // Pago completo: cubre el orderTotalUSD.
+      send({
+        type: 'SUBMIT_PAYMENT',
+        payment: {
+          methodId: method.id,
+          reference: foundCard.code,
+          amount: total,
+          igtfAmount: 0
+        },
+        giftCard: {
+          id: foundCard.id,
+          code: foundCard.code,
+          amount: consumedAmountUSD,
+          balance: foundCard.balance,
+          state: 'available'
+        }
+      })
+      navigate('/resultado')
+      return
+    }
+
+    // Pago parcial (2-leg): consume el monto elegido de la tarjeta y deja el
+    // remanente para que el cajero elija un segundo método en /pago.
     send({
-      type: 'SUBMIT_PAYMENT',
-      payment: {
-        methodId: method.id,
-        reference: foundCard.code,
-        amount: total,
-        igtfAmount: 0
-      },
+      type: 'GIFT_CARD_PARTIAL',
       giftCard: {
         id: foundCard.id,
         code: foundCard.code,
-        amount: giftCardAmountUSD,
+        amount: consumedAmountUSD,
         balance: foundCard.balance,
         state: 'available'
-      }
+      },
+      remainingAmount: remainingBs
     })
-    navigate('/resultado')
+    navigate('/pago')
   }
 
   const handleUseAnotherCard = () => {
     setFoundCard(null)
     setGiftCardCode('')
+    setConsumedAmountInput('')
   }
 
   return {
@@ -92,8 +141,14 @@ export function useGiftCardPayment({ method, total, globalRate, send, navigate, 
     setShowKeyboard,
     orderTotalUSD,
     hasSufficientBalance,
+    consumedAmountUSD,
+    consumedAmountInput,
+    handleConsumedAmountChange,
+    isValidConsumedAmount,
+    remainingBs,
     handleSearchCard,
     handleGiftCardSubmit,
     handleUseAnotherCard
   }
 }
+

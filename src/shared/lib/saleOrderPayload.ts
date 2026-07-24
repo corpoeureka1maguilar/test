@@ -1,15 +1,27 @@
-import type { KioskPartner, CartItem, ActivePayment, KioskPaymentMethod, GiftCard } from '@/shared/types/types'
+import type { KioskPartner, CartItem, PaymentLeg, GiftCard } from '@/shared/types/types'
 import { useSessionStore } from '@/shared/stores/session'
 import { useConfigStore } from '@/shared/stores/config'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import { odooEnv } from '@/shared/lib/odooEnv'
 import { randomUUID } from '@/shared/lib/cryptoUtils'
+import { calcIgtf } from '@/shared/lib/paymentUtils'
 
+/**
+ * generic-partial-payment (Fase 2): firma generalizada a N piernas
+ * (`legs: PaymentLeg[]`) + una gift card opcional (`giftCard`, singleton —
+ * NUNCA vive en `legs[]`, ver design.md Decision 1). Cada pierna ya trae su
+ * propio `baseBs`/`amountBs`/`reference` resueltos (por `commitLeg` para
+ * piernas VPOS, o sintetizados por `buildLegsInput` en saleMachine.ts para
+ * el camino legacy) — esta función NO recalcula totales desde el carrito ni
+ * fuerza `montoIgtf` a 0: cada pago usa `calcIgtf(leg.method, leg.baseBs)`
+ * de forma independiente (spec "IGTF Calculated Per Leg", requirement #9 —
+ * nunca hardcodeado, aunque el resultado numérico hoy sea 0 porque ningún
+ * método productivo tiene `applyIgtf: true`).
+ */
 export function buildSaleOrderPayload(
   customer: KioskPartner,
   cart: CartItem[],
-  payment: ActivePayment,
-  method: KioskPaymentMethod,
+  legs: PaymentLeg[],
   attemptId: string,
   giftCard: GiftCard | null = null
 ) {
@@ -20,21 +32,6 @@ export function buildSaleOrderPayload(
   const uid = odooEnv.uid
 
   const globalRate = useExchangeRateStore.getState().rate || 1
-
-  // Calcular el total con IVA en bolívares
-  const totalBs = cart.reduce((sum, item) => sum + (item.subtotal * (1 + item.taxRate)), 0)
-
-  // Calcular IGTF en bolívares si aplica
-  const igtfPercent = method.igtfPercent || 0
-  const igtfBs = method.applyIgtf ? totalBs * (igtfPercent / 100) : 0
-  const totalWithIgtfBs = totalBs + igtfBs
-
-  const round2 = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100
-  // El amount va en bolívares — Odoo calcula amount_ref en USD usando la tasa
-  const paymentAmount = round2(totalWithIgtfBs)
-  const paymentIgtf = round2(igtfBs)
-
-  const isPayingWithGiftCard = method.id === -999 && giftCard?.state === 'available'
 
   const formattedGiftCard = giftCard ? (
     giftCard.state === 'new' ? {
@@ -50,6 +47,13 @@ export function buildSaleOrderPayload(
       state: 'available'
     }
   ) : undefined
+
+  // Pago completo con tarjeta de regalo (method.id === -999, pierna
+  // sintética del camino legacy vía buildLegsInput en saleMachine.ts): NUNCA
+  // es un tender de Odoo — la tarjeta va en payload.giftCard, no en
+  // payments[]. Filtrar por method.id reproduce byte a byte el
+  // `payments: []` de hoy sin necesitar un flag `isFullGiftCard` aparte.
+  const tenderLegs = legs.filter(leg => leg.method.id !== -999)
 
   return {
     // UUID string → x_fex_id para deduplicar. Se genera UNA vez por intento de
@@ -87,19 +91,20 @@ export function buildSaleOrderPayload(
     // Tarjeta de regalo
     giftCard: formattedGiftCard,
 
-    // Pagos — field names que lee _action_parse_pos_data de account.payment.fex
-    payments: isPayingWithGiftCard ? [] : [{
+    // Pagos — field names que lee _action_parse_pos_data de account.payment.fex.
+    // Un entry por pierna (no-gift-card); cada IGTF se computa per-leg, nunca
+    // hardcodeado (ver comentario del módulo).
+    payments: tenderLegs.map(leg => ({
       id:         randomUUID(),
       isChange:   false,
       date:       new Date().toISOString(),
-      ref:        payment.reference || '',
-      amount:    paymentAmount,
-      currency:  method.currencyId,
-      rate:      globalRate,
-      journal:   method.journalId,
-      method:    method.id,
-      montoIgtf: paymentIgtf
-    }]
+      ref:        leg.reference || '',
+      amount:     leg.amountBs,
+      currency:   leg.method.currencyId,
+      rate:       globalRate,
+      journal:    leg.method.journalId,
+      method:     leg.method.id,
+      montoIgtf:  calcIgtf(leg.method, leg.baseBs)
+    }))
   }
 }
-

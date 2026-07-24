@@ -1,5 +1,4 @@
 import type { KioskPaymentMethod } from '@/shared/types/types'
-import { calcIgtf } from './paymentUtils'
 
 const STR_DENIED: Record<string, string> = {
   Ñ: 'N', ñ: 'n', Á: 'A', á: 'a', É: 'E', é: 'e',
@@ -29,6 +28,30 @@ function resolvePrinterTaxCode(taxRate?: number): string {
 
 function fixNumberForAPI(n: number, decimals = 2): string {
   return n.toFixed(decimals).replace('.', '')
+}
+
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100
+}
+
+// Código de tender de la tarjeta de regalo en el protocolo ServWebImpresion de
+// la impresora fiscal. Confirmado a nivel de código ('15', ya en producción
+// para el pago completo con gift card) — reutilizado para el/los legs de
+// gift card de un pago parcial N-piernas (generic-partial-payment). Exportado
+// para que el caller (saleMachine.ts) lo use al construir `tenders[]`.
+export const GIFT_CARD_TENDER_CODE = '15'
+
+/**
+ * generic-partial-payment / fiscal-tender-code-mapping: una línea de tender
+ * fiscal ya resuelta por el caller (saleMachine.ts), a partir de una pierna
+ * de pago (`PaymentLeg.method.printerCode`) o del leg de gift card
+ * (`GIFT_CARD_TENDER_CODE`, fijo). `buildFacturaPayload` NUNCA inventa un
+ * código — si `code` viene vacío, debe explotar (ver más abajo).
+ */
+export interface Tender {
+  code: string
+  amountBs: number
+  igtfBs: number
 }
 
 export interface FacturaPayload {
@@ -97,9 +120,19 @@ export function buildNotaCreditoPayload(
   if (/^\d+$/.test(factura)) factura = String(Number(factura))
   factura = factura.padStart(7, '0').slice(0, 7)
 
+  // Notas de crédito: no hay un `printerCode` real disponible para el método
+  // acá (`NO_IGTF_METHOD` en useOrderReturn.ts no conserva el método de pago
+  // original de la orden — ver su propio comentario) — se mantiene el código
+  // fijo histórico ('01' normal, GIFT_CARD_TENDER_CODE si method.id === -999),
+  // EXENTO de la regla "nunca default de fiscal-tender-code-mapping", que
+  // aplica a piernas de pago de una venta en curso, no a refunds.
+  const code = method.id === -999 ? GIFT_CARD_TENDER_CODE : '01'
+
   // La nota de crédito no reporta la caja de origen: igual que fex, la clave
   // se elimina del payload en vez de mandarse vacía
-  const { Items, caja: _caja, ...rest } = buildFacturaPayload(partnerName, partnerVat, lines, method, totalAmount, '')
+  const { Items, caja: _caja, ...rest } = buildFacturaPayload(
+    partnerName, partnerVat, lines, [{ code, amountBs: totalAmount, igtfBs: 0 }], ''
+  )
 
   return {
     ...rest,
@@ -113,18 +146,33 @@ export function buildNotaCreditoPayload(
   }
 }
 
+/**
+ * generic-partial-payment / fiscal-tender-code-mapping: recibe `tenders[]`
+ * ya resuelto por el caller (saleMachine.ts) — una línea por pierna de pago
+ * real (`printerCode`) + el/los tenders de gift card (`GIFT_CARD_TENDER_CODE`,
+ * fijo). Acumula numéricamente por código (nunca sobreescribe) y recién al
+ * final formatea con `fixNumberForAPI`. Si algún tender llega con `code`
+ * vacío/falsy, explota — nunca inventa/asume un código.
+ */
 export function buildFacturaPayload(
   partnerName: string,
   partnerVat: string,
   lines: PrintLine[],
-  method: KioskPaymentMethod,
-  totalAmount: number,
+  tenders: Tender[],
   stationLabel = 'Autopago'
 ): FacturaPayload {
-  const igtfAmount = calcIgtf(method, totalAmount)
-  const codeCreator = (code: string) => 'pago' + code.slice(0, 2)
-  const codeVal = method.id === -999 ? '15' : '01'
-  const methodCode = codeCreator(codeVal)
+  const totalAmount = tenders.reduce((sum, t) => sum + t.amountBs, 0)
+  const totalIgtf = round2(tenders.reduce((sum, t) => sum + t.igtfBs, 0))
+
+  const accByCode = new Map<string, number>()
+  for (const tender of tenders) {
+    if (!tender.code) {
+      throw new Error(
+        'buildFacturaPayload: tender sin printerCode real — no se puede imprimir sin un código fiscal real (fiscal-tender-code-mapping, nunca se inventa un default)'
+      )
+    }
+    accByCode.set(tender.code, round2((accByCode.get(tender.code) ?? 0) + tender.amountBs))
+  }
 
   const items: FacturaItem[] = lines
     .filter(l => l.qty > 0)
@@ -141,7 +189,7 @@ export function buildFacturaPayload(
   const payload: FacturaPayload = {
     condicion: 'Pago inmediato',
     codigobarra: '',
-    montoigtf: igtfAmount ? fixNumberForAPI(igtfAmount) : '0',
+    montoigtf: totalIgtf ? fixNumberForAPI(totalIgtf) : '0',
     direccion: sanitize(partnerName),
     documento: sanitize(partnerVat),
     nombre: sanitize(partnerName),
@@ -151,7 +199,9 @@ export function buildFacturaPayload(
     Items: items
   }
 
-  payload[methodCode] = fixNumberForAPI(totalAmount)
+  for (const [code, amount] of accByCode) {
+    payload['pago' + code.slice(0, 2)] = fixNumberForAPI(amount)
+  }
 
   return payload
 }

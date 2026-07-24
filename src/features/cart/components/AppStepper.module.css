@@ -18,9 +18,9 @@
 }
 
 .companyLogo {
-  height: 88px;
+  height: 120px;
   width: auto;
-  max-width: 140px;
+  max-width: 190px;
   object-fit: contain;
   opacity: 0.95;
 }

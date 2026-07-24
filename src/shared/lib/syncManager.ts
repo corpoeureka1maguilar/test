@@ -20,7 +20,7 @@ export class SyncManager {
   private unsubscribeConfig: (() => void) | null = null
 
   private clearPoll(): void {
-    if (this.pollTimer) {
+    if (this.pollTimer !== null) {
       clearTimeout(this.pollTimer)
       this.pollTimer = null
     }

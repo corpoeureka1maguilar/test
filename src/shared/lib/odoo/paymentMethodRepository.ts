@@ -13,6 +13,7 @@ interface RawMethod {
   currency_id: [number, string] | false
   use_for_change: boolean
   with_merchant: boolean
+  printer_code: string | false
 }
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
@@ -27,7 +28,9 @@ function mapMethod(r: RawMethod): KioskPaymentMethod {
     journalId: r.journal_id[0],
     currencyId: r.currency_id ? r.currency_id[0] : 0,
     useForChange: r.use_for_change,
-    withMerchant: r.with_merchant
+    withMerchant: r.with_merchant,
+    // fiscal-tender-code-mapping: nunca inventar un código — '' si Odoo no lo tiene
+    printerCode: r.printer_code || ''
   }
 }
 
@@ -47,7 +50,7 @@ export async function fetchPaymentMethods(branchId?: number): Promise<KioskPayme
   const raw = await odooEnv.callMethod<RawMethod[]>(
     'x.pos.payment.method', 'search_read',
     [domain],
-    { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change', 'with_merchant'] }
+    { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change', 'with_merchant', 'printer_code'] }
   )
 
   const mapped = raw.map(mapMethod)

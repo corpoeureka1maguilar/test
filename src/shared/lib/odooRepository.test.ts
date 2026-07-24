@@ -61,7 +61,7 @@ describe('fetchPaymentMethods', () => {
   it('maps payment methods and enriches them with currency info', async () => {
     callMethod
       .mockResolvedValueOnce([
-        { id: 1, name: 'Efectivo', payment_type: 'cash', apply_igtf: false, igtf_percent: 0, journal_id: [5, 'Caja'], currency_id: [2, 'USD'], use_for_change: true, with_merchant: false }
+        { id: 1, name: 'Efectivo', payment_type: 'cash', apply_igtf: false, igtf_percent: 0, journal_id: [5, 'Caja'], currency_id: [2, 'USD'], use_for_change: true, with_merchant: false, printer_code: '01' }
       ])
       .mockResolvedValueOnce([{ id: 2, name: 'USD', symbol: '$', rate: 36.5 }])
 
@@ -70,12 +70,12 @@ describe('fetchPaymentMethods', () => {
     expect(callMethod).toHaveBeenCalledWith(
       'x.pos.payment.method', 'search_read',
       [[['use_for_payment', '=', true], ['caja_autoservicio', '=', true], ['active', '=', true]]],
-      { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change', 'with_merchant'] }
+      { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change', 'with_merchant', 'printer_code'] }
     )
 
     expect(methods).toEqual([{
       id: 1, name: 'Efectivo', paymentType: 'cash', applyIgtf: false, igtfPercent: 0,
-      journalId: 5, currencyId: 2, useForChange: true, withMerchant: false,
+      journalId: 5, currencyId: 2, useForChange: true, withMerchant: false, printerCode: '01',
       currencyName: 'USD', currencySymbol: '$', currencyRate: 36.5
     }])
   })
@@ -93,13 +93,13 @@ describe('fetchPaymentMethods', () => {
         ['active', '=', true],
         '|', ['branch_id', '=', 7], ['branch_id', '=', false]
       ]],
-      { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change', 'with_merchant'] }
+      { fields: ['id', 'name', 'payment_type', 'apply_igtf', 'igtf_percent', 'journal_id', 'currency_id', 'use_for_change', 'with_merchant', 'printer_code'] }
     )
   })
 
   it('maps a method with no currency_id to currencyId 0 and skips the currency lookup', async () => {
     callMethod.mockResolvedValueOnce([
-      { id: 3, name: 'Otro', payment_type: 'otro', apply_igtf: false, igtf_percent: 0, journal_id: [1, 'Caja'], currency_id: false, use_for_change: false, with_merchant: false }
+      { id: 3, name: 'Otro', payment_type: 'otro', apply_igtf: false, igtf_percent: 0, journal_id: [1, 'Caja'], currency_id: false, use_for_change: false, with_merchant: false, printer_code: false }
     ])
 
     const methods = await fetchPaymentMethods()

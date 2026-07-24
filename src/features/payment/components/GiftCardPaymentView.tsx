@@ -9,6 +9,11 @@ interface GiftCardPaymentViewProps {
   orderTotalUSD: number
   foundCard: GiftCard | null
   hasSufficientBalance: boolean
+  consumedAmountUSD: number
+  consumedAmountInput?: string
+  onConsumedAmountChange?: (value: string) => void
+  isValidConsumedAmount?: boolean
+  remainingBs: number
   giftCardCode: string
   onGiftCardCodeChange: (value: string) => void
   searchingCard: boolean
@@ -27,6 +32,11 @@ export function GiftCardPaymentView({
   orderTotalUSD,
   foundCard,
   hasSufficientBalance,
+  consumedAmountUSD,
+  consumedAmountInput,
+  onConsumedAmountChange,
+  isValidConsumedAmount = true,
+  remainingBs,
   giftCardCode,
   onGiftCardCodeChange,
   searchingCard,
@@ -38,6 +48,13 @@ export function GiftCardPaymentView({
   onUseAnotherCard,
   onBack
 }: GiftCardPaymentViewProps) {
+  // Saldo agotado/insuficiente-a-cero (Scenario 3, sin cambios): bloqueo duro.
+  // Pago parcial (Scenario 2): 0 < balance < total — ya NO bloquea, muestra
+  // el remanente y habilita continuar a elegir el segundo método.
+  const isZeroBalance = !!foundCard && foundCard.balance <= 0
+  const isPartial = !!foundCard && !hasSufficientBalance && !isZeroBalance
+  const maxConsumableUSD = foundCard ? Math.min(foundCard.balance, orderTotalUSD) : 0
+
   return (
     <div className="kiosk-container">
       <h1 className={styles.title}>Pago con Tarjeta de Regalo</h1>
@@ -62,12 +79,36 @@ export function GiftCardPaymentView({
                   <span className={styles.amountSecondary}>{formatBs(foundCard.balance * globalRate)}</span>
                 </strong>
               </div>
-              <div className={styles.amountRow}>
-                <span>Monto a consumir</span>
-                <strong className={styles.amountToConsume}>
-                  {formatUSD(orderTotalUSD)}
-                </strong>
+              <div className={styles.amountRow} style={{ alignItems: 'center' }}>
+                <span>Saldo a consumir ($)</span>
+                {onConsumedAmountChange ? (
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min={0.0001}
+                    max={maxConsumableUSD}
+                    value={consumedAmountInput ?? String(consumedAmountUSD)}
+                    onChange={e => onConsumedAmountChange(e.target.value)}
+                    className={styles.giftCardInput}
+                    style={{ maxWidth: '160px', textAlign: 'right', fontSize: '1.4rem', padding: '0.4rem 0.8rem' }}
+                    disabled={isZeroBalance}
+                    aria-label="Saldo a consumir"
+                  />
+                ) : (
+                  <strong className={styles.amountToConsume}>
+                    {formatUSD(consumedAmountUSD)}
+                  </strong>
+                )}
               </div>
+              {isPartial && (
+                <div className={styles.amountRow}>
+                  <span>Monto restante</span>
+                  <strong>
+                    <span className={styles.amountUsd}>{formatUSD(remainingBs / globalRate)}</span>
+                    <span className={styles.amountSecondary}>{formatBs(remainingBs)}</span>
+                  </strong>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -123,7 +164,7 @@ export function GiftCardPaymentView({
         </div>
       ) : (
         <form className={styles.form} onSubmit={onGiftCardSubmit}>
-          {!hasSufficientBalance && (
+          {isZeroBalance && (
             <div className={styles.noRateWarning}>
               El saldo de tu tarjeta de regalo ({formatUSD(foundCard.balance)}) es menor que el total a pagar ({formatUSD(orderTotalUSD)}).
             </div>
@@ -131,7 +172,13 @@ export function GiftCardPaymentView({
 
           {hasSufficientBalance && (
             <p className={styles.successText}>
-              ✓ Tarjeta lista para usar. Se debitarán {formatUSD(orderTotalUSD)} de tu saldo.
+              ✓ Tarjeta lista para usar. Se debitarán {formatUSD(consumedAmountUSD)} de tu saldo.
+            </p>
+          )}
+
+          {isPartial && (
+            <p className={styles.successText}>
+              ✓ Se consumirá {formatUSD(consumedAmountUSD)} del saldo de la tarjeta. Deberás elegir un segundo método de pago para cubrir el monto restante.
             </p>
           )}
 
@@ -139,9 +186,9 @@ export function GiftCardPaymentView({
             <button
               type="submit"
               className="btn btn-accent"
-              disabled={!hasSufficientBalance}
+              disabled={isZeroBalance || !isValidConsumedAmount}
             >
-              Confirmar consumo
+              {isPartial ? 'Continuar a elegir método' : 'Confirmar consumo'}
             </button>
             <button
               type="button"
