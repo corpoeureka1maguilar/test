@@ -1,7 +1,6 @@
 import { AppOrderSummary } from '@/features/cart/components/AppOrderSummary'
 import type { KioskOrder } from '@/shared/types/types'
 import { OrderSearchList } from './OrderSearchList'
-import styles from '../pages/AdvancedMenu.module.css'
 
 interface Props {
   selectedOrder: KioskOrder | null
@@ -51,7 +50,7 @@ export function ReturnsTab({
               <AppOrderSummary order={order} />
             </div>
           )}
-          <label className={styles.reasonLabel}>Motivo de devolución
+          <label className="flex flex-col gap-3 text-[1.1rem] font-bold text-text-muted uppercase tracking-[0.05em] mx-auto my-8 w-full max-w-[520px]">Motivo de devolución
             <select
               value={reason}
               onChange={(e) => onReasonChange(e.target.value)}
@@ -61,7 +60,7 @@ export function ReturnsTab({
               <option value="producto">Por producto</option>
             </select>
           </label>
-          <div className={styles.actions}>
+          <div className="flex flex-col items-center gap-4 w-full">
             <button type="button" className="btn btn-danger" onClick={onRequestReturn}>
               Confirmar devolución
             </button>

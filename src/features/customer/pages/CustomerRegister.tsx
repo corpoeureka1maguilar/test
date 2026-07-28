@@ -10,7 +10,6 @@ import { useRegisterForm } from '@/features/customer/hooks/useRegisterForm'
 import { VenezuelanPhoneField } from '@/features/customer/components/VenezuelanPhoneField'
 import { InternationalPhoneField } from '@/features/customer/components/InternationalPhoneField'
 import { fetchStates, type OdooState } from '@/shared/lib/odooRepository'
-import styles from './CustomerRegister.module.css'
 
 export function CustomerRegister() {
   const { send, context, matches } = useSaleMachine()
@@ -139,14 +138,17 @@ export function CustomerRegister() {
 
   return (
     <div
-      className={`kiosk-container ${styles.container} ${
-        activeField ? (isKeyboardMinimized ? styles.keyboardMinimized : styles.keyboardOpen) : ''
+      className={`kiosk-container pb-8 ${
+        activeField ? (isKeyboardMinimized ? 'pb-[80px]' : 'pb-[320px]') : ''
       }`}
     >
-      <h2 className={styles.title}>Registrate para continuar</h2>
+      <h2 className="font-extrabold mb-4 text-black text-center">Registrate para continuar</h2>
 
-      <div className={`card ${styles.registerCard}`}>
-        <form className={styles.form} onSubmit={(e) => { void handleSubmit(e) }}>
+      <div className="card [@media(orientation:landscape)_and_(min-width:700px)]:max-w-[880px]">
+        <form
+          className="flex flex-col gap-4 w-full [&_label]:flex [&_label]:flex-col [&_label]:gap-[0.4rem] [&_label]:text-[0.95rem] [&_label]:font-bold [&_label]:text-text-muted [&_label]:uppercase [&_label]:tracking-[0.05em] [@media(orientation:landscape)_and_(min-width:700px)]:grid [@media(orientation:landscape)_and_(min-width:700px)]:grid-cols-2 [@media(orientation:landscape)_and_(min-width:700px)]:gap-x-6 [@media(orientation:landscape)_and_(min-width:700px)]:gap-y-[0.85rem]"
+          onSubmit={(e) => { void handleSubmit(e) }}
+        >
           <label>Nombre y apellido *
             <input
               type="text"
@@ -165,7 +167,7 @@ export function CustomerRegister() {
               type="text"
               value={formattedVat}
               readOnly
-              className={styles.readonlyField}
+              className="opacity-50 cursor-default pointer-events-none"
             />
           </label>
           {phoneInput.isInternational ? (
@@ -195,7 +197,7 @@ export function CustomerRegister() {
               placeholder="correo@ejemplo.com"
             />
           </label>
-          <div className={styles.streetWrapper}>
+          <div className="relative flex flex-col">
             <label>Estado *
               <input
                 type="text"
@@ -209,12 +211,12 @@ export function CustomerRegister() {
               />
             </label>
             {activeField === 'estado' && filteredStates.length > 0 && (
-              <div className={styles.suggestionsDropdown}>
+              <div className="absolute top-full left-0 right-0 z-[10001] flex flex-col bg-surface border border-surface-border rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.12)] max-h-[220px] overflow-y-auto">
                 {filteredStates.map(s => (
                   <button
                     key={s.id}
                     type="button"
-                    className={styles.suggestionItem}
+                    className="bg-transparent border-0 border-t border-surface-border first:border-t-0 px-5 py-4 text-left text-base text-text cursor-pointer leading-[1.4] transition-colors duration-150 ease active:bg-surface-hover"
                     onMouseDown={e => {
                       e.preventDefault()
                       handleStateSelect(s.name)
@@ -226,7 +228,7 @@ export function CustomerRegister() {
               </div>
             )}
           </div>
-          <div className={styles.streetWrapper}>
+          <div className="relative flex flex-col">
             <label>Dirección *
               <input
                 type="text"
@@ -241,13 +243,13 @@ export function CustomerRegister() {
             </label>
 
             {activeField === 'street' && (suggestions.length > 0 || isSearching) && (
-              <div className={styles.suggestionsDropdown}>
-                {isSearching && <div className={styles.suggestionsLoading}>Buscando...</div>}
+              <div className="absolute top-full left-0 right-0 z-[10001] flex flex-col bg-surface border border-surface-border rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.12)] max-h-[220px] overflow-y-auto">
+                {isSearching && <div className="px-5 py-4 text-base text-text-muted">Buscando...</div>}
                 {suggestions.map(s => (
                   <button
                     key={s.id}
                     type="button"
-                    className={styles.suggestionItem}
+                    className="bg-transparent border-0 border-t border-surface-border first:border-t-0 px-5 py-4 text-left text-base text-text cursor-pointer leading-[1.4] transition-colors duration-150 ease active:bg-surface-hover"
                     onMouseDown={e => {
                       e.preventDefault()
                       handleSuggestionSelect(s, clearSuggestions)
@@ -260,13 +262,17 @@ export function CustomerRegister() {
             )}
           </div>
 
-          <div className={styles.actions}>
-            <button type="submit" className="btn btn-primary" disabled={isPending}>
+          <div className="flex flex-col gap-4 mt-4 [@media(orientation:landscape)_and_(min-width:700px)]:col-[1/-1] [@media(orientation:landscape)_and_(min-width:700px)]:flex-row">
+            <button
+              type="submit"
+              className="btn btn-primary [@media(orientation:landscape)_and_(min-width:700px)]:flex-1 [@media(orientation:landscape)_and_(min-width:700px)]:max-w-none"
+              disabled={isPending}
+            >
               {isPending ? 'Registrando...' : 'Continuar'}
             </button>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary [@media(orientation:landscape)_and_(min-width:700px)]:flex-1 [@media(orientation:landscape)_and_(min-width:700px)]:max-w-none"
               onClick={() => navigate('/cedula')}
             >
               Volver

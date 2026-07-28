@@ -1,37 +1,37 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { VposAmountInput } from './VposAmountInput'
+import { LegAmountInput } from './LegAmountInput'
 
 // generic-partial-payment (post-design decision 0.2, tasks 3.3/3.4): input
-// del monto de la pierna VPOS. Pre-llenado con `remainingAmount ?? total`
+// del monto de la pierna. Pre-llenado con `remainingAmount ?? total`
 // (nunca vacío), editable SOLO hacia abajo (max = remanente). Confirmar sin
 // editar preserva el comportamiento de hoy (una sola pierna VPOS cierra el
 // remanente completo).
 
-describe('VposAmountInput — pre-filled/editable-down VPOS leg amount', () => {
+describe('LegAmountInput — pre-filled/editable-down VPOS leg amount', () => {
   it('mounts pre-filled with remainingAmount when a remainder already exists', () => {
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
 
     const input = screen.getByRole('spinbutton') as HTMLInputElement
     expect(input.value).toBe('80')
   })
 
   it('falls back to total when remainingAmount is null (regression: single VPOS-only sale, no gift card)', () => {
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={null} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={null} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
 
     const input = screen.getByRole('spinbutton') as HTMLInputElement
     expect(input.value).toBe('200')
   })
 
   it('never mounts empty', () => {
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={0} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={0} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
 
     const input = screen.getByRole('spinbutton') as HTMLInputElement
     expect(input.value).not.toBe('')
   })
 
   it('sets max to the remainder (never total, when a remainder is smaller)', () => {
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
 
     const input = screen.getByRole('spinbutton') as HTMLInputElement
     expect(input.max).toBe('80')
@@ -39,7 +39,7 @@ describe('VposAmountInput — pre-filled/editable-down VPOS leg amount', () => {
 
   it('rejects (clamps) a typed value above the remainder — confirming never delivers more than the remainder', () => {
     const onConfirm = vi.fn()
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={onConfirm} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={onConfirm} onBack={vi.fn()} />)
 
     const input = screen.getByRole('spinbutton') as HTMLInputElement
     fireEvent.change(input, { target: { value: '999' } })
@@ -53,7 +53,7 @@ describe('VposAmountInput — pre-filled/editable-down VPOS leg amount', () => {
 
   it('confirming WITHOUT editing proceeds with the untouched full remainder (regression: today\'s single closing VPOS leg)', () => {
     const onConfirm = vi.fn()
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={onConfirm} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={onConfirm} onBack={vi.fn()} />)
 
     fireEvent.click(screen.getByText('Confirmar monto'))
 
@@ -63,7 +63,7 @@ describe('VposAmountInput — pre-filled/editable-down VPOS leg amount', () => {
 
   it('editing DOWN to a smaller valid value and confirming delivers exactly that value as the leg amount', () => {
     const onConfirm = vi.fn()
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={onConfirm} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={onConfirm} onBack={vi.fn()} />)
 
     const input = screen.getByRole('spinbutton') as HTMLInputElement
     fireEvent.change(input, { target: { value: '30' } })
@@ -74,7 +74,7 @@ describe('VposAmountInput — pre-filled/editable-down VPOS leg amount', () => {
 
   it('disables confirm when the field is cleared to empty (never free-form/empty submission)', () => {
     const onConfirm = vi.fn()
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={onConfirm} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={onConfirm} onBack={vi.fn()} />)
 
     const input = screen.getByRole('spinbutton') as HTMLInputElement
     fireEvent.change(input, { target: { value: '' } })
@@ -86,14 +86,14 @@ describe('VposAmountInput — pre-filled/editable-down VPOS leg amount', () => {
 
   it('calls onBack when the cancel action is used', () => {
     const onBack = vi.fn()
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={vi.fn()} onBack={onBack} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={80} total={200} onConfirm={vi.fn()} onBack={onBack} />)
 
     fireEvent.click(screen.getByText('Cancelar y volver'))
     expect(onBack).toHaveBeenCalledTimes(1)
   })
 
   it('renders total purchase amount and remaining amount after payment row', () => {
-    render(<VposAmountInput title="Terminal Banesco (VPOS)" remainingAmount={100} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
+    render(<LegAmountInput title="Terminal Banesco (VPOS)" remainingAmount={100} total={200} onConfirm={vi.fn()} onBack={vi.fn()} />)
 
     expect(screen.getByText('Total de la compra')).toBeInTheDocument()
     expect(screen.getByText('Saldo pendiente actual')).toBeInTheDocument()

@@ -70,7 +70,8 @@ export interface KioskPaymentMethod {
 }
 
 /**
- * Una pierna VPOS ya cobrada (pago parcial N-piernas, generic-partial-payment).
+ * Una pierna ya cobrada (pago parcial N-piernas, generic-partial-payment):
+ * VPOS (terminal) o manual con referencia (transferencia).
  * La gift card NO se modela como PaymentLeg — sigue siendo el campo singular
  * `giftCardLeg` del contexto de la máquina (ver design.md Decision 1).
  */
@@ -79,7 +80,8 @@ export interface PaymentLeg {
   amountBs: number            // base + IGTF de la pierna -> payments[].amount
   baseBs: number               // base sin IGTF -> decrementa remainingAmount
   montoIgtf: number           // calcIgtf(method, baseBs)
-  reference: string           // numeroReferencia | numSeq del terminal
+  reference: string           // numeroReferencia | numSeq del terminal, o la referencia tipeada por el cajero (transferencia)
+  bank?: string | undefined   // banco emisor (solo cobros manuales: transferencia / pago móvil) — informativo, no viaja a payments[]
   ts: number
 }
 

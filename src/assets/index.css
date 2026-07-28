@@ -1,4 +1,4 @@
-@import 'modern-normalize/modern-normalize.css';
+@import "tailwindcss";
 
 @font-face {
   font-family: 'Outfit';
@@ -16,8 +16,23 @@
     redefine SOLO tokens + layout global.
   Las páginas consumen tokens y no declaran media queries de escala;
   sus @media locales son únicamente estructurales (cambios de layout).
+
+  Cascada (Tailwind v4): los tokens de marca viven en @theme, así Tailwind
+  genera utilities (bg-accent, text-muted, rounded-app, animate-fadeIn...) y
+  además los emite como custom properties en :root, por lo que cualquier
+  var(--color-*) preexistente sigue resolviendo igual.
+  Todo el CSS propio va dentro de @layer base / @layer components para que
+  las utilities de Tailwind puedan ganarle. CSS sin capa vence a CUALQUIER
+  @layer, y eso era lo que anulaba las clases en los componentes migrados.
 */
-:root {
+/*
+  Único tier de escala de la app: PC landscape. Nunca matchea el kiosco 9:16
+  (aspect-ratio ~0.56). Se expone como variant para que los componentes usen
+  `desktop:` en vez de repetir la media query a mano.
+*/
+@custom-variant desktop (@media (min-aspect-ratio: 1.35) and (min-width: 1024px));
+
+@theme {
   /* Brand Colors */
   --color-accent: #10b981;
   --color-accent-hover: #059669;
@@ -26,7 +41,6 @@
 
   /* Light Theme Palette */
   --color-bg: #ffffff;
-  --color-bg-gradient: radial-gradient(circle at 50% -20%, #f9fafb 0%, #ffffff 100%);
   --color-text: #111827;
   --color-text-muted: #6b7280;
 
@@ -41,10 +55,118 @@
   --color-danger: #ef4444;
   --color-alert: #f59e0b;
 
-  /* Layout & Specs */
-  --app-radius: 18px;
-  --app-font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --app-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
+  /* Fuente de marca -> font-app */
+  --font-app: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  /* Radio y sombra de marca -> rounded-app / shadow-app */
+  --radius-app: 18px;
+  --shadow-app: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
+
+  /*
+    Animaciones. Se mantienen las curvas y duraciones originales (one-shot),
+    incluidas pulse y bounce: Tailwind las trae infinitas por defecto y acá
+    se sobreescriben a propósito para no cambiar el comportamiento actual.
+  */
+  --animate-fadeIn: appleFadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-scaleIn: appleScaleIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-pop: applePop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-pulse: applePulse 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-bounce: appleBounce 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-slideUp: appleSlideUp 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Shimmer del skeleton de anuncios (Welcome/WelcomeAd) */
+  --animate-shimmer: shimmer 1.5s infinite;
+
+  /*
+    OfflineOverlay. Se registran con sus curvas originales en vez de aproximar
+    con animate-ping/animate-scaleIn: scaleUp tiene overshoot (el bezier pasa
+    de 1) y los pulsos del indicador tienen timings propios.
+  */
+  --animate-plainFadeIn: plainFadeIn 0.4s ease-out;
+  --animate-scaleUp: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-pulseRing: pulseRing 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+  --animate-pulseDot: pulseDot 1.5s infinite ease-in-out;
+
+  /* Sacudida de PIN incorrecto (AppPinModal) */
+  --animate-shake: shake 0.4s ease-in-out;
+
+  @keyframes appleFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes appleScaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes applePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes appleBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes applePop {
+    0% { transform: scale(0.95); opacity: 0; }
+    70% { transform: scale(1.03); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes appleSlideUp {
+    from { opacity: 0; transform: translateY(100%); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Fade sin desplazamiento: appleFadeIn agrega translateY, este no */
+  @keyframes plainFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scaleUp {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes pulseRing {
+    0% { transform: scale(0.85); opacity: 0.5; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+
+  @keyframes pulseDot {
+    0%, 100% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+}
+
+/*
+  Tokens que NO son utilities: escala del kiosco, escala tipográfica y el
+  gradiente de fondo. Quedan como custom properties planas porque los
+  .module.css los consumen por var() y porque el @media de desktop los
+  redefine (algo que @theme no permite).
+*/
+:root {
+  --color-bg-gradient: radial-gradient(circle at 50% -20%, #f9fafb 0%, #ffffff 100%);
+
+  /* Alias legacy: los .module.css existentes usan estos nombres */
+  --app-radius: var(--radius-app);
+  --app-font-family: var(--font-app);
+  --app-shadow: var(--shadow-app);
 
   /* Kiosk scale (controles táctiles) */
   --kiosk-btn-height: 68px;
@@ -63,6 +185,8 @@
   --font-total: 3rem;
   --font-lead: 1.2rem;
 }
+
+@layer base {
 
 * {
   box-sizing: border-box;
@@ -116,6 +240,7 @@ body {
 
 .kiosk-container {
   position: relative;
+  width: 100%;
   max-width: var(--kiosk-max-width);
   margin: 0 auto;
   min-height: calc(100vh - 40px);
@@ -155,11 +280,15 @@ h1, h2, h3 {
   text-wrap: balance;
 }
 
-/* !important: los módulos históricamente declaraban sus propios tamaños de
-   título; el tamaño canónico vive acá vía tokens y debe ganar siempre */
-h1 { font-size: var(--font-h1) !important; }
-h2 { font-size: var(--font-h2) !important; }
-h3 { font-size: var(--font-h3) !important; }
+/*
+  Tamaño canónico por token. Sin !important: al vivir en @layer base, cualquier
+  utility de Tailwind (text-xl, text-2xl...) le gana, que es justo lo que
+  necesitan los componentes migrados. Los .module.css que declaren su propio
+  font-size también ganan, porque el CSS de módulos sale sin capa.
+*/
+h1 { font-size: var(--font-h1); }
+h2 { font-size: var(--font-h2); }
+h3 { font-size: var(--font-h3); }
 
 p {
   text-wrap: pretty;
@@ -212,40 +341,9 @@ p {
 .btn-secondary {
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.05);
+  border: 2px solid var(--color-surface-heavy);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.08);
 }
-
-/* Utility Animations */
-@keyframes appleFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes appleScaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes applePulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-@keyframes appleBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes applePop {
-  0% { transform: scale(0.95); opacity: 0; }
-  70% { transform: scale(1.03); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.animate-pulse { animation: applePulse 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.animate-bounce { animation: appleBounce 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.animate-pop { animation: applePop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
 /* Kiosk Inputs */
 input[type="text"],
@@ -308,6 +406,9 @@ select:focus {
   width: 100%;
 }
 
+} /* @layer base */
+
+/* Fuera de capa a propósito: la preferencia de accesibilidad debe ganar siempre */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -327,7 +428,9 @@ select:focus {
     --kiosk-input-height: 54px;
     --kiosk-input-font-size: 1.15rem;
     --kiosk-card-padding: 2.5rem;
-    --app-radius: 20px;
+    /* Se redefine el token de @theme para que rounded-app y var(--app-radius)
+       (que lo aliasea) queden en el mismo valor en desktop */
+    --radius-app: 20px;
     --kiosk-max-width: 1100px;
 
     --font-h1: 2.5rem;
@@ -338,26 +441,28 @@ select:focus {
     --font-lead: 1.25rem;
   }
 
-  .kiosk-container {
-    min-height: calc(100vh - 80px);
-    padding: 2rem 3rem calc(var(--keyboard-height, 0px) + 2rem);
-    gap: 1.5rem;
-  }
+  @layer base {
+    .kiosk-container {
+      min-height: calc(100vh - 80px);
+      padding: 2rem 3rem calc(var(--keyboard-height, 0px) + 2rem);
+      gap: 1.5rem;
+    }
 
-  .kiosk-container > h2 {
-    padding: 0.5rem 0;
-  }
+    .kiosk-container > h2 {
+      padding: 0.5rem 0;
+    }
 
-  .glass-card {
-    padding: 2rem;
-  }
+    .glass-card {
+      padding: 2rem;
+    }
 
-  .btn {
-    padding: 0 2.5rem;
-    max-width: 420px;
-  }
+    .btn {
+      padding: 0 2.5rem;
+      max-width: 420px;
+    }
 
-  .card {
-    max-width: 720px;
+    .card {
+      max-width: 720px;
+    }
   }
 }

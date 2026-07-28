@@ -33,6 +33,8 @@
     "zustand": "5.0.13"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "18.3.28",
@@ -46,8 +48,10 @@
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
+    "postcss": "^8.5.23",
     "prettier": "^3.9.5",
     "sass": "1.99.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.64.0",
     "vite": "5.4.21",

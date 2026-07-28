@@ -1,5 +1,4 @@
 import type { ChangeEvent, FocusEvent } from 'react'
-import styles from '../pages/CustomerRegister.module.css'
 
 interface InternationalPhoneFieldProps {
   value: string
@@ -31,7 +30,7 @@ export function InternationalPhoneField({ value, onChange, onFocus, onBlur, onBa
       {onBackToVenezuelan && (
         <button
           type="button"
-          className={styles.phoneModeSwitch}
+          className="self-start mt-2 p-0 bg-transparent border-0 text-[0.9rem] font-semibold normal-case tracking-normal text-accent cursor-pointer"
           onMouseDown={(e) => { e.preventDefault(); onBackToVenezuelan() }}
         >
           Es un número venezolano

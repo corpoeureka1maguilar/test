@@ -81,7 +81,7 @@ describe('PaymentSelect — Scenario 4 (no más de 2 legs, ocultar tarjeta de re
     mockContext = { giftCardLeg: giftCardLegFixture }
     render(<MemoryRouter><PaymentSelect /></MemoryRouter>)
 
-    expect(screen.queryByText('Tarjeta de regalo')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tarjeta de regalo' })).not.toBeInTheDocument()
   })
 })
 
@@ -103,8 +103,9 @@ describe('PaymentSelect — re-selección de método VPOS ya usado (generic-part
   it('un método ya usado en una pierna completada SIGUE siendo seleccionable (sin de-dup accidental)', () => {
     render(<MemoryRouter><PaymentSelect /></MemoryRouter>)
 
-    expect(screen.getByText('Terminal Banesco')).toBeInTheDocument()
-    screen.getByText('Terminal Banesco').closest('button')!.click()
+    const methodButton = screen.getByRole('button', { name: 'Terminal Banesco' })
+    expect(methodButton).toBeInTheDocument()
+    methodButton.click()
 
     expect(send).toHaveBeenCalledTimes(1)
     expect(send.mock.calls[0]![0]).toEqual({ type: 'SELECT_METHOD', method: terminalBanesco })
@@ -167,8 +168,8 @@ describe('PaymentSelect — tope de piernas (generic-partial-payment "Leg Cap En
     mockContext = { giftCardLeg: giftCardLegFixture, legs, remainingAmount: 10 }
     render(<MemoryRouter><PaymentSelect /></MemoryRouter>)
 
-    expect(screen.queryByText('Terminal Banesco')).not.toBeInTheDocument()
-    expect(screen.queryByText('Tarjeta de regalo')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Terminal Banesco' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tarjeta de regalo' })).not.toBeInTheDocument()
     expect(screen.getByText(/Máximo 4 medios de pago/)).toBeInTheDocument()
   })
 
@@ -177,7 +178,7 @@ describe('PaymentSelect — tope de piernas (generic-partial-payment "Leg Cap En
     mockContext = { legs, remainingAmount: 10 }
     render(<MemoryRouter><PaymentSelect /></MemoryRouter>)
 
-    expect(screen.getByText('Terminal Banesco')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Terminal Banesco' })).toBeInTheDocument()
     expect(screen.queryByText(/Máximo 4 medios de pago/)).not.toBeInTheDocument()
   })
 
@@ -219,7 +220,7 @@ describe('PaymentSelect — render de piernas acumuladas + remanente (legs.lengt
     render(<MemoryRouter><PaymentSelect /></MemoryRouter>)
 
     const summary = screen.getByTestId('legs-summary')
-    expect(summary.textContent).toContain('Piernas cobradas: 1')
+    expect(summary.textContent).toContain('Terminal Banesco')
     expect(summary.textContent).toContain('Restante')
   })
 })

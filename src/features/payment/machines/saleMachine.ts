@@ -29,7 +29,7 @@ import { useCartStore } from '@/features/cart/stores/cart'
 // consuming it without another saleMachine.ts change.
 //
 // 0.2 — VPOS partial-amount input UX (post-design user decision, not a
-// saleMachine.ts concern): a new input (VposAmountInput, Phase 3) is
+// saleMachine.ts concern): a new input (LegAmountInput, Phase 3) is
 // pre-filled with the FULL remaining amount by default
 // (`remainingAmount ?? total`), editable only DOWNWARD (max = remainder),
 // never empty/free-form. Confirming without editing preserves today's
@@ -99,7 +99,7 @@ export type SaleEvent =
   | { type: 'SELECT_METHOD'; method: KioskPaymentMethod }
   | { type: 'SUBMIT_PAYMENT'; payment: ActivePayment; giftCard?: GiftCard }
   | { type: 'GIFT_CARD_PARTIAL'; giftCard: GiftCard; remainingAmount: number }
-  | { type: 'VPOS_LEG_PAID'; payment: ActivePayment; method: KioskPaymentMethod; baseBs: number }
+  | { type: 'LEG_PAID'; payment: ActivePayment; method: KioskPaymentMethod; baseBs: number }
   | { type: 'TICK' }
   | { type: 'RETRY' }
   | { type: 'CONTINUE' }
@@ -183,13 +183,27 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
 }
 
+// Total del carrito CON IVA en Bs — misma fórmula que useCartTotal (el número
+// que se le muestra al cliente como "Total") y que el payload de la orden.
+// Es el remanente inicial de una venta cuando todavía no hay ninguna pierna:
+// `remainingAmount === null` NO significa "la primera pierna cierra la venta"
+// (bug: una transferencia parcial de 1.000 sobre 1.484,12 cerraba la venta
+// cobrada de menos), significa "nadie pagó nada todavía".
+function cartTotalBs(cart: CartItem[]): number {
+  return round2(cart.reduce((sum, item) => sum + item.subtotal * (1 + item.taxRate), 0))
+}
+
+// Tolerancia de centavo para comparar montos en Bs: evita que un residuo de
+// coma flotante (0,004) deje la venta abierta por un remanente inexistente.
+const AMOUNT_EPSILON = 0.01
+
 // generic-partial-payment (0.1, cerrado en Fase 2): construye el array
 // `legs` que consumen los actor inputs de processing/enqueuingOffline/
 // printing. Si ya hay piernas VPOS acumuladas (context.legs) las usa tal
 // cual — ya vienen con baseBs/amountBs/montoIgtf correctos desde `commitLeg`
 // (calcIgtf real, monto confirmado por el cajero). Si no (camino legacy:
 // SUBMIT_PAYMENT — método de un solo pago no-VPOS, o gift-card completa/
-// parcial cerrada sin VPOS_LEG_PAID), sintetiza una pierna única — NUNCA
+// parcial cerrada sin LEG_PAID), sintetiza una pierna única — NUNCA
 // escribe en context.legs.
 //
 // `totalBsForRemainder` es el total del carrito (sin IGTF) calculado por
@@ -316,20 +330,18 @@ export const saleMachine = setup({
       const output = (event as { output?: RequiredEngine[] }).output
       return Array.isArray(output) && output.length > 0
     },
-    // generic-partial-payment: decide si la pierna VPOS que se acaba de
-    // cobrar cierra la venta (processing) o vuelve a selectingMethod (loop).
-    // remainingAmount ya debe estar seteado por un GIFT_CARD_PARTIAL previo o
-    // por una pierna VPOS anterior en el mismo loop. Decisión explícita de
-    // esta iteración (documentada, no silenciosa — ver tasks.md 1.5): si es
-    // null (primera pierna VPOS de una venta SIN gift card y sin piernas
-    // previas), esta pierna es por definición el monto que el cajero confirmó
-    // para cerrar (Fase 3/VposAmountInput clampan ese monto contra el
-    // remanente real en la UI, fuera de este work unit) — tratarla como
-    // "cubre completo" preserva el cierre inmediato de una venta VPOS de un
-    // solo método (regresión, Scenario "Single VPOS-only sale unaffected").
+    // generic-partial-payment: decide si la pierna que se acaba de cobrar
+    // cierra la venta (processing) o vuelve a selectingMethod (loop).
+    // Con remainingAmount null (primera pierna de la venta: sin gift card y
+    // sin piernas previas) el remanente es el TOTAL del carrito — NUNCA se
+    // asume que la primera pierna cierra: una transferencia de 1.000 sobre un
+    // total de 1.484,12 loopea con 484,12 pendiente, y una pierna que cubre el
+    // total cierra igual que siempre (regresión "Single VPOS-only sale
+    // unaffected").
     coversRemaining: ({ context, event }) => {
-      const e = event as Extract<SaleEvent, { type: 'VPOS_LEG_PAID' }>
-      return context.remainingAmount === null || e.baseBs >= context.remainingAmount
+      const e = event as Extract<SaleEvent, { type: 'LEG_PAID' }>
+      const remaining = context.remainingAmount ?? cartTotalBs(context.cart)
+      return e.baseBs >= remaining - AMOUNT_EPSILON
     }
   },
   actions: {
@@ -371,10 +383,10 @@ export const saleMachine = setup({
     // generic-partial-payment: push de la pierna VPOS recién cobrada +
     // decremento del remanente. IGTF real por pierna (calcIgtf), nunca
     // hardcodeado (spec "IGTF Calculated Per Leg"). Si remainingAmount era
-    // null (ver guard coversRemaining), esta pierna decrementa desde su
-    // propio baseBs -> remainingAmount termina en 0 (cierra).
+    // null (ver guard coversRemaining), el decremento arranca del TOTAL del
+    // carrito: la pierna solo deja remainingAmount en 0 si realmente lo cubre.
     commitLeg: assign(({ context, event }) => {
-      const e = event as Extract<SaleEvent, { type: 'VPOS_LEG_PAID' }>
+      const e = event as Extract<SaleEvent, { type: 'LEG_PAID' }>
       const montoIgtf = calcIgtf(e.method, e.baseBs)
       const leg: PaymentLeg = {
         method: e.method,
@@ -382,12 +394,20 @@ export const saleMachine = setup({
         montoIgtf,
         amountBs: e.baseBs + montoIgtf,
         reference: e.payment.reference || '',
+        // Banco emisor de un cobro manual (transferencia): solo informativo,
+        // para poder listar la pierna con su banco en "Pagos ya realizados".
+        bank: e.payment.bank,
         ts: Date.now()
       }
-      const base = context.remainingAmount ?? e.baseBs
+      // Mismo remanente base que el guard `coversRemaining`: con
+      // remainingAmount null arranca del TOTAL del carrito, no del monto de
+      // esta pierna (si no, cualquier cobro parcial dejaba el saldo en 0 y la
+      // venta se cerraba cobrada de menos).
+      const base = context.remainingAmount ?? cartTotalBs(context.cart)
+      const rest = round2(base - e.baseBs)
       return {
         legs: [...context.legs, leg],
-        remainingAmount: Math.max(0, base - e.baseBs)
+        remainingAmount: rest <= AMOUNT_EPSILON ? 0 : rest
       }
     }),
     // Genera el x_fex_id UNA sola vez por intento de venta y lo conserva en
@@ -580,7 +600,7 @@ export const saleMachine = setup({
         // selectingMethod para la siguiente pierna. Ambas ramas ejecutan
         // commitLeg (push + decremento de remainingAmount) — GIFT_CARD_PARTIAL
         // arriba queda intacto (loop incondicional, nunca cierra).
-        VPOS_LEG_PAID: [
+        LEG_PAID: [
           { guard: 'coversRemaining', target: 'processing', actions: 'commitLeg' },
           { target: 'selectingMethod', actions: 'commitLeg' }
         ],
@@ -594,7 +614,7 @@ export const saleMachine = setup({
       invoke: {
         src: 'submitPaymentToOdoo',
         input: ({ context }) => {
-          // generic-partial-payment (0.1): una venta cerrada por VPOS_LEG_PAID
+          // generic-partial-payment (0.1): una venta cerrada por LEG_PAID
           // nunca pasa por setPayment/setMethod (esos campos son del camino
           // legacy) — solo exige customer/saleAttemptId + AL MENOS un origen
           // de pago (activePayment+selectedMethod legacy, o legs[] VPOS).
@@ -641,7 +661,7 @@ export const saleMachine = setup({
         src: 'enqueueOfflineOrder',
         input: ({ context }) => {
           // Ver comentario equivalente en `processing` (0.1): un cierre por
-          // VPOS_LEG_PAID nunca pasa por setPayment/setMethod.
+          // LEG_PAID nunca pasa por setPayment/setMethod.
           const hasLegacyPayment = context.activePayment && context.selectedMethod
           const hasLegs = context.legs.length > 0
           if (!context.customer || !context.saleAttemptId || (!hasLegacyPayment && !hasLegs)) {

@@ -15,14 +15,19 @@ interface UseVposCheckoutParams {
   // generic-partial-payment (3.2): monto BASE (sin IGTF) confirmado por el
   // cajero para esta pierna VPOS — autoritativo para PaymentLeg.baseBs, nunca
   // se infiere ciegamente de remainingAmount/totalWithIgtfBs. Alimentado por
-  // VposAmountInput (Fase 3.3/3.4, todavía no wireado — ver PaymentForm.tsx).
+  // LegAmountInput (Fase 3.3/3.4, todavía no wireado — ver PaymentForm.tsx).
   confirmedBaseBs: number
   // generic-partial-payment (3.4): gatea el ping/iframe del terminal VPOS —
   // no debe arrancar hasta que el cajero confirme el monto de la pierna en
-  // VposAmountInput (Fase 3.3/3.4). Default `true` es retrocompatible: cualquier
+  // LegAmountInput (Fase 3.3/3.4). Default `true` es retrocompatible: cualquier
   // caller/test que no pase este param explícitamente preserva el ping
   // inmediato de Work Unit 3.
   confirmed?: boolean
+  // Total de la venta (carrito con IVA, en Bs): remanente inicial cuando
+  // todavía no hay ninguna pierna. Sin él, la navegación comparaba el monto
+  // de la pierna contra sí mismo y siempre iba a /resultado, desincronizándose
+  // del guard `coversRemaining` de la máquina (que loopea).
+  saleTotalBs: number
   send: (event: SaleEvent) => void
   navigate: NavigateFunction
   pushToast: (type: 'success' | 'error', message: string) => void
@@ -45,6 +50,7 @@ export function useVposCheckout({
   paymentIgtf,
   confirmedBaseBs,
   confirmed = true,
+  saleTotalBs,
   send,
   navigate,
   pushToast
@@ -53,7 +59,7 @@ export function useVposCheckout({
 
   useEffect(() => {
     // generic-partial-payment (3.4): sin confirmación del monto de la
-    // pierna (VposAmountInput todavía no confirmó) no se pinguea el
+    // pierna (LegAmountInput todavía no confirmó) no se pinguea el
     // terminal — evita cobrar/mostrar el iframe con un monto que el cajero
     // aún puede editar hacia abajo.
     if (!method?.withMerchant || !confirmed) return
@@ -72,14 +78,14 @@ export function useVposCheckout({
           if (data.codRespuesta === '00') {
             clearTimeout(timeoutId)
             pushToast('success', 'Pago procesado exitosamente por VPOS')
-            // generic-partial-payment / payment-flow: SIEMPRE VPOS_LEG_PAID,
+            // generic-partial-payment / payment-flow: SIEMPRE LEG_PAID,
             // nunca SUBMIT_PAYMENT (ese evento queda reservado para el path
             // legacy no-VPOS/full-gift-card — ver saleMachine.ts 0.1). El
             // guard `coversRemaining` de la máquina decide processing vs.
             // selectingMethod; acá solo navegamos según la misma condición
             // para no desincronizar la UI de la transición real de la máquina.
             send({
-              type: 'VPOS_LEG_PAID',
+              type: 'LEG_PAID',
               payment: {
                 methodId: method.id,
                 reference: data.numeroReferencia || data.numSeq || 'MOCK-VPOS',
@@ -89,8 +95,8 @@ export function useVposCheckout({
               method,
               baseBs: confirmedBaseBs
             })
-            const remaining = context.remainingAmount ?? totalWithIgtfBs
-            navigate(confirmedBaseBs >= remaining ? '/resultado' : '/pago')
+            const remaining = context.remainingAmount ?? saleTotalBs
+            navigate(confirmedBaseBs >= remaining - 0.01 ? '/resultado' : '/pago')
           } else {
             clearTimeout(timeoutId)
             pushToast('error', `VPOS Rechazado: ${data.mensajeRespuesta || 'Error en transacción'}`)
@@ -127,7 +133,7 @@ export function useVposCheckout({
       clearTimeout(timeoutId)
       window.removeEventListener('message', handleIframeMessage)
     }
-  }, [method, paymentAmount, paymentIgtf, confirmedBaseBs, confirmed, context.remainingAmount, totalWithIgtfBs, send, navigate, pushToast])
+  }, [method, paymentAmount, paymentIgtf, confirmedBaseBs, confirmed, context.remainingAmount, saleTotalBs, send, navigate, pushToast])
 
   const docNumber = context.customer?.cedula || context.pendingVat || ''
   const iframeUrl = `${VPOS_BASE_URL}checkout?amount=${totalWithIgtfBs}&cedula=${docNumber}`

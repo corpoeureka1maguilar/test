@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
-import styles from './AppVirtualKeyboard.module.css'
+
+const WRAPPER_CLASS =
+  'group fixed bottom-0 left-0 right-0 bg-[rgba(255,255,255,0.85)] backdrop-blur-[25px] border-t border-surface-border shadow-[0_-20px_40px_rgba(0,0,0,0.08)] pt-2 px-4 pb-6 flex flex-col items-center z-[10000] animate-slideUp select-none ' +
+  'data-[layout=tel]:max-w-[400px] data-[layout=tel]:mx-auto data-[layout=tel]:rounded-[24px_24px_0_0] data-[layout=tel]:border data-[layout=tel]:border-surface-border data-[layout=tel]:px-5 data-[layout=tel]:pt-2 data-[layout=tel]:pb-6 ' +
+  '[@media(max-height:600px)]:pb-3'
+
+const HEADER_BAR_CLASS =
+  'group/header w-full max-w-[900px] flex items-center justify-between pt-2 px-1 pb-3 cursor-pointer relative [@media(max-height:600px)]:pb-[0.4rem]'
+
+const KEY_BASE_CLASS =
+  'flex-1 h-[clamp(44px,7vh,100px)] min-w-0 rounded-xl border border-[rgba(0,0,0,0.185)] bg-white text-text text-[3rem] font-normal cursor-pointer flex items-center justify-center transition-[transform,background-color,box-shadow] duration-150 ease-[cubic-bezier(0.2,0.8,0.2,1)] shadow-[0_4px_8px_rgba(0,0,0,0.02)] active:scale-[0.96] active:bg-surface active:shadow-none group-data-[layout=tel]:h-[clamp(50px,8vh,64px)] [@media(max-height:600px)]:h-[38px] [@media(max-height:600px)]:rounded-lg'
 
 interface AppVirtualKeyboardProps {
   value?: string
@@ -82,7 +92,7 @@ export function AppVirtualKeyboard(props: AppVirtualKeyboardProps) {
       setTimeout(() => {
         const activeEl = document.activeElement
         const clickedKeyboard = activeEl && (
-          activeEl.closest(`.${styles.wrapper}`) || 
+          activeEl.closest('[data-virtual-keyboard]') ||
           activeEl.tagName === 'BUTTON'
         )
         if (!clickedKeyboard && activeEl?.tagName !== 'INPUT' && activeEl?.tagName !== 'TEXTAREA') {
@@ -214,64 +224,51 @@ export function AppVirtualKeyboard(props: AppVirtualKeyboardProps) {
     : (isAlt ? textLayoutAlt : textLayoutNormal)
 
   if (isMinimized) {
-    return null 
-
-    // return (
-    //   <div 
-    //     className={`${styles.wrapper} ${styles.minimized}`} 
-    //     onClick={handleExpand}
-    //     onMouseDown={(e) => e.preventDefault()}
-    //     title="Mostrar teclado"
-    //   >
-    //     <div className={styles.minimizedContent}>
-    //       <span className={styles.minimizedIcon}>⌨️</span>
-    //       <span className={styles.minimizedText}>Teclado minimizado (Tocar para expandir)</span>
-    //     </div>
-    //   </div>
-    // )
+    return null
   }
 
   return (
-    <div className={styles.wrapper} data-layout={layoutType}>
+    <div className={WRAPPER_CLASS} data-layout={layoutType} data-virtual-keyboard>
       {/* Sleek top header handle bar for quick minimizing */}
-      <div className={styles.headerBar} onClick={() => setInternalMinimized(true)} role="button" aria-label="Minimizar teclado">
-        <div className={styles.handle} />
-        <span className={styles.headerTitle}>
+      <div className={HEADER_BAR_CLASS} onClick={() => setInternalMinimized(true)} role="button" aria-label="Minimizar teclado">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-11 h-[5px] bg-surface-heavy rounded-[10px] opacity-60 transition-opacity duration-300 group-hover/header:opacity-100" />
+        <span className="text-[0.95rem] font-bold text-text-muted uppercase tracking-[0.05em]">
           {layoutType === 'tel' ? 'Teclado Numérico' : 'Teclado Alfanumérico'}
         </span>
-        <div className={styles.headerActions}>
-          <button type="button" className={styles.minimizeHeaderBtn} onClick={() => setInternalMinimized(true)}>
+        <div className="flex items-center gap-2">
+          <button type="button" className="bg-transparent text-text-muted border border-transparent rounded-[20px] px-[0.85rem] py-[0.35rem] text-[0.9rem] font-semibold cursor-pointer transition-all duration-200 hover:bg-[rgba(0,0,0,0.05)] hover:text-text active:scale-[0.96]" onClick={() => setInternalMinimized(true)}>
             🗕 Minimizar
           </button>
-          <button type="button" className={styles.closeHeaderBtn} onClick={(e) => { e.stopPropagation(); setIsVisible(false); }}>
+          <button type="button" className="bg-surface text-text border border-surface-border rounded-[20px] px-[0.85rem] py-[0.35rem] text-[0.9rem] font-bold cursor-pointer transition-all duration-200 active:scale-[0.96] active:bg-surface-hover" onClick={(e) => { e.stopPropagation(); setIsVisible(false); }}>
             ✕ Ocultar
           </button>
         </div>
       </div>
 
-      <div className={styles.keysContainer}>
+      <div className="flex flex-col gap-[0.6rem] w-full max-w-[900px]">
         {currentLayout.map((row, rowIndex) => (
-          <div key={rowIndex} className={styles.row}>
+          <div key={rowIndex} className="flex gap-2 w-full justify-center">
             {row.map((key) => {
               let label = key
-              let keyClass = styles.key
+              let keyClass = KEY_BASE_CLASS
 
               if (key === 'SHIFT') {
                 label = '⇧'
-                if (isShift) keyClass += ` ${styles.active}`
-                keyClass += ` ${styles.specialKey}`
+                if (isShift) keyClass += ' !bg-text !text-white'
+                keyClass += ' bg-surface text-text-muted flex-[1.3] text-[clamp(0.9rem,1.5vw,1.1rem)]'
               } else if (key === 'ALT') {
                 label = isAlt ? 'abc' : '?123'
-                keyClass += ` ${styles.specialKey}`
+                keyClass += ' bg-surface text-text-muted flex-[1.3] text-[clamp(0.9rem,1.5vw,1.1rem)]'
               } else if (key === 'BACKSPACE') {
                 label = '⌫'
-                keyClass += ` ${styles.specialKey} ${styles.backspace}`
+                // .backspace pisa el font-size de .specialKey en el CSS original (orden de la hoja)
+                keyClass += ' bg-surface text-text-muted flex-[1.3] text-[2rem]'
               } else if (key === 'SPACE') {
                 label = 'Espacio'
-                keyClass += ` ${styles.space}`
+                keyClass += ' flex-[4] text-[clamp(0.9rem,1.5vw,1.05rem)] text-text-muted'
               } else if (key === 'ENTER') {
                 label = '✓ Listo'
-                keyClass += ` ${styles.enter}`
+                keyClass += ' bg-accent text-white border-transparent flex-[2] text-[clamp(0.9rem,1.5vw,1.05rem)] shadow-[0_4px_12px_var(--color-accent-glow)] active:bg-accent-hover'
               }
 
               // Capitalize simple character labels if shift is active and not alt
@@ -284,6 +281,10 @@ export function AppVirtualKeyboard(props: AppVirtualKeyboardProps) {
                   key={key}
                   type="button"
                   className={keyClass}
+                  /* Enganche estable para que un contenedor pueda reestilar las
+                     teclas (ver GiftCardPaymentView). Antes se dependía del
+                     nombre de clase que generaba CSS Modules. */
+                  data-key
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleKeyClick(key)}
                 >

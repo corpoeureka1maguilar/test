@@ -5,7 +5,6 @@ import { useRegisterLoyaltyCard } from '@/features/loyalty/hooks/useLoyalty'
 import { checkLoyaltyCardExists } from '@/shared/lib/odooRepository'
 import { useUIStore } from '@/shared/stores/ui'
 import { useConfigStore } from '@/shared/stores/config'
-import styles from './LoyaltyCheck.module.css'
 
 // ─── Mask derivation from regex (ej. ^[A-Z0-9]{4}-[A-Z0-9]{4}$) ───────────────
 
@@ -168,7 +167,7 @@ export function LoyaltyCheck() {
   if (matches('checkingLoyalty')) {
     return (
       <div className="kiosk-container">
-        <p className={styles.message}>Verificando promociones...</p>
+        <p className="text-text-muted text-[length:var(--font-lead)]">Verificando promociones...</p>
       </div>
     )
   }
@@ -183,38 +182,38 @@ export function LoyaltyCheck() {
         ref={scannerRef}
         type="text"
         aria-hidden="true"
-        className={styles.scannerInput}
+        className="absolute opacity-0 pointer-events-none"
         onKeyDown={handleScannerKeyDown}
         readOnly={registering}
       />
 
-      <p className={styles.eyebrow}>Programa de fidelización</p>
-      <h2 className={styles.title}>{engine.engine_name}</h2>
+      <p className="text-[0.85rem] font-bold uppercase tracking-[0.12em] text-text-muted mb-[-0.5rem]">Programa de fidelización</p>
+      <h2 className="text-center">{engine.engine_name}</h2>
 
-      <div className={`card ${styles.card}`}>
-        <p className={styles.message}>{engine.message}</p>
+      <div className="card flex flex-col gap-5 items-stretch">
+        <p className="text-text-muted text-[length:var(--font-lead)]">{engine.message}</p>
 
         {engine.customer_has_card ? (
           <>
-            <div className={`${styles.status} ${styles.statusOk}`}>
+            <div className="flex flex-col gap-[0.35rem] text-left px-5 py-4 rounded-[calc(var(--app-radius)-6px)] text-base bg-accent-subtle text-accent-hover">
               <span>Código registrado</span>
-              <strong>{engine.current_card_code}</strong>
+              <strong className="text-[1.2rem] tracking-[0.04em]">{engine.current_card_code}</strong>
             </div>
-            <div className={styles.actions}>
-              <button type="button" className="btn btn-primary" onClick={handleConfirm}>
+            <div className="flex flex-col gap-[0.85rem] items-center mt-1">
+              <button type="button" className="btn btn-primary max-w-full" onClick={handleConfirm}>
                 Continuar
               </button>
-              <button type="button" className="btn btn-secondary" onClick={handleSkip}>
+              <button type="button" className="btn btn-secondary max-w-full" onClick={handleSkip}>
                 Omitir
               </button>
             </div>
           </>
         ) : (
           <>
-            <div className={`${styles.status} ${styles.statusMissing}`}>
+            <div className="flex flex-col gap-[0.35rem] text-left px-5 py-4 rounded-[calc(var(--app-radius)-6px)] text-base bg-[rgba(245,158,11,0.1)] text-[#b45309] text-center">
               Este cliente no tiene una tarjeta para este programa.
             </div>
-            <label className={`label-premium ${styles.inputLabel}`}>
+            <label className="label-premium gap-[0.6rem]">
               Código de la tarjeta
               <input
                 type="text"
@@ -222,14 +221,15 @@ export function LoyaltyCheck() {
                 placeholder={placeholder}
                 maxLength={maxLength}
                 autoComplete="off"
+                className="uppercase tracking-[0.08em] text-center font-semibold"
                 onChange={(e) => handleInput(e.target.value)}
               />
             </label>
-            {validationError && <p className={styles.error}>{validationError}</p>}
-            <div className={styles.actions}>
+            {validationError && <p className="text-danger text-[0.95rem] text-center mt-[-0.5rem]">{validationError}</p>}
+            <div className="flex flex-col gap-[0.85rem] items-center mt-1">
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-primary max-w-full"
                 onClick={() => {
                   handleRegister().catch((err) => {
                     setValidationError((err as Error).message || 'Error al registrar la tarjeta.')
@@ -239,10 +239,10 @@ export function LoyaltyCheck() {
               >
                 {registering ? 'Registrando...' : 'Registrar'}
               </button>
-              <button type="button" className="btn btn-secondary" onClick={handleSkip}>
+              <button type="button" className="btn btn-secondary max-w-full" onClick={handleSkip}>
                 Omitir
               </button>
-              <p className={styles.hint}>Si no tienes una tarjeta, puedes omitir este paso.</p>
+              <p className="text-text-muted text-[0.9rem] text-center">Si no tienes una tarjeta, puedes omitir este paso.</p>
             </div>
           </>
         )}

@@ -121,7 +121,7 @@ describe('PaymentForm — remanente de tarjeta de regalo (pago parcial 2-leg, Sc
   })
 })
 
-// Método VPOS (withMerchant) para probar el wiring de VposAmountInput
+// Método VPOS (withMerchant) para probar el wiring de LegAmountInput
 // (generic-partial-payment, tasks 3.3/3.4): PaymentForm debe mostrar el
 // input de monto ANTES del iframe del terminal, y gatear el ping hasta que
 // el cajero confirme.
@@ -138,7 +138,7 @@ const vposMethod: KioskPaymentMethod = {
   printerCode: '05'
 }
 
-describe('PaymentForm — wiring de VposAmountInput (generic-partial-payment 3.3/3.4)', () => {
+describe('PaymentForm — wiring de LegAmountInput (generic-partial-payment 3.3/3.4)', () => {
   beforeEach(() => {
     send.mockClear()
     useCartStore.setState({
@@ -155,7 +155,7 @@ describe('PaymentForm — wiring de VposAmountInput (generic-partial-payment 3.3
     vi.unstubAllGlobals()
   })
 
-  it('muestra VposAmountInput (no el iframe VPOS) ANTES de confirmar el monto — el ping queda gateado', () => {
+  it('muestra LegAmountInput (no el iframe VPOS) ANTES de confirmar el monto — el ping queda gateado', () => {
     mockContext = { selectedMethod: vposMethod, remainingAmount: 80 }
     render(<MemoryRouter><PaymentForm /></MemoryRouter>)
 
@@ -172,7 +172,105 @@ describe('PaymentForm — wiring de VposAmountInput (generic-partial-payment 3.3
     expect(screen.queryByText('Confirmar monto')).not.toBeInTheDocument()
     // vposStatus arranca en 'checking' (spinner) y pasa a 'waiting' (iframe)
     // una vez el ping resuelve — cualquiera de los dos confirma que se dejó
-    // VposAmountInput y se entró a la vista del terminal VPOS.
+    // LegAmountInput y se entró a la vista del terminal VPOS.
     expect(await screen.findByTitle('VPOS Checkout')).toBeInTheDocument()
+  })
+})
+
+// Transferencia bancaria: cobro parcial MANUAL (generic-partial-payment).
+// Mismo paso de monto que VPOS, pero cierra con banco + referencia y emite
+// LEG_PAID (una pierna), no SUBMIT_PAYMENT.
+const transferMethod: KioskPaymentMethod = {
+  id: 11,
+  name: 'Transferencia Banesco',
+  paymentType: 'transferencia',
+  applyIgtf: false,
+  igtfPercent: 0,
+  journalId: 8,
+  currencyId: 1,
+  useForChange: false,
+  printerCode: '05'
+}
+
+describe('PaymentForm — pago parcial por transferencia bancaria', () => {
+  beforeEach(() => {
+    send.mockClear()
+    // Carrito: subtotal 200 Bs + IVA 16% = 232 Bs
+    useCartStore.setState({
+      items: [{
+        productId: 1, name: 'Producto A', defaultCode: 'P-A',
+        price: 232, priceUsd: 6, taxRate: 0.16, qty: 1, subtotal: 200
+      }]
+    })
+    useExchangeRateStore.setState({ rate: 40 })
+    mockContext = { selectedMethod: transferMethod }
+  })
+
+  const fillDetails = (bank: string, reference: string) => {
+    fireEvent.change(screen.getByLabelText(/Banco/i, { selector: 'input' }), { target: { value: bank } })
+    fireEvent.change(screen.getByLabelText(/Referencia/i, { selector: 'input' }), { target: { value: reference } })
+  }
+
+  it('pide el monto de la pierna ANTES del formulario de banco/referencia', () => {
+    render(<MemoryRouter><PaymentForm /></MemoryRouter>)
+
+    expect(screen.getByText('Confirmar monto')).toBeInTheDocument()
+    expect(screen.queryByText('Confirmar pago')).not.toBeInTheDocument()
+  })
+
+  it('cobra parcial: emite LEG_PAID con el monto confirmado (100 de 232) y NO cierra la venta', () => {
+    render(<MemoryRouter><PaymentForm /></MemoryRouter>)
+
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '100' } })
+    fireEvent.click(screen.getByText('Confirmar monto'))
+
+    fillDetails('Banesco', 'REF-100')
+    fireEvent.click(screen.getByText('Confirmar pago'))
+
+    expect(send).toHaveBeenCalledTimes(1)
+    const call = send.mock.calls[0]![0]
+    expect(call.type).toBe('LEG_PAID')
+    expect(call.baseBs).toBe(100)
+    expect(call.method.id).toBe(transferMethod.id)
+    expect(call.payment.reference).toBe('REF-100')
+    expect(call.payment.bank).toBe('Banesco')
+  })
+
+  it('cobra el remanente completo cuando el cajero confirma sin editar (una sola transferencia cierra la venta)', () => {
+    render(<MemoryRouter><PaymentForm /></MemoryRouter>)
+
+    fireEvent.click(screen.getByText('Confirmar monto'))
+    fillDetails('Banesco', 'REF-FULL')
+    fireEvent.click(screen.getByText('Confirmar pago'))
+
+    const call = send.mock.calls[0]![0]
+    expect(call.type).toBe('LEG_PAID')
+    expect(call.baseBs).toBe(232)
+  })
+
+  it('sobre un remanente previo (gift card / pierna anterior), el tope del monto es el remanente, no el total', () => {
+    mockContext = { selectedMethod: transferMethod, remainingAmount: 80 }
+    render(<MemoryRouter><PaymentForm /></MemoryRouter>)
+
+    const input = screen.getByRole('spinbutton') as HTMLInputElement
+    expect(input.value).toBe('80')
+    expect(input.max).toBe('80')
+
+    fireEvent.change(input, { target: { value: '999' } })
+    fireEvent.click(screen.getByText('Confirmar monto'))
+    fillDetails('Mercantil', 'REF-80')
+    fireEvent.click(screen.getByText('Confirmar pago'))
+
+    expect(send.mock.calls[0]![0].baseBs).toBeLessThanOrEqual(80)
+  })
+
+  it('regresión: un método manual NO parcial (efectivo) sigue emitiendo SUBMIT_PAYMENT sin paso de monto', () => {
+    mockContext = { selectedMethod: localMethod }
+    render(<MemoryRouter><PaymentForm /></MemoryRouter>)
+
+    expect(screen.queryByText('Confirmar monto')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Confirmar pago'))
+
+    expect(send.mock.calls[0]![0].type).toBe('SUBMIT_PAYMENT')
   })
 })

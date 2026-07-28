@@ -1,5 +1,3 @@
-import styles from '../pages/AdvancedMenu.module.css'
-
 interface Props {
   sessionState: 'checking' | 'opened' | 'closed' | 'error'
   sessionId: number | null
@@ -10,6 +8,12 @@ interface Props {
   onRequestCloseSession: () => void
   onRequestPrintReport: (tipo: 'X' | 'Z', reportName: string) => void
 }
+
+const BADGE_BASE = 'text-[0.9rem] font-extrabold px-[0.85rem] py-[0.35rem] rounded-full'
+const BADGE_OPEN = `${BADGE_BASE} bg-[rgba(16,185,129,0.1)] text-[#10b981]`
+const BADGE_CLOSED = `${BADGE_BASE} bg-[rgba(239,68,68,0.1)] text-[#ef4444]`
+const CIERRE_CARD =
+  'border border-surface-border p-[1.5rem_1rem] rounded-app flex flex-col items-center gap-3 cursor-pointer transition-all duration-[0.4s] ease-[cubic-bezier(0.2,0.8,0.2,1)] no-underline font-app bg-panel shadow-app group hover:-translate-y-[10px] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.12)] hover:border-accent active:scale-[0.96] active:-translate-y-[5px]'
 
 export function SessionTab({
   sessionState,
@@ -22,16 +26,16 @@ export function SessionTab({
   onRequestPrintReport
 }: Props) {
   return (
-    <div className={styles.cierresContainer}>
-      <div className={styles.sessionCard}>
-        <div className={styles.sessionHeader}>
+    <div className="flex flex-col w-full">
+      <div className="bg-panel border border-surface-border rounded-app p-10 shadow-app flex flex-col gap-6 text-left max-w-[600px] mx-auto mb-10">
+        <div className="flex justify-between items-center border-b-2 border-surface pb-4 gap-4">
           <h3>Estado de la Sesión</h3>
-          <span className={`${styles.badge} ${sessionState === 'opened' ? styles.badgeOpen : styles.badgeClosed}`}>
+          <span className={sessionState === 'opened' ? BADGE_OPEN : BADGE_CLOSED}>
             {sessionState === 'opened' ? '🟢 ACTIVA' : sessionState === 'checking' ? '🟡 VERIFICANDO...' : '🔴 CERRADA'}
           </span>
         </div>
 
-        <div className={styles.sessionDetails}>
+        <div className="flex flex-col gap-3 text-[1.1rem] [&>p]:text-text [&>p>strong]:text-text-muted [&>p>strong]:font-semibold [&>p>strong]:mr-2">
           <p><strong>Estación:</strong> {stationName || 'No configurada'}</p>
           {sessionState === 'opened' && (
             <>
@@ -42,7 +46,7 @@ export function SessionTab({
           )}
         </div>
 
-        <div className={styles.sessionActions}>
+        <div className="flex gap-4 mt-2 [&>button]:flex-1">
           {sessionState === 'closed' && (
             <button
               type="button"
@@ -65,35 +69,35 @@ export function SessionTab({
       </div>
 
       {sessionState === 'opened' && (
-        <div className={styles.cierresGrid}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-6">
           <button
             type="button"
-            className={`${styles.cierreCard} ${styles.cierreTurno}`}
+            className={CIERRE_CARD}
             onClick={() => onRequestPrintReport('X', 'Cierre de Turno')}
           >
-            <div className={styles.cierreIcon}>⏱</div>
-            <div className={styles.cierreTitle}>Cierre de Turno</div>
-            <div className={styles.cierreDesc}>Imprime Reporte X sin cerrar memoria fiscal del día</div>
+            <div className="text-[2.2rem] flex items-center justify-center w-[60px] h-[60px] rounded-full bg-surface transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:bg-accent-subtle group-hover:scale-110">⏱</div>
+            <div className="text-[1.2rem] font-extrabold text-text">Cierre de Turno</div>
+            <div className="text-[0.85rem] text-text-muted leading-[1.5] text-center">Imprime Reporte X sin cerrar memoria fiscal del día</div>
           </button>
 
           <button
             type="button"
-            className={`${styles.cierreCard} ${styles.cierreCaja}`}
+            className={CIERRE_CARD}
             onClick={() => onRequestPrintReport('X', 'Cierre de Caja')}
           >
-            <div className={styles.cierreIcon}>💵</div>
-            <div className={styles.cierreTitle}>Cierre de Caja</div>
-            <div className={styles.cierreDesc}>Lectura de acumulados de caja - Reporte X</div>
+            <div className="text-[2.2rem] flex items-center justify-center w-[60px] h-[60px] rounded-full bg-surface transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:bg-accent-subtle group-hover:scale-110">💵</div>
+            <div className="text-[1.2rem] font-extrabold text-text">Cierre de Caja</div>
+            <div className="text-[0.85rem] text-text-muted leading-[1.5] text-center">Lectura de acumulados de caja - Reporte X</div>
           </button>
 
           <button
             type="button"
-            className={`${styles.cierreCard} ${styles.cierreZ}`}
+            className={CIERRE_CARD}
             onClick={() => onRequestPrintReport('Z', 'Cierre de Reporte Z')}
           >
-            <div className={styles.cierreIcon}>📊</div>
-            <div className={styles.cierreTitle}>Cierre de Reporte Z</div>
-            <div className={styles.cierreDesc}>Cierre fiscal obligatorio del día - Reporte Z</div>
+            <div className="text-[2.2rem] flex items-center justify-center w-[60px] h-[60px] rounded-full bg-surface transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:bg-accent-subtle group-hover:scale-110">📊</div>
+            <div className="text-[1.2rem] font-extrabold text-text">Cierre de Reporte Z</div>
+            <div className="text-[0.85rem] text-text-muted leading-[1.5] text-center">Cierre fiscal obligatorio del día - Reporte Z</div>
           </button>
         </div>
       )}

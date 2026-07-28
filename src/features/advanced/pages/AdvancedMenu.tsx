@@ -18,7 +18,6 @@ import { useOrderSearch } from '../hooks/useOrderSearch'
 import { useOrderReturn } from '../hooks/useOrderReturn'
 import { useOrderReprint } from '../hooks/useOrderReprint'
 import { useFiscalReports } from '../hooks/useFiscalReports'
-import styles from './AdvancedMenu.module.css'
 
 export function AdvancedMenu() {
   const navigate = useNavigate()
@@ -41,8 +40,8 @@ export function AdvancedMenu() {
 
   if (done) {
     return (
-      <div className={`kiosk-container ${styles.center}`}>
-        <div className={styles.iconSuccess}>✓</div>
+      <div className="kiosk-container items-center justify-center text-center gap-10">
+        <div className="w-[100px] h-[100px] bg-accent-subtle text-accent rounded-full flex items-center justify-center text-[4rem] mx-auto animate-scaleIn">✓</div>
         <h2>Devolución procesada</h2>
         <button type="button" className="btn btn-primary" onClick={() => navigate('/')}>
           Volver al inicio
@@ -53,7 +52,7 @@ export function AdvancedMenu() {
 
   return (
     <div className="kiosk-container">
-      <h2 className={styles.title}>Menú Avanzado</h2>
+      <h2 className="text-[length:var(--font-h2)] font-extrabold mb-4 text-text">Menú Avanzado</h2>
 
       <AdvancedTabs activeTab={activeTab} onSelectTab={setActiveTab} />
 
@@ -139,7 +138,7 @@ export function AdvancedMenu() {
         />
       )}
 
-      <button type="button" className={`btn ${styles.backBtn}`} onClick={() => navigate('/')}>
+      <button type="button" className="btn btn-secondary mt-auto" onClick={() => navigate('/')}>
         Volver al inicio
       </button>
     </div>

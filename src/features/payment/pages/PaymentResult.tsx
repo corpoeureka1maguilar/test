@@ -5,7 +5,6 @@ import { useCartStore } from '@/features/cart/stores/cart'
 import { AppPinModal } from '@/features/payment/components/AppPinModal'
 import { KIOSK_OPERATIONS } from '@/shared/lib/odooRepository'
 import { trackSale } from '@/shared/lib/metrics'
-import styles from './PaymentResult.module.css'
 
 export function PaymentResult() {
   const { state, context, send } = useSaleMachine()
@@ -41,9 +40,9 @@ export function PaymentResult() {
 
   if (isProcessing) {
     return (
-      <div className={`kiosk-container ${styles.center}`}>
-        <div className={styles.spinner} />
-        <p className={styles.processingText}>
+      <div className="kiosk-container justify-center items-center gap-6 text-center">
+        <div className="h-[70px] w-[70px] animate-spin rounded-full border-[6px] border-surface [border-top-color:var(--color-accent)]" />
+        <p>
           {state === 'printing'
             ? 'Imprimiendo factura...'
             : state === 'enqueuingOffline'
@@ -58,13 +57,13 @@ export function PaymentResult() {
   // ofrecer reintento de impresión antes de dar la venta por cerrada
   if (isPrintError) {
     return (
-      <div className={`kiosk-container ${styles.center}`}>
-        <div className={styles.iconError}>⚠</div>
-        <h2 className={styles.title}>Pago registrado, factura pendiente</h2>
-        <p className={styles.message}>
+      <div className="kiosk-container justify-center items-center gap-6 text-center">
+        <div className="mx-auto flex h-[100px] w-[100px] items-center justify-center rounded-full bg-danger/10 text-[4rem] text-danger animate-scaleIn">⚠</div>
+        <h2 className="m-0">Pago registrado, factura pendiente</h2>
+        <p className="max-w-[400px] text-[length:var(--font-lead)] leading-[1.4] text-text-muted">
           {context.printError ?? 'No se pudo imprimir la factura fiscal.'}
         </p>
-        <div className={styles.actions}>
+        <div className="flex w-full flex-col items-center gap-4">
           <button type="button" className="btn btn-primary" onClick={() => setPendingPrintAction('retry')}>
             Reintentar impresión
           </button>
@@ -98,11 +97,11 @@ export function PaymentResult() {
 
   if (isError) {
     return (
-      <div className={`kiosk-container ${styles.center}`}>
-        <div className={styles.iconError}>✕</div>
-        <h2 className={styles.title}>Error en el pago</h2>
-        <p className={styles.message}>{context.errorMessage ?? 'Ocurrió un error al procesar el pago.'}</p>
-        <div className={styles.actions}>
+      <div className="kiosk-container justify-center items-center gap-6 text-center">
+        <div className="mx-auto flex h-[100px] w-[100px] items-center justify-center rounded-full bg-danger/10 text-[4rem] text-danger animate-scaleIn">✕</div>
+        <h2 className="m-0">Error en el pago</h2>
+        <p className="max-w-[400px] text-[length:var(--font-lead)] leading-[1.4] text-text-muted">{context.errorMessage ?? 'Ocurrió un error al procesar el pago.'}</p>
+        <div className="flex w-full flex-col items-center gap-4">
           <button type="button" className="btn btn-primary" onClick={() => send({ type: 'RETRY' })}>
             Intentar de nuevo
           </button>
@@ -115,18 +114,18 @@ export function PaymentResult() {
   }
 
   return (
-    <div className={`kiosk-container ${styles.center}`}>
-      <div className={styles.iconSuccess}>✓</div>
-      <h2 className={styles.title}>¡Pago confirmado!</h2>
+    <div className="kiosk-container justify-center items-center gap-6 text-center">
+      <div className="mx-auto flex h-[100px] w-[100px] items-center justify-center rounded-full bg-accent-subtle text-[4rem] text-accent animate-scaleIn">✓</div>
+      <h2 className="m-0">¡Pago confirmado!</h2>
 
       {context.queuedOffline && (
-        <p className={styles.printWarning}>
+        <p>
           Se registrará y sincronizará cuando el servidor esté disponible.
         </p>
       )}
 
       {context.printerResult && (
-        <div className={styles.receipt}>
+        <div className="glass-card flex w-full max-w-[400px] flex-col gap-3 bg-surface p-5 text-left text-[1.05rem] [&_p]:m-0 [&_p]:flex [&_p]:justify-between [&_p]:text-text-muted [&_p_strong]:text-text">
           <p>Factura N°: <strong>{context.printerResult.code}</strong></p>
           <p>Fecha: <strong>{context.printerResult.date}</strong></p>
           <p>Serial: <strong>{context.printerResult.serial}</strong></p>
@@ -134,15 +133,14 @@ export function PaymentResult() {
       )}
 
       {context.printError && (
-        <p className={styles.printWarning}>⚠ La impresión falló: {context.printError}</p>
+        <p>⚠ La impresión falló: {context.printError}</p>
       )}
 
       {context.countdown > 0 && (
-        <p className={styles.countdown}>Volviendo al inicio en {context.countdown}s...</p>
+        <p className="text-[1.1rem] italic text-text-muted">Volviendo al inicio en {context.countdown}s...</p>
       )}
 
-      <div className={styles.actions}>
-     
+      <div className="flex w-full flex-col items-center gap-4">
         <button type="button" className="btn btn-primary" onClick={() => { send({ type: 'RESET' }); navigate('/') }}>
           Finalizar
         </button>

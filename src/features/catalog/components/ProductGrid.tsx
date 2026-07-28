@@ -1,6 +1,5 @@
 import type { KioskProduct } from '@/shared/types/types'
 import { ProductCard } from './ProductCard'
-import styles from '../pages/ProductCatalog.module.css'
 
 interface Props {
   isLoading: boolean
@@ -25,11 +24,11 @@ export function ProductGrid({
   setLastScannedProduct
 }: Props) {
   if (isLoading) {
-    return <p className={styles.loading}>Cargando catálogo...</p>
+    return <p className="col-span-full text-center text-gray-400 font-medium py-12 text-base">Cargando catálogo...</p>
   }
 
   return (
-    <div className={styles.grid}>
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 overflow-y-auto pb-6 flex-1 min-h-0 pr-1">
       {filtered.map(product => {
         const qty = getQty(product.id)
         return (
@@ -52,7 +51,11 @@ export function ProductGrid({
           />
         )
       })}
-      {filtered.length === 0 && <p className={styles.empty}>No se encontraron productos</p>}
+      {filtered.length === 0 && (
+        <p className="col-span-full text-center text-gray-400 font-medium py-12 text-base">
+          No se encontraron productos
+        </p>
+      )}
     </div>
   )
 }

@@ -11,11 +11,11 @@ import { useVposCheckout } from '@/features/payment/hooks/useVposCheckout'
 import { useGiftCardPayment } from '@/features/payment/hooks/useGiftCardPayment'
 import { usePaymentDetailsForm } from '@/features/payment/hooks/usePaymentDetailsForm'
 import { VposPaymentView } from '@/features/payment/components/VposPaymentView'
-import { VposAmountInput } from '@/features/payment/components/VposAmountInput'
+import { LegAmountInput } from '@/features/payment/components/LegAmountInput'
+import { isPartialCapableManualMethod } from '@/shared/lib/paymentConfig'
 import { GiftCardPaymentView } from '@/features/payment/components/GiftCardPaymentView'
 import { PaymentAmountSummary } from '@/features/payment/components/PaymentAmountSummary'
 import { PaymentDetailsForm } from '@/features/payment/components/PaymentDetailsForm'
-import styles from './PaymentForm.module.css'
 
 export function PaymentForm() {
   const { send, context } = useSaleMachine()
@@ -35,51 +35,75 @@ export function PaymentForm() {
   // comportamiento queda byte-idéntico al de hoy.
   const effectiveTotal = context.remainingAmount ?? total
 
-  // generic-partial-payment (3.3/3.4): monto de la pierna VPOS confirmado por
-  // el cajero en VposAmountInput. `null` hasta que confirma — el ping/iframe
-  // del terminal (useVposCheckout) queda gateado hasta entonces (ver
-  // `confirmed` más abajo). Una vez confirmado, `amounts`/`confirmedBaseBs`
-  // se recalculan sobre el valor real elegido (puede ser MENOR al remanente
-  // completo — split deliberado), nunca sobre `effectiveTotal` a ciegas.
+  // generic-partial-payment (3.3/3.4): monto de la pierna confirmado por el
+  // cajero en LegAmountInput. `null` hasta que confirma — el ping/iframe del
+  // terminal (useVposCheckout) queda gateado hasta entonces (ver `confirmed`
+  // más abajo), y en un método manual parcial (transferencia) el formulario de
+  // banco/referencia tampoco se muestra todavía. Una vez confirmado,
+  // `amounts`/`legBaseBs` se recalculan sobre el valor real elegido (puede ser
+  // MENOR al remanente completo — split deliberado), nunca sobre
+  // `effectiveTotal` a ciegas.
   const isVposMethod = !!method?.withMerchant
+  // Transferencia (y cualquier tipo en PARTIAL_CAPABLE_PAYMENT_TYPES): cobro
+  // parcial manual — mismo paso de monto que VPOS, pero el cobro se cierra con
+  // banco + referencia en vez del terminal.
+  const isPartialManual = isPartialCapableManualMethod(method)
+  const supportsPartial = isVposMethod || isPartialManual
   const [confirmedBaseBs, setConfirmedBaseBs] = useState<number | null>(null)
-  const vposAmountBase = confirmedBaseBs ?? effectiveTotal
-  const vposConfirmed = confirmedBaseBs !== null
+  const legBaseBs = confirmedBaseBs ?? effectiveTotal
+  const legConfirmed = confirmedBaseBs !== null
 
-  const amounts = usePaymentAmounts(method, isVposMethod ? vposAmountBase : effectiveTotal, globalRate)
+  const amounts = usePaymentAmounts(method, supportsPartial ? legBaseBs : effectiveTotal, globalRate)
   const vpos = useVposCheckout({
     method,
     context,
     totalWithIgtfBs: amounts.totalWithIgtfBs,
     paymentAmount: amounts.paymentAmount,
     paymentIgtf: amounts.paymentIgtf,
-    confirmedBaseBs: vposAmountBase,
-    confirmed: vposConfirmed,
+    confirmedBaseBs: legBaseBs,
+    confirmed: legConfirmed,
+    saleTotalBs: total,
     send,
     navigate,
     pushToast
   })
   const giftCard = useGiftCardPayment({ method, total, globalRate, send, navigate, pushToast })
-  const detailsForm = usePaymentDetailsForm({ method, amounts, send, navigate, pushToast })
+  const detailsForm = usePaymentDetailsForm({
+    method,
+    amounts,
+    // Solo un método manual PARCIAL emite una pierna (LEG_PAID); el resto
+    // sigue por SUBMIT_PAYMENT sin cambios.
+    legBaseBs: isPartialManual ? legBaseBs : null,
+    remainingAmount: context.remainingAmount,
+    total,
+    send,
+    navigate,
+    pushToast
+  })
 
   if (!method) return null
 
   const handleBack = () => { send({ type: 'BACK' }); navigate('/pago') }
 
+  // Paso de monto: común a VPOS y a métodos manuales parciales
+  // (transferencia). Sin confirmar no se cobra nada — ni terminal ni
+  // banco/referencia.
+  if (supportsPartial && !legConfirmed) {
+    return (
+      <LegAmountInput
+        title={isVposMethod
+          ? `${method.name || getPaymentLabel(method.paymentType)} (VPOS)`
+          : (method.name || getPaymentLabel(method.paymentType))}
+        remainingAmount={context.remainingAmount}
+        total={total}
+        onConfirm={setConfirmedBaseBs}
+        onBack={handleBack}
+      />
+    )
+  }
+
   if (method.withMerchant) {
     const vposTitle = `${method.name || getPaymentLabel(method.paymentType)} (VPOS)`
-
-    if (!vposConfirmed) {
-      return (
-        <VposAmountInput
-          title={vposTitle}
-          remainingAmount={context.remainingAmount}
-          total={total}
-          onConfirm={setConfirmedBaseBs}
-          onBack={handleBack}
-        />
-      )
-    }
 
     return (
       <VposPaymentView
@@ -120,12 +144,15 @@ export function PaymentForm() {
 
   return (
     <div className="kiosk-container">
-      <h1 className={styles.title}>{method.name || getPaymentLabel(method.paymentType)}</h1>
+      <h1 className="mb-6 text-center font-extrabold tracking-[-0.05em]">{method.name || getPaymentLabel(method.paymentType)}</h1>
 
+      {/* En un cobro parcial manual (transferencia) el monto del resumen es el
+          de ESTA pierna, ya confirmado — no el remanente completo. Para el
+          resto de métodos `legBaseBs === effectiveTotal` (sin cambios). */}
       <PaymentAmountSummary
         isForeign={amounts.isForeign}
         hasRate={amounts.hasRate}
-        total={effectiveTotal}
+        total={legBaseBs}
         globalRate={globalRate}
         igtfBs={amounts.igtfBs}
         igtfPercent={method.igtfPercent}

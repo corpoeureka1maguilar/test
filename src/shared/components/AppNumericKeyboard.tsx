@@ -1,5 +1,3 @@
-import styles from './AppNumericKeyboard.module.css'
-
 interface Props {
   value: string
   onChange: (value: string) => void
@@ -24,14 +22,15 @@ export function AppNumericKeyboard({ value, onChange, maxLength = 6, masked = fa
   const display = masked ? '●'.repeat(value.length) : value
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.display}>{display || <span className={styles.placeholder}>—</span>}</div>
-      <div className={styles.grid}>
+    <div className="flex flex-col items-center gap-4 w-full max-w-[420px] mx-auto desktop:max-w-[380px]">
+      {/* Display interno oculto: choca con los layouts de página */}
+      <div className="hidden">{display || <span>—</span>}</div>
+      <div className="grid grid-cols-3 gap-[0.8rem] w-full desktop:gap-[0.75rem]">
         {KEYS.map((key) => (
           <button
             key={key}
             type="button"
-            className={`${styles.key} ${key === '✓' ? styles.confirm : ''} ${key === '←' ? styles.delete : ''}`}
+            className={`h-[100px] w-[100px] mx-auto text-[3rem] font-app font-medium bg-surface text-text border-none rounded-full cursor-pointer transition-[transform,background-color,box-shadow,color] duration-200 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] active:bg-surface-heavy active:scale-[0.96] active:shadow-none desktop:h-[84px] desktop:w-[84px] desktop:text-[2rem] desktop:hover:bg-surface-hover ${key === '✓' ? 'text-[1.4rem] text-accent desktop:text-[1.3rem]' : ''} ${key === '←' ? 'text-[1.4rem] text-text-muted desktop:text-[1.3rem]' : ''}`}
             onClick={() => handleKey(key)}
           >
             {key}

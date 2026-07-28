@@ -9,7 +9,6 @@ import { useCatalogCart } from '@/features/catalog/hooks/useCatalogCart'
 import { useCartTotal, useCartCount, useCartSubtotal, useCartTaxBreakdown } from '@/features/cart/stores/cart'
 import { AppVirtualKeyboard } from '@/shared/components/AppVirtualKeyboard'
 import { HiddenScannerInput } from '@/features/catalog/components/HiddenScannerInput'
-import { ScannerPanel } from '@/features/catalog/components/ScannerPanel'
 import { ManualSearchModal } from '@/features/catalog/components/ManualSearchModal'
 import { CartSidebar } from '@/features/catalog/components/CartSidebar'
 import { MobileCheckoutBar } from '@/features/catalog/components/MobileCheckoutBar'
@@ -22,7 +21,6 @@ import { useConfigStore } from '@/shared/stores/config'
 import { searchProducts } from '@/shared/lib/odooRepository'
 import { matchBarcode } from '@/shared/lib/paymentUtils'
 import type { KioskProduct } from '@/shared/types/types'
-import styles from './ProductCatalog.module.css'
 
 const MANUAL_GRID_LIMIT = 20
 
@@ -74,9 +72,6 @@ export function ProductCatalog() {
   const isOffline = useConfigStore((s) => s.isOffline)
   const pricelistId = useConfigStore((s) => s.pricelistId)
 
-  // Grid de la búsqueda manual: online usa los resultados del backend (aplicando
-  // el filtro de categoría del lado del cliente); offline o si el RPC falla usa
-  // el filtro local sobre el caché. Sin patrón, siempre navegación local.
   let gridProducts = filtered
   let gridLoading = isLoading
   if (online && !searchFailed && results !== undefined) {
@@ -85,7 +80,7 @@ export function ProductCatalog() {
       : results.filter(p => p.categId === activeCategoryId)
     ).slice(0, MANUAL_GRID_LIMIT)
   } else if (online && !searchFailed) {
-    gridLoading = isSearching // primera respuesta del backend en camino
+    gridLoading = isSearching
   }
 
   const { showNotFoundAlert, notFoundCode, triggerNotFound } = useProductNotFoundAlert()
@@ -96,12 +91,10 @@ export function ProductCatalog() {
   const processSearchSubmit = async () => {
     const originalQ = search.trim().toLowerCase()
     if (!originalQ) return
-    setSearch('') // Limpiar siempre el input para el próximo escaneo
+    setSearch('')
 
-    // 1) Coincidencia exacta local (rápido y funciona offline)
     let exactMatch = findExactMatch(products, originalQ)
 
-    // 2) Si no está, revisar rebote de doble-lectura del scanner (código duplicado)
     let cleanedQ = originalQ
     if (!exactMatch && originalQ.length % 2 === 0) {
       const half = originalQ.length / 2
@@ -111,8 +104,6 @@ export function ProductCatalog() {
       }
     }
 
-    // 3) Si sigue sin aparecer y hay conexión, preguntar al backend por el
-    // catálogo completo: el producto puede existir fuera de los 200 precargados
     if (!exactMatch && !isOffline) {
       try {
         const remote = await searchProducts(cleanedQ, pricelistId)
@@ -135,6 +126,12 @@ export function ProductCatalog() {
     }
   }
 
+  const closeManualMode = () => {
+    searchRef.current?.blur()
+    setIsManualMode(false)
+    setShowKeyboard(false)
+  }
+
   const handleCheckout = () => {
     if (items.length === 0) return
     send({ type: 'CHECKOUT', cart: items })
@@ -143,7 +140,7 @@ export function ProductCatalog() {
 
   return (
     <div
-      className={`${styles.wrapper} ${styles.scanMode} ${showKeyboard && isManualMode ? (isKeyboardMinimized ? styles.keyboardMinimized : styles.keyboardOpen) : ''}`}
+      className={`w-full max-w-6xl mx-auto self-center flex flex-col items-center justify-start h-full p-4 sm:p-6 overflow-y-auto box-border transition-all duration-200 ${showKeyboard && isManualMode ? (isKeyboardMinimized ? 'pb-20' : 'pb-80') : ''}`}
       onClick={handleWrapperClick}
     >
       {/* INPUT OCULTO PARA EL SCANNER FÍSICO CUANDO EL MODAL ESTÁ CERRADO */}
@@ -156,61 +153,56 @@ export function ProductCatalog() {
         />
       )}
 
-      {/* SECCIÓN IZQUIERDA: ZONA DE OPERACIÓN (ESCANEO / BÚSQUEDA) */}
-      <div className={styles.leftSection}>
-        <ScannerPanel
-          lastScannedProduct={lastScannedProduct}
-          getQty={getQty}
-          setQty={setQty}
-          removeItem={removeItem}
-          setLastScannedProduct={setLastScannedProduct}
-        />
-      </div>
-      {/* SECCIÓN DERECHA: CARRITO LATERAL INTEGRADO EN CALIENTE */}
-      <div className={styles.rightSection}>
+      {/* BOTÓN DE BÚSQUEDA Y CARRITO CENTRADO */}
+      <div className="w-full flex flex-col gap-4 flex-1 min-h-0">
         <button
           type="button"
-          className={`${styles.manualToggleBtn} ${isManualMode ? styles.active : ''}`}
+          className={`w-full bg-gray-100 text-gray-800 font-bold text-lg py-5 px-6 rounded-full border border-gray-200 hover:bg-gray-200 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 shadow-xs cursor-pointer select-none ${isManualMode ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
-            const newMode = !isManualMode;
-            setIsManualMode(newMode);
-            setShowKeyboard(newMode);
+            if (isManualMode) {
+              closeManualMode();
+            } else {
+              setIsManualMode(true);
+              setShowKeyboard(true);
+            }
           }}
         >
           {isManualMode ? (
             <>
-              <BarcodeIcon size={20} /> Escanear Productos
+              <BarcodeIcon size={24} /> Escanear Productos
             </>
           ) : (
             <>
-              <MagnifyingGlass size={20} /> Buscar Manualmente
+              <MagnifyingGlass size={24} /> Buscar Manualmente
             </>
           )}
         </button>
-      {/* MODAL DE BÚSQUEDA MANUAL */}
-      {isManualMode && (
-        <ManualSearchModal
-          searchRef={searchRef}
-          search={search}
-          setSearch={setSearch}
-          handleKeyDown={handleKeyDown}
-          setShowKeyboard={setShowKeyboard}
-          setIsKeyboardMinimized={setIsKeyboardMinimized}
-          onClose={() => setIsManualMode(false)}
-          categories={categories}
-          activeCategoryId={activeCategoryId}
-          setActiveCategoryId={setActiveCategoryId}
-          isLoading={gridLoading}
-          filtered={gridProducts}
-          getQty={getQty}
-          setQty={setQty}
-          removeItem={removeItem}
-          handleAddItem={handleAddItem}
-          lastScannedProduct={lastScannedProduct}
-          setLastScannedProduct={setLastScannedProduct}
-        />
-      )}
+
+        {/* MODAL DE BÚSQUEDA MANUAL */}
+        {isManualMode && (
+          <ManualSearchModal
+            searchRef={searchRef}
+            search={search}
+            setSearch={setSearch}
+            handleKeyDown={handleKeyDown}
+            setShowKeyboard={setShowKeyboard}
+            setIsKeyboardMinimized={setIsKeyboardMinimized}
+            onClose={closeManualMode}
+            categories={categories}
+            activeCategoryId={activeCategoryId}
+            setActiveCategoryId={setActiveCategoryId}
+            isLoading={gridLoading}
+            filtered={gridProducts}
+            getQty={getQty}
+            setQty={setQty}
+            removeItem={removeItem}
+            handleAddItem={handleAddItem}
+            lastScannedProduct={lastScannedProduct}
+            setLastScannedProduct={setLastScannedProduct}
+          />
+        )}
+
         <CartSidebar
           items={items}
           count={count}

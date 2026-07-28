@@ -8,8 +8,4 @@ interface ImportMeta {
   readonly env: ImportMetaEnv
 }
 
-declare module '*.module.css' {
-  const styles: Record<string, string>
-  export default styles
-}
 

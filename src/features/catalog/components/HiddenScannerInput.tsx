@@ -1,5 +1,4 @@
 import type { RefObject } from 'react'
-import styles from './HiddenScannerInput.module.css'
 
 interface Props {
   searchRef: RefObject<HTMLInputElement>
@@ -14,7 +13,7 @@ export function HiddenScannerInput({ searchRef, search, setSearch, handleKeyDown
     <input
       ref={searchRef}
       type="text"
-      className={styles.input}
+      className="absolute opacity-0 pointer-events-none left-[-9999px]"
       value={search}
       onChange={e => setSearch(e.target.value)}
       onKeyDown={handleKeyDown}

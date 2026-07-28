@@ -1,7 +1,6 @@
 import { AppOrderSummary } from '@/features/cart/components/AppOrderSummary'
 import type { KioskOrder } from '@/shared/types/types'
 import { OrderSearchList } from './OrderSearchList'
-import styles from '../pages/AdvancedMenu.module.css'
 
 interface Props {
   selectedOrder: KioskOrder | null
@@ -45,14 +44,14 @@ export function ReprintTab({
           {order && (
             <div className="card">
               <AppOrderSummary order={order} />
-              <p className={styles.info}>
+              <p className="text-text-muted p-4 text-[1.2rem]">
                 {order.printerNumber
                   ? `N° de factura fiscal: ${order.printerNumber}`
                   : 'Esta orden no tiene número fiscal registrado; se reimprimirá como copia no fiscal'}
               </p>
             </div>
           )}
-          <div className={styles.actions}>
+          <div className="flex flex-col items-center gap-4 w-full">
             <button type="button" className="btn btn-primary" onClick={onRequestReprint}>
               Reimprimir factura
             </button>

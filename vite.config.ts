@@ -151,11 +151,6 @@ function dynamicOdooProxy() {
 
 export default defineConfig({
   plugins: [react(), dynamicOdooProxy()],
-  css: {
-    modules: {
-      generateScopedName: '[name].[local]'
-    }
-  },
   server: {
     port: 5174,
     allowedHosts: true

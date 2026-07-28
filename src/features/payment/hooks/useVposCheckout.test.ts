@@ -7,7 +7,7 @@ import { useVposCheckout } from './useVposCheckout'
 
 // generic-partial-payment / payment-flow "VPOS Charge as Intermediate Leg":
 // un cobro VPOS confirmado (codRespuesta === '00') SIEMPRE dispara
-// VPOS_LEG_PAID — nunca SUBMIT_PAYMENT (ese evento queda solo para el path
+// LEG_PAID — nunca SUBMIT_PAYMENT (ese evento queda solo para el path
 // legacy no-VPOS/full-gift-card, ver saleMachine.ts 0.1) — y el monto de la
 // pierna (`baseBs`) es el monto CONFIRMADO por el cajero (nuevo param
 // `confirmedBaseBs`), nunca `remainingAmount`/`total` a ciegas.
@@ -59,6 +59,7 @@ function setup(overrides: Partial<Parameters<typeof useVposCheckout>[0]> = {}) {
     paymentAmount: 50,
     paymentIgtf: 0,
     confirmedBaseBs: 50,
+    saleTotalBs: 50,
     send,
     navigate,
     pushToast,
@@ -83,7 +84,7 @@ afterEach(() => {
 })
 
 describe('useVposCheckout — dispatch shape on codRespuesta === 00', () => {
-  it('dispatches VPOS_LEG_PAID (never SUBMIT_PAYMENT) with baseBs = confirmedBaseBs, not totalWithIgtfBs/remainingAmount blindly', async () => {
+  it('dispatches LEG_PAID (never SUBMIT_PAYMENT) with baseBs = confirmedBaseBs, not totalWithIgtfBs/remainingAmount blindly', async () => {
     const { result, send } = setup({
       context: baseContext({ remainingAmount: 100 }),
       totalWithIgtfBs: 100,
@@ -97,7 +98,7 @@ describe('useVposCheckout — dispatch shape on codRespuesta === 00', () => {
 
     expect(send).toHaveBeenCalledTimes(1)
     const event = send.mock.calls[0]![0]
-    expect(event.type).toBe('VPOS_LEG_PAID')
+    expect(event.type).toBe('LEG_PAID')
     expect(event.type).not.toBe('SUBMIT_PAYMENT')
     expect(event.method).toBe(method)
     expect(event.baseBs).toBe(30)
@@ -144,14 +145,14 @@ describe('useVposCheckout — navigation depends on whether the confirmed amount
 
     expect(navigate).toHaveBeenCalledWith('/pago')
     expect(navigate).not.toHaveBeenCalledWith('/resultado')
-    // el loop no dispara ningún evento que descarte legs (BACK/RESET) — solo VPOS_LEG_PAID
-    expect(send.mock.calls.every((call) => ['VPOS_LEG_PAID'].includes(call[0].type))).toBe(true)
+    // el loop no dispara ningún evento que descarte legs (BACK/RESET) — solo LEG_PAID
+    expect(send.mock.calls.every((call) => ['LEG_PAID'].includes(call[0].type))).toBe(true)
   })
 
-  it('when remainingAmount is null (first/only VPOS leg, no gift card), falls back to totalWithIgtfBs to decide closing — regression: single VPOS-only sale closes', async () => {
+  it('when remainingAmount is null (first/only VPOS leg, no gift card), falls back to the SALE TOTAL to decide closing — regression: single VPOS-only sale closes', async () => {
     const { result, navigate } = setup({
       context: baseContext({ remainingAmount: null }),
-      totalWithIgtfBs: 50,
+      saleTotalBs: 50,
       confirmedBaseBs: 50
     })
     await waitFor(() => expect(result.current.vposStatus).toBe('waiting'))
@@ -162,13 +163,34 @@ describe('useVposCheckout — navigation depends on whether the confirmed amount
 
     expect(navigate).toHaveBeenCalledWith('/resultado')
   })
+
+  // El fallback NUNCA puede ser el monto de la propia pierna (era
+  // totalWithIgtfBs, que PaymentForm calcula sobre el monto confirmado): eso
+  // mandaba a /resultado un cobro parcial y desincronizaba la UI del guard
+  // `coversRemaining` de la máquina, que sí loopea.
+  it('when remainingAmount is null and the confirmed amount is PARTIAL against the sale total, navigates to /pago (stays in sync with the machine)', async () => {
+    const { result, navigate } = setup({
+      context: baseContext({ remainingAmount: null }),
+      saleTotalBs: 1484.12,
+      totalWithIgtfBs: 1000,
+      confirmedBaseBs: 1000
+    })
+    await waitFor(() => expect(result.current.vposStatus).toBe('waiting'))
+
+    act(() => {
+      fireVposMessage({ codRespuesta: '00', numeroReferencia: 'REF-6' })
+    })
+
+    expect(navigate).toHaveBeenCalledWith('/pago')
+    expect(navigate).not.toHaveBeenCalledWith('/resultado')
+  })
 })
 
 // generic-partial-payment (task 3.4): el ping/iframe VPOS no debe arrancar
-// hasta que el cajero confirme el monto de la pierna en VposAmountInput
+// hasta que el cajero confirme el monto de la pierna en LegAmountInput
 // (Fase 3.3/3.4). Nuevo param opcional `confirmed` (default `true` — cambio
 // retrocompatible, ver Deviation en tasks.md 3.4) gatea el efecto.
-describe('useVposCheckout — ping effect gated on confirmed (generic-partial-payment 3.4, VposAmountInput)', () => {
+describe('useVposCheckout — ping effect gated on confirmed (generic-partial-payment 3.4, LegAmountInput)', () => {
   it('does not ping the VPOS terminal when confirmed=false', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchSpy)
@@ -179,7 +201,7 @@ describe('useVposCheckout — ping effect gated on confirmed (generic-partial-pa
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  it('pings the VPOS terminal once confirmed becomes true (rerender after VposAmountInput confirms)', async () => {
+  it('pings the VPOS terminal once confirmed becomes true (rerender after LegAmountInput confirms)', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchSpy)
 

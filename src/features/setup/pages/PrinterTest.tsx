@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useConfigStore } from '@/shared/stores/config'
 import { useUIStore } from '@/shared/stores/ui'
 import { FiscalPrinterAdapter } from '@/shared/lib/fiscalPrinter'
-import styles from './Setup.module.css'
 
 export function PrinterTest() {
   const navigate = useNavigate()
@@ -99,11 +98,11 @@ export function PrinterTest() {
   }
 
   return (
-    <div className={`kiosk-container ${styles.container}`}>
-      <h1 className={styles.title}>Prueba de Impresora Fiscal</h1>
+    <div className="kiosk-container p-8 max-w-[600px] mx-auto">
+      <h1 className="text-[2rem] font-bold mb-8">Prueba de Impresora Fiscal</h1>
 
-      <div className={styles.form}>
-        <label>
+      <div className="flex flex-col gap-5 max-w-[600px]">
+        <label className="flex flex-col gap-[0.4rem] text-base font-semibold">
           URL del Servicio de Impresión
           <input
             type="text"
@@ -114,7 +113,7 @@ export function PrinterTest() {
           />
         </label>
 
-        <label>
+        <label className="flex flex-col gap-[0.4rem] text-base font-semibold">
           Modelo de la Impresora
           <input
             type="text"
@@ -124,10 +123,10 @@ export function PrinterTest() {
           />
         </label>
 
-        <div className={styles.actionsRow}>
+        <div className="flex gap-4 mt-4">
           <button
             type="button"
-            className={`btn btn-secondary ${styles.actionBtn}`}
+            className="btn btn-secondary flex-1"
             onClick={() => {
               void handleTestConnection()
             }}
@@ -138,7 +137,7 @@ export function PrinterTest() {
 
           <button
             type="button"
-            className={`btn btn-primary ${styles.actionBtn}`}
+            className="btn btn-primary flex-1"
             onClick={() => {
               void handleSendTestPrint()
             }}
@@ -150,16 +149,20 @@ export function PrinterTest() {
 
         {testResult && (
           <div
-            className={`${styles.resultBox} ${testResult.success ? styles.resultBoxSuccess : styles.resultBoxError}`}
+            className={`mt-6 p-4 rounded-lg ${
+              testResult.success
+                ? 'border border-[#22c55e] bg-[#f0fdf4] text-[#166534]'
+                : 'border border-danger bg-[#fef2f2] text-[#991b1b]'
+            }`}
           >
-            <h4 className={styles.resultTitle}>{testResult.message}</h4>
-            {testResult.details && <p className={styles.resultDetails}>{testResult.details}</p>}
+            <h4 className="mt-0 mb-2 font-bold">{testResult.message}</h4>
+            {testResult.details && <p className="m-0 text-[0.9rem] font-mono">{testResult.details}</p>}
           </div>
         )}
 
         <button
           type="button"
-          className={`btn ${styles.backBtn}`}
+          className="btn mt-8 w-full border border-[#ccc]"
           onClick={() => navigate('/setup')}
         >
           Volver a Configuración

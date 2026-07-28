@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useConfigStore } from '@/shared/stores/config'
 import { useUIStore } from '@/shared/stores/ui'
 import { odooEnv } from '@/shared/lib/odooEnv'
-import styles from './Setup.module.css'
 
 export function Setup() {
   const navigate = useNavigate()
@@ -85,33 +84,33 @@ export function Setup() {
 
   return (
     <div className="kiosk-container">
-      <h1 className={styles.title}>Configuración del kiosco</h1>
+      <h1 className="text-[2rem] font-bold mb-8">Configuración del kiosco</h1>
 
       <form
-        className={styles.form}
+        className="flex flex-col gap-5 max-w-[600px]"
         onSubmit={(e) => {
           void handleSubmit(e)
         }}
       >
-        <h3 className={`${styles.sectionHeading} ${styles.sectionHeadingFirst}`}>
+        <h3 className="text-text-muted text-[1.1rem] border-b border-surface-border pb-2 mt-2 mb-4">
           1. Conexión con Odoo
         </h3>
-        <label>URL de Odoo
+        <label className="flex flex-col gap-[0.4rem] text-base font-semibold">URL de Odoo
           <input type="text" value={form.odooUrl} onChange={set('odooUrl')} placeholder="https://mi-empresa.odoo.com" required />
         </label>
-        <label>Base de datos
+        <label className="flex flex-col gap-[0.4rem] text-base font-semibold">Base de datos
           <input type="text" value={form.odooDb} onChange={set('odooDb')} placeholder="mi_base" required />
         </label>
-        <label>Usuario de servicio
+        <label className="flex flex-col gap-[0.4rem] text-base font-semibold">Usuario de servicio
           <input type="text" value={form.serviceUser} onChange={set('serviceUser')} placeholder="kiosco@empresa.com" required />
         </label>
-        <label>Contraseña
+        <label className="flex flex-col gap-[0.4rem] text-base font-semibold">Contraseña
           <input type="password" value={form.servicePassword} onChange={set('servicePassword')} required />
         </label>
 
         <button
           type="button"
-          className={`btn btn-secondary ${styles.connectBtn}`}
+          className="btn btn-secondary mt-2 mb-6"
           onClick={() => {
             void handleConnect()
           }}
@@ -121,17 +120,17 @@ export function Setup() {
 
         {isConnected && (
           <>
-            <h3 className={`${styles.sectionHeading} ${styles.sectionHeadingSecond}`}>
+            <h3 className="text-text-muted text-[1.1rem] border-b border-surface-border pb-2 my-4">
               2. Vincular Estación
             </h3>
 
             {config.isConfigured && config.stationName && (
-              <div className={styles.stationBadge}>
+              <div className="bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] rounded-lg px-4 py-3 text-[0.95rem]">
                 Caja vinculada: <strong>{config.stationName}</strong>
               </div>
             )}
 
-            <label>Token de configuración {config.isConfigured && '(opcional, para re-vincular a otra caja)'}
+            <label className="flex flex-col gap-[0.4rem] text-base font-semibold">Token de configuración {config.isConfigured && '(opcional, para re-vincular a otra caja)'}
               <input
                 type="text"
                 value={form.configToken}
@@ -141,22 +140,22 @@ export function Setup() {
               />
             </label>
 
-            <label>URL impresora fiscal
-              <div className={styles.printerUrlRow}>
-                <input type="text" value={form.printerUrl} onChange={set('printerUrl')} required className={styles.printerUrlInput} />
-                <button type="button" className={`btn btn-secondary ${styles.testPrinterBtn}`} onClick={() => navigate('/test-printer')}>
+            <label className="flex flex-col gap-[0.4rem] text-base font-semibold">URL impresora fiscal
+              <div className="flex gap-2 items-center">
+                <input type="text" value={form.printerUrl} onChange={set('printerUrl')} required className="flex-1" />
+                <button type="button" className="btn btn-secondary whitespace-nowrap" onClick={() => navigate('/test-printer')}>
                   Probar conexion
                 </button>
               </div>
             </label>
-            <label>Modelo impresora fiscal
+            <label className="flex flex-col gap-[0.4rem] text-base font-semibold">Modelo impresora fiscal
               <input type="text" value={form.printerModel} onChange={set('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." />
             </label>
-            <label>PIN de administrador (mín. 4 dígitos)
+            <label className="flex flex-col gap-[0.4rem] text-base font-semibold">PIN de administrador (mín. 4 dígitos)
               <input type="password" value={form.adminPin} onChange={set('adminPin')} maxLength={6} required />
             </label>
 
-            <button type="submit" className={`btn btn-primary ${styles.saveBtn}`}>Guardar y Finalizar</button>
+            <button type="submit" className="btn btn-primary mt-6">Guardar y Finalizar</button>
           </>
         )}
       </form>

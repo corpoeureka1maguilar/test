@@ -3,7 +3,6 @@ import { useConfigStore } from '@/shared/stores/config'
 import { useSessionStore } from '@/shared/stores/session'
 import { checkKioskAdmin, type KioskOperationRef } from '@/shared/lib/odooRepository'
 import { AppNumericKeyboard } from '@/shared/components/AppNumericKeyboard'
-import styles from './AppPinModal.module.css'
 
 interface Props {
   title?: string
@@ -122,30 +121,36 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
   }
 
   return (
-    <div className={styles.overlay} onClick={() => scannerRef.current?.focus()}>
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60"
+      onClick={() => scannerRef.current?.focus()}
+    >
       <input
         ref={scannerRef}
         type="text"
         aria-hidden="true"
-        className={styles.scannerInput}
+        className="absolute pointer-events-none opacity-0"
         onKeyDown={handleScannerKeyDown}
         readOnly={isLocked}
       />
-      <div className={`${styles.modal} ${shake ? styles.shake : ''}`} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.title}>{title}</h2>
+      <div
+        className={`flex w-[min(480px,90vw)] flex-col items-center gap-6 rounded-[20px] bg-white p-10 ${shake ? 'animate-shake' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="m-0 text-center text-2xl font-bold">{title}</h2>
 
         {isLocked ? (
-          <p className={styles.locked}>Bloqueado. Intentá de nuevo en {remaining}s</p>
+          <p className="m-0 text-center text-[1.1rem] text-[#666]">Bloqueado. Intentá de nuevo en {remaining}s</p>
         ) : (
           <>
             {attempts > 0 && (
-              <p className={styles.error}>
+              <p className="m-0 text-center text-base text-danger">
                 {noAllowed ? 'No tenés permiso para esta operación.' : 'PIN incorrecto.'}{' '}
                 {MAX_ATTEMPTS - attempts} intento(s) restante(s)
               </p>
             )}
             <AppNumericKeyboard value={pin} onChange={setPin} maxLength={6} masked onConfirm={handleConfirm} />
-            <div className={styles.actions}>
+            <div className="flex w-full flex-col gap-3">
               <button className="btn btn-primary" onClick={handleConfirm} disabled={pin.length === 0}>
                 Confirmar
               </button>

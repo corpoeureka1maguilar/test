@@ -4,7 +4,6 @@ import { useSaleMachine } from '@/features/payment/machines/SaleMachineContext'
 import { usePartnerByCedula } from '@/features/customer/hooks/usePartnerByCedula'
 import { AppNumericKeyboard } from '@/shared/components/AppNumericKeyboard'
 import { useUIStore } from '@/shared/stores/ui'
-import styles from './CustomerIdentity.module.css'
 
 const PREFIXES = ['V', 'E', 'J', 'G', 'P', 'C'] as const
 type Prefix = typeof PREFIXES[number]
@@ -102,7 +101,7 @@ export function CustomerIdentity() {
         ref={scannerRef}
         type="text"
         aria-hidden="true"
-        className={styles.scannerInput}
+        className="absolute opacity-0 pointer-events-none"
         onKeyDown={(e) => {
           handleScannerKeyDown(e).catch((err) => {
             pushToast('error', `Error al buscar: ${(err as Error).message}`)
@@ -110,14 +109,18 @@ export function CustomerIdentity() {
         }}
         readOnly={isPending}
       />
-      <h2 className={styles.title}>¿Cuál es tu cédula o RIF?</h2>
+      <h2 className="text-center">¿Cuál es tu cédula o RIF?</h2>
 
-      <div className={styles.prefixRow}>
+      <div className="flex gap-3 justify-center mx-auto mb-6 w-full max-w-[400px] bg-surface p-[0.4rem] rounded-[50px]">
         {PREFIXES.map(p => (
           <button
             key={p}
             type="button"
-            className={`${styles.prefixBtn} ${prefix === p ? styles.active : ''}`}
+            className={
+              prefix === p
+                ? 'flex-1 h-14 text-xl font-semibold font-app bg-text border-0 text-white rounded-[50px] cursor-pointer transition flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.15)]'
+                : 'flex-1 h-14 text-xl font-semibold font-app bg-transparent border-0 text-text-muted rounded-[50px] cursor-pointer transition flex items-center justify-center active:scale-[0.96] active:opacity-70'
+            }
             onClick={() => setPrefix(p)}
           >
             {p}
@@ -125,13 +128,13 @@ export function CustomerIdentity() {
         ))}
       </div>
 
-      <div className={styles.display}>
-        {prefix}-{formatDigits(digits) || <span className={styles.placeholder}>__________</span>}
+      <div className="text-[length:var(--font-display)] font-light tracking-[-0.02em] text-center mx-auto mb-6 min-h-[80px] w-full max-w-[800px] text-text flex items-center justify-center gap-2 tabular-nums">
+        {prefix}-{formatDigits(digits) || <span className="text-surface-heavy tracking-[0.1em]">__________</span>}
       </div>
 
       <AppNumericKeyboard value={digits} onChange={setDigits} maxLength={10} onConfirm={handleConfirm} />
 
-      <div className={styles.actions}>
+      <div className="flex flex-col gap-4 mt-6 w-full max-w-[480px] items-center">
         <button
           type="button"
           className="btn btn-primary"

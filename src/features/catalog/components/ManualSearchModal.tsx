@@ -2,7 +2,6 @@ import type { RefObject } from 'react'
 import type { KioskProduct } from '@/shared/types/types'
 import type { ProductCategory } from '../hooks/useProductFilters'
 import { ProductGrid } from './ProductGrid'
-import styles from '../pages/ProductCatalog.module.css'
 
 interface Props {
   searchRef: RefObject<HTMLInputElement>
@@ -47,24 +46,28 @@ export function ManualSearchModal({
   setLastScannedProduct
 }: Props) {
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Búsqueda Manual de Productos</h2>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-[1000] p-4 sm:p-6 animate-fadeIn" onClick={onClose}>
+      <div className="bg-white w-full max-w-7xl h-[92vh] rounded-3xl border border-gray-200 shadow-2xl flex flex-col p-6 sm:p-8 relative overflow-hidden animate-scaleIn" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5 shrink-0 gap-4">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 m-0">
+            Búsqueda Manual de Productos
+          </h2>
           <button
             type="button"
-            className={styles.modalCloseBtn}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg px-8 py-3 rounded-full transition-all duration-200 active:scale-95 cursor-pointer shadow-md select-none"
             onClick={onClose}
           >
             Cerrar
           </button>
         </div>
 
-        <div className={styles.modalSearchContainer}>
+        {/* Input de búsqueda */}
+        <div className="mb-5 shrink-0">
           <input
             ref={searchRef}
             type="text"
-            className={styles.search}
+            className="w-full h-16 px-6 font-semibold text-xl bg-gray-100 border border-gray-200 rounded-2xl focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all"
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -78,13 +81,13 @@ export function ManualSearchModal({
           />
         </div>
 
-        <div className={styles.manualSearchSection}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Filtros de Categorías */}
-          <div className={styles.categories}>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none shrink-0 mb-5">
             <button
               key="all"
               type="button"
-              className={`${styles.catBtn} ${activeCategoryId === null ? styles.active : ''}`}
+              className={`shrink-0 px-5 py-3 rounded-full font-bold text-base bg-gray-100 text-gray-600 border border-transparent hover:bg-gray-200 active:scale-95 transition-all select-none cursor-pointer min-h-[44px] ${activeCategoryId === null ? 'bg-gray-900 text-white hover:bg-gray-800' : ''}`}
               onClick={() => setActiveCategoryId(null)}
             >
               Todos
@@ -93,7 +96,7 @@ export function ManualSearchModal({
               <button
                 key={c.id}
                 type="button"
-                className={`${styles.catBtn} ${activeCategoryId === c.id ? styles.active : ''}`}
+                className={`shrink-0 px-5 py-3 rounded-full font-bold text-base bg-gray-100 text-gray-600 border border-transparent hover:bg-gray-200 active:scale-95 transition-all select-none cursor-pointer min-h-[44px] ${activeCategoryId === c.id ? 'bg-gray-900 text-white hover:bg-gray-800' : ''}`}
                 onClick={() => setActiveCategoryId(c.id)}
               >
                 {c.name}

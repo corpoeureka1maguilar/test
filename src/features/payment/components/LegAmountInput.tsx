@@ -1,26 +1,26 @@
 import { useState } from 'react'
 import { formatBs, formatUSD } from '@/shared/lib/money'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
-import styles from '../pages/PaymentForm.module.css'
 
-interface VposAmountInputProps {
+interface LegAmountInputProps {
   title: string
   // Remanente calculado por el context de la máquina (gift card parcial o
-  // pierna(s) VPOS previas); null cuando esta es la primera/única pierna de
-  // la venta (sin gift card, sin piernas previas) — en ese caso el default y
-  // el tope son `total` (regresión: venta VPOS de un solo método).
+  // pierna(s) previas); null cuando esta es la primera/única pierna de la
+  // venta (sin gift card, sin piernas previas) — en ese caso el default y
+  // el tope son `total` (regresión: venta de un solo método).
   remainingAmount: number | null
   total: number
   onConfirm: (baseBs: number) => void
   onBack: () => void
 }
 
-// generic-partial-payment (post-design decision 0.2, tasks 3.3/3.4): monto
-// de la pierna VPOS confirmado por el cajero ANTES de lanzar el terminal.
-// Pre-llenado con el remanente completo (nunca vacío/free-form), editable
-// SOLO hacia abajo (max = remanente). Confirmar sin editar preserva el
-// comportamiento de hoy (una sola pierna VPOS cierra el remanente completo).
-export function VposAmountInput({ title, remainingAmount, total, onConfirm, onBack }: VposAmountInputProps) {
+// generic-partial-payment (post-design decision 0.2, tasks 3.3/3.4): monto de
+// la pierna confirmado por el cajero ANTES de cobrar (lanzar el terminal VPOS
+// o pedir banco/referencia en una transferencia). Pre-llenado con el remanente
+// completo (nunca vacío/free-form), editable SOLO hacia abajo (max =
+// remanente). Confirmar sin editar preserva el comportamiento de un solo
+// método que cierra el remanente completo.
+export function LegAmountInput({ title, remainingAmount, total, onConfirm, onBack }: LegAmountInputProps) {
   const globalRate = useExchangeRateStore((s) => s.rate)
   const max = remainingAmount ?? total
   const [value, setValue] = useState<string>(String(max))
@@ -53,31 +53,31 @@ export function VposAmountInput({ title, remainingAmount, total, onConfirm, onBa
 
   return (
     <div className="kiosk-container">
-      <h1 className={styles.title}>{title}</h1>
+      <h1 className="mb-6 text-center font-extrabold tracking-[-0.05em]">{title}</h1>
 
-      <div className={`${styles.summaryContainer} ${styles.summaryContainerCentered}`}>
-        <div className={styles.summaryCard}>
-          <div className={styles.amountRow}>
+      <div className="mx-auto mb-12 w-full max-w-[600px] animate-scaleIn">
+        <div className="glass-card flex flex-col gap-3 p-6">
+          <div className="flex items-start justify-between text-[1.1rem] font-medium text-text-muted [font-variant-numeric:tabular-nums]">
             <span>Total de la compra</span>
-            <strong>
-              {globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(total / globalRate)}</span>}
-              <span className={styles.amountSecondary}>{formatBs(total)}</span>
+            <strong className="flex flex-col items-end font-bold text-text">
+              {globalRate > 0 && <span className="block text-[0.75em] font-normal tracking-[0.01em] text-text-muted [font-variant-numeric:tabular-nums]">{formatUSD(total / globalRate)}</span>}
+              <span className="mt-[0.15em] block text-[0.85em] font-medium text-text-muted [font-variant-numeric:tabular-nums]">{formatBs(total)}</span>
             </strong>
           </div>
 
           {remainingAmount !== null && remainingAmount < total && (
-            <div className={styles.amountRow}>
+            <div className="flex items-start justify-between text-[1.1rem] font-medium text-text-muted [font-variant-numeric:tabular-nums]">
               <span>Saldo pendiente actual</span>
-              <strong>
-                {globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(remainingAmount / globalRate)}</span>}
-                <span className={styles.amountSecondary}>{formatBs(remainingAmount)}</span>
+              <strong className="flex flex-col items-end font-bold text-text">
+                {globalRate > 0 && <span className="block text-[0.75em] font-normal tracking-[0.01em] text-text-muted [font-variant-numeric:tabular-nums]">{formatUSD(remainingAmount / globalRate)}</span>}
+                <span className="mt-[0.15em] block text-[0.85em] font-medium text-text-muted [font-variant-numeric:tabular-nums]">{formatBs(remainingAmount)}</span>
               </strong>
             </div>
           )}
 
-          <hr className={styles.divider} />
+          <hr className="my-4 border-0 border-t border-surface-border" />
 
-          <div className={styles.label}>
+          <div className="label-premium">
             <span>Monto a cobrar con este método (Bs)</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem' }}>
               <input
@@ -87,7 +87,7 @@ export function VposAmountInput({ title, remainingAmount, total, onConfirm, onBa
                 min={0.0001}
                 step="0.0001"
                 onChange={handleChange}
-                className={styles.giftCardInput}
+                className="!w-auto !flex-1 font-bold uppercase"
                 style={{
                   fontSize: '1.8rem',
                   fontWeight: 800,
@@ -96,7 +96,7 @@ export function VposAmountInput({ title, remainingAmount, total, onConfirm, onBa
                   borderRadius: '0.75rem',
                   width: '100%'
                 }}
-                aria-label="Monto VPOS"
+                aria-label="Monto a cobrar"
                 autoFocus
               />
               {globalRate > 0 && (
@@ -107,19 +107,19 @@ export function VposAmountInput({ title, remainingAmount, total, onConfirm, onBa
             </div>
           </div>
 
-          <hr className={styles.divider} />
+          <hr className="my-4 border-0 border-t border-surface-border" />
 
-          <div className={styles.amountRow}>
+          <div className="flex items-start justify-between text-[1.1rem] font-medium text-text-muted [font-variant-numeric:tabular-nums]">
             <span>Monto restante después de este pago</span>
-            <strong>
-              {globalRate > 0 && <span className={styles.amountUsd}>{formatUSD(remainingAfterBs / globalRate)}</span>}
-              <span className={styles.amountSecondary}>{formatBs(remainingAfterBs)}</span>
+            <strong className="flex flex-col items-end font-bold text-text">
+              {globalRate > 0 && <span className="block text-[0.75em] font-normal tracking-[0.01em] text-text-muted [font-variant-numeric:tabular-nums]">{formatUSD(remainingAfterBs / globalRate)}</span>}
+              <span className="mt-[0.15em] block text-[0.85em] font-medium text-text-muted [font-variant-numeric:tabular-nums]">{formatBs(remainingAfterBs)}</span>
             </strong>
           </div>
         </div>
       </div>
 
-      <div className={styles.actions}>
+      <div className="mt-6 flex w-full flex-col items-center gap-4">
         <button
           type="button"
           className="btn btn-accent"

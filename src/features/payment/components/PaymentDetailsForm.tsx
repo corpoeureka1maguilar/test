@@ -1,5 +1,3 @@
-import styles from '../pages/PaymentForm.module.css'
-
 interface PaymentDetailsFormProps {
   fields: ('reference' | 'bank' | 'phone')[]
   bank: string
@@ -26,27 +24,27 @@ export function PaymentDetailsForm({
   onBack
 }: PaymentDetailsFormProps) {
   return (
-    <form className={styles.form} onSubmit={onSubmit}>
+    <form className="mx-auto flex w-full max-w-[600px] flex-col gap-6" onSubmit={onSubmit}>
       {fields.includes('bank') && (
-        <label className={styles.label}>
+        <label className="label-premium">
           <span>Banco</span>
           <input type="text" value={bank} onChange={e => onBankChange(e.target.value)} placeholder="Ej: Banesco" required />
         </label>
       )}
       {fields.includes('phone') && (
-        <label className={styles.label}>
+        <label className="label-premium">
           <span>Teléfono</span>
           <input type="tel" value={phone} onChange={e => onPhoneChange(e.target.value)} placeholder="04XX-XXXXXXX" required />
         </label>
       )}
       {fields.includes('reference') && (
-        <label className={styles.label}>
+        <label className="label-premium">
           <span>Referencia / Comprobante</span>
           <input type="text" value={reference} onChange={e => onReferenceChange(e.target.value)} placeholder="N° de referencia" required />
         </label>
       )}
 
-      <div className={styles.actions}>
+      <div className="mt-6 flex w-full flex-col items-center gap-4">
         <button type="submit" className="btn btn-accent" disabled={submitDisabled}>Confirmar pago</button>
         <button type="button" className="btn btn-secondary" onClick={onBack}>Volver</button>
       </div>

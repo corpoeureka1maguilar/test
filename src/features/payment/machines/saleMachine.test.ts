@@ -580,7 +580,7 @@ describe('saleMachine — gift card partial payment (2-leg remainder, GIFT_CARD_
   })
 })
 
-describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / coversRemaining / commitLeg)', () => {
+describe('saleMachine — generic N-leg VPOS payment (LEG_PAID / legs[] / coversRemaining / commitLeg)', () => {
   const vposMethodA: KioskPaymentMethod = {
     id: 3, name: 'Terminal Banesco', paymentType: 'card', applyIgtf: false, igtfPercent: 0,
     journalId: 9, currencyId: 1, useForChange: false, withMerchant: true
@@ -595,7 +595,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
   }
   const giftCardLeg: GiftCard = { id: 10, code: 'GC-001', amount: 30, balance: 30, state: 'available' }
 
-  it('1. VPOS_LEG_PAID with baseBs < remainingAmount loops back to selectingMethod, pushing a leg and decrementing remainingAmount', async () => {
+  it('1. LEG_PAID with baseBs < remainingAmount loops back to selectingMethod, pushing a leg and decrementing remainingAmount', async () => {
     const actor = createActor(saleMachine)
     actor.start()
     await runToEnteringDetailsWithMethod(actor, giftCardMethod)
@@ -604,7 +604,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     expect(actor.getSnapshot().value).toBe('enteringDetails')
 
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodA.id, reference: 'REF-A', amount: 30, igtfAmount: 0 },
       method: vposMethodA,
       baseBs: 30
@@ -617,7 +617,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     expect(actor.getSnapshot().context.remainingAmount).toBe(20)
   })
 
-  it('2. VPOS_LEG_PAID with baseBs === remainingAmount (coversRemaining) moves to processing, including the closing leg', async () => {
+  it('2. LEG_PAID with baseBs === remainingAmount (coversRemaining) moves to processing, including the closing leg', async () => {
     const successMachine = saleMachine.provide({
       actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: printResolving }
     })
@@ -628,7 +628,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     actor.send({ type: 'SELECT_METHOD', method: vposMethodA })
 
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodA.id, reference: 'REF-A', amount: 20, igtfAmount: 0 },
       method: vposMethodA,
       baseBs: 20
@@ -653,7 +653,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     expect(actor.getSnapshot().context.legs).toEqual([])
   })
 
-  it('4. saleAttemptId stays stable across 2+ VPOS_LEG_PAID loop iterations', async () => {
+  it('4. saleAttemptId stays stable across 2+ LEG_PAID loop iterations', async () => {
     const successMachine = saleMachine.provide({
       actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: printResolving }
     })
@@ -666,7 +666,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     actor.send({ type: 'GIFT_CARD_PARTIAL', giftCard: giftCardLeg, remainingAmount: 50 })
     actor.send({ type: 'SELECT_METHOD', method: vposMethodA })
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodA.id, reference: 'REF-A', amount: 30, igtfAmount: 0 },
       method: vposMethodA,
       baseBs: 30
@@ -676,7 +676,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
 
     actor.send({ type: 'SELECT_METHOD', method: vposMethodB })
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodB.id, reference: 'REF-B', amount: 20, igtfAmount: 0 },
       method: vposMethodB,
       baseBs: 20
@@ -695,7 +695,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     actor.send({ type: 'GIFT_CARD_PARTIAL', giftCard: giftCardLeg, remainingAmount: 50 })
     actor.send({ type: 'SELECT_METHOD', method: vposMethodA })
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodA.id, reference: 'REF-A', amount: 30, igtfAmount: 0 },
       method: vposMethodA,
       baseBs: 30
@@ -718,7 +718,9 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     expect(actor.getSnapshot().context.legs).toEqual([])
   })
 
-  it('7. regression (design decision, null-remainingAmount fallback): a single VPOS-only leg with no gift card and no prior leg closes immediately (byte-identical to pre-change single-method behavior)', async () => {
+  // Con remainingAmount null el remanente es el TOTAL del carrito (fixture:
+  // subtotal 50 + IVA 16% = 58 Bs), NUNCA el monto de la propia pierna.
+  it('7. regression: a single leg covering the FULL cart total (58 Bs) with no gift card and no prior leg closes immediately', async () => {
     const successMachine = saleMachine.provide({
       actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: printResolving }
     })
@@ -728,14 +730,62 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     expect(actor.getSnapshot().context.remainingAmount).toBeNull()
 
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
+      payment: { methodId: vposMethodA.id, reference: 'REF-A', amount: 58, igtfAmount: 0 },
+      method: vposMethodA,
+      baseBs: 58
+    })
+
+    expect(actor.getSnapshot().value).toBe('processing')
+    expect(actor.getSnapshot().context.legs).toHaveLength(1)
+    expect(actor.getSnapshot().context.remainingAmount).toBe(0)
+  })
+
+  // Bug reportado en producción: una transferencia parcial (1.000 de 1.484,12)
+  // dejaba remainingAmount en 0 y la venta se cerraba COBRADA DE MENOS, porque
+  // con remainingAmount null se asumía que la primera pierna cubría todo.
+  it('7b. una PRIMERA pierna parcial (50 de 58, sin gift card ni piernas previas) NO cierra la venta: loopea con el remanente real', async () => {
+    const actor = createActor(saleMachine)
+    actor.start()
+    await runToEnteringDetailsWithMethod(actor, vposMethodA)
+    expect(actor.getSnapshot().context.remainingAmount).toBeNull()
+
+    actor.send({
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodA.id, reference: 'REF-A', amount: 50, igtfAmount: 0 },
       method: vposMethodA,
       baseBs: 50
     })
 
-    expect(actor.getSnapshot().value).toBe('processing')
+    expect(actor.getSnapshot().value).toBe('selectingMethod')
     expect(actor.getSnapshot().context.legs).toHaveLength(1)
+    expect(actor.getSnapshot().context.remainingAmount).toBe(8)
+  })
+
+  it('7c. la pierna que cubre el remanente restante (8 Bs) cierra la venta', async () => {
+    const successMachine = saleMachine.provide({
+      actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: printResolving }
+    })
+    const actor = createActor(successMachine)
+    actor.start()
+    await runToEnteringDetailsWithMethod(actor, vposMethodA)
+
+    actor.send({
+      type: 'LEG_PAID',
+      payment: { methodId: vposMethodA.id, reference: 'REF-A', amount: 50, igtfAmount: 0 },
+      method: vposMethodA,
+      baseBs: 50
+    })
+    actor.send({ type: 'SELECT_METHOD', method: vposMethodB })
+    actor.send({
+      type: 'LEG_PAID',
+      payment: { methodId: vposMethodB.id, reference: 'REF-B', amount: 8, igtfAmount: 0 },
+      method: vposMethodB,
+      baseBs: 8
+    })
+
+    expect(actor.getSnapshot().value).toBe('processing')
+    expect(actor.getSnapshot().context.legs).toHaveLength(2)
     expect(actor.getSnapshot().context.remainingAmount).toBe(0)
   })
 
@@ -746,12 +796,12 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
   // tiene ningún evento para eso — ver useVposCheckout.ts: codRespuesta !== '00'
   // solo dispara un toast, NUNCA un send() a la máquina), el test reproduce el
   // contrato real: un intento fallido/timeout del terminal simplemente NO
-  // despacha VPOS_LEG_PAID (ni ningún otro evento) — así que la forma correcta
+  // despacha LEG_PAID (ni ningún otro evento) — así que la forma correcta
   // de probar "resiliencia" es no enviar nada, snapshotear legs/remainingAmount
   // antes y después del "intento", y confirmar que el cajero puede seguir
   // operando (reintentar el mismo método u otro) sin perder las piernas ya
   // cobradas ni reconstruir el remanente.
-  it('T4.1 retry/resiliencia: a 3rd VPOS attempt that fails (codRespuesta !== \'00\', no VPOS_LEG_PAID dispatched) leaves legs/remainingAmount byte-identical, keeps the machine out of processing/paymentError, and the cashier can retry the same or a different method without losing the 2 prior legs', async () => {
+  it('T4.1 retry/resiliencia: a 3rd VPOS attempt that fails (codRespuesta !== \'00\', no LEG_PAID dispatched) leaves legs/remainingAmount byte-identical, keeps the machine out of processing/paymentError, and the cashier can retry the same or a different method without losing the 2 prior legs', async () => {
     const successMachine = saleMachine.provide({
       actors: { submitPaymentToOdoo: submitPaymentResolving, printFiscalInvoice: printResolving }
     })
@@ -765,7 +815,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     // Pierna 1 (VPOS A, $30) — loop-back, remainingAmount=40.
     actor.send({ type: 'SELECT_METHOD', method: vposMethodA })
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodA.id, reference: 'REF-A', amount: 30, igtfAmount: 0 },
       method: vposMethodA,
       baseBs: 30
@@ -777,7 +827,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     // no el que la cierra).
     actor.send({ type: 'SELECT_METHOD', method: vposMethodB })
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodB.id, reference: 'REF-B', amount: 15, igtfAmount: 0 },
       method: vposMethodB,
       baseBs: 15
@@ -798,7 +848,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     expect(actor.getSnapshot().value).toBe('enteringDetails')
 
     // El terminal responde codRespuesta !== '00' (rechazo/timeout). Por
-    // contrato real de useVposCheckout.ts, esto NUNCA despacha VPOS_LEG_PAID
+    // contrato real de useVposCheckout.ts, esto NUNCA despacha LEG_PAID
     // (ni ningún otro evento a la máquina) — solo un toast de error en la UI.
     // No se envía ningún evento acá: eso ES el escenario de fallo.
 
@@ -827,7 +877,7 @@ describe('saleMachine — generic N-leg VPOS payment (VPOS_LEG_PAID / legs[] / c
     // remanente exacto — la venta cierra con las 3 piernas VPOS/gift-card
     // completas, ninguna perdida por el intento fallido anterior.
     actor.send({
-      type: 'VPOS_LEG_PAID',
+      type: 'LEG_PAID',
       payment: { methodId: vposMethodB.id, reference: 'REF-B2', amount: 25, igtfAmount: 0 },
       method: vposMethodB,
       baseBs: 25
