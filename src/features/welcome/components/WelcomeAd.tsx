@@ -8,7 +8,8 @@ interface WelcomeAdProps {
   isLoading?: boolean
 }
 
-const SLOT = 'relative h-full max-h-full aspect-[9/16] rounded-[2rem] overflow-hidden border border-slate-200/80 shadow-lg bg-black'
+const SLOT =
+  'relative h-full max-h-full aspect-[9/16] rounded-[2rem] overflow-hidden shadow-lg bg-black outline outline-1 -outline-offset-1 outline-black/10 desktop:aspect-auto desktop:h-full desktop:w-full desktop:max-w-none desktop:rounded-none desktop:shadow-none desktop:outline-none'
 
 const NAV_BTN =
   'absolute top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full flex items-center justify-center cursor-pointer border border-white/40 text-white bg-black/40 backdrop-blur-md shadow-md transition-transform duration-150 active:scale-90 active:bg-black/70'
@@ -81,7 +82,7 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center min-h-0">
+      <div className="flex h-full items-center justify-center min-h-0 desktop:w-full desktop:h-full">
         <div className={`${SLOT} bg-slate-100`}>
           <div className="absolute inset-0 animate-shimmer bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.6)_50%,rgba(255,255,255,0)_100%)]" />
         </div>
@@ -92,7 +93,7 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
   if (activeConfigs.length === 0 || !currentAd) return null
 
   return (
-    <div className="flex h-full items-center justify-center min-h-0">
+    <div className="flex h-full items-center justify-center min-h-0 desktop:w-full desktop:h-full">
       <div className={SLOT}>
         {/* Fondo del Anuncio */}
         <div className="relative w-full h-full overflow-hidden bg-black">
@@ -125,7 +126,7 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
         </div>
 
         {/* Overlay de Contenido */}
-        <div className="absolute inset-0 z-20 flex flex-col justify-between p-6 pointer-events-none">
+        <div className="absolute inset-0 z-20 flex flex-col justify-between p-6 desktop:px-10 desktop:pt-28 desktop:pb-14 pointer-events-none">
           {/* Indicadores de progreso */}
           {activeConfigs.length > 1 && (
             <div className="flex items-center gap-1.5 pointer-events-auto">
@@ -173,10 +174,10 @@ export function WelcomeAd({ configs, isMuted, isLoading }: WelcomeAdProps) {
         {/* Botones de navegación */}
         {activeConfigs.length > 1 && (
           <>
-            <button type="button" className={`${NAV_BTN} left-3`} onClick={handlePrev} aria-label="Anterior">
+            <button type="button" className={`${NAV_BTN} left-3 desktop:left-8`} onClick={handlePrev} aria-label="Anterior">
               <CaretLeft size={22} weight="bold" />
             </button>
-            <button type="button" className={`${NAV_BTN} right-3`} onClick={handleNext} aria-label="Siguiente">
+            <button type="button" className={`${NAV_BTN} right-3 desktop:right-8`} onClick={handleNext} aria-label="Siguiente">
               <CaretRight size={22} weight="bold" />
             </button>
           </>

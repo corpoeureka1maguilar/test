@@ -75,6 +75,8 @@
   --animate-slideUp: appleSlideUp 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
   /* Shimmer del skeleton de anuncios (Welcome/WelcomeAd) */
   --animate-shimmer: shimmer 1.5s infinite;
+  /* Respiración del glow decorativo detrás del CTA (Welcome, panel desktop) */
+  --animate-breathe: breathe 6s ease-in-out infinite;
 
   /*
     OfflineOverlay. Se registran con sus curvas originales en vez de aproximar
@@ -124,6 +126,11 @@
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 0.55; }
+    50% { transform: scale(1.12); opacity: 0.85; }
   }
 
   /* Fade sin desplazamiento: appleFadeIn agrega translateY, este no */
