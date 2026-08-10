@@ -105,7 +105,18 @@ export function Devolucion() {
 
     setLoading(true)
     try {
-      await returnOrder(order, reason, sessionId)
+      // Esta página no tiene selección por línea: devuelve todo lo que
+      // todavía esté pendiente de cada línea (x_return_quantity descontado)
+      const lines = (order.lines ?? [])
+        .map((line) => ({
+          id: line.id,
+          product: line.productId[0],
+          quantity: Math.max(line.productUomQty - (line.returnedQty ?? 0), 0),
+          priceUnit: line.priceUnit
+        }))
+        .filter((line) => line.quantity > 0)
+
+      await returnOrder(order, reason, lines, sessionId)
       trackRefund()
       setDone(true)
       pushToast('success', 'Devolución procesada correctamente')
