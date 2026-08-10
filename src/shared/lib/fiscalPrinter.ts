@@ -51,6 +51,21 @@ export function noFiscalItem(text: string, efecto: NoFiscalStyle = ''): NoFiscal
   return { Texto: sanitizeForPrinter((text || '').slice(0, 75)), efecto }
 }
 
+// Algunos modelos de impresora devuelven la hora en formato 12h con sufijo
+// en español ("03:45 p. m."); Odoo parsea x_printer_date con "%H:%M" y
+// rechaza cualquier resto no convertido, así que acá se normaliza a 24h
+// antes de que saleMachine arme el string que se manda a action_set_printer_data
+const normalizeHora = (hora: string): string => {
+  const trimmed = hora.trim()
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([ap])\.?\s*m\.?$/i)
+  if (!match) return trimmed
+
+  const [, hh, mm, meridiem] = match
+  let hours = parseInt(hh!, 10) % 12
+  if (meridiem!.toLowerCase() === 'p') hours += 12
+  return `${String(hours).padStart(2, '0')}:${mm}`
+}
+
 export class FiscalPrinterAdapter {
   constructor(private readonly printerUrl: string, private readonly modelo?: string) { }
 
@@ -202,7 +217,7 @@ export class FiscalPrinterAdapter {
       numNota: findValue(['numNota', 'NumNota', 'nota']) as string | undefined,
       numReporte: findValue(['numReporte', 'NumReporte', 'reporte']) as string | undefined,
       fecha: (findValue(['fecha', 'Fecha', 'date']) as string) || '',
-      hora: (findValue(['hora', 'Hora', 'time']) as string) || '',
+      hora: normalizeHora((findValue(['hora', 'Hora', 'time']) as string) || ''),
       serial: (findValue(['serial', 'Serial', 'nro_serial']) as string) || '',
       indimpresion: (findValue(['indimpresion', 'Indimpresion']) as string) || '',
       error: findValue(['error', 'Error']) as Record<string, unknown> | undefined

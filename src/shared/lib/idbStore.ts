@@ -14,11 +14,16 @@ export const DB_NAME = 'autopay-offline'
 // object store ni índice, así que `upgrade()` no necesita una rama nueva
 // (las entradas viejas sin `instanceKey` se taggean lazily al leerlas, ver
 // tagLegacyEntries() en orderQueue.ts y getCatalog() en offlineCache.ts)
-const DB_VERSION = 2
+// v3 — se agregan 'adminSnapshot' (snapshot de admins de la sucursal para
+// validar PINs sin conexión) y 'auditQueue' (aprobaciones resueltas offline,
+// pendientes de registrar en x.pos.audit). Ver adminSnapshot.ts.
+const DB_VERSION = 3
 
 export const CATALOG_STORE = 'catalog'
 export const ORDER_QUEUE_STORE = 'orderQueue'
 export const ORDER_QUEUE_BY_SEQ_INDEX = 'bySeq'
+export const ADMIN_SNAPSHOT_STORE = 'adminSnapshot'
+export const AUDIT_QUEUE_STORE = 'auditQueue'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
 let openDbInstance: IDBPDatabase | null = null
@@ -35,6 +40,16 @@ function openOfflineDb(): Promise<IDBPDatabase> {
         // keyPath 'id' = x_fex_id (idempotencia); 'bySeq' define el orden FIFO
         const store = db.createObjectStore(ORDER_QUEUE_STORE, { keyPath: 'id' })
         store.createIndex(ORDER_QUEUE_BY_SEQ_INDEX, 'seq', { unique: true })
+      }
+      if (!db.objectStoreNames.contains(ADMIN_SNAPSHOT_STORE)) {
+        // keyPath 'kind': una sola fila ('admins'), reemplazo completo en cada
+        // refresh exitoso — igual criterio que CATALOG_STORE
+        db.createObjectStore(ADMIN_SNAPSHOT_STORE, { keyPath: 'kind' })
+      }
+      if (!db.objectStoreNames.contains(AUDIT_QUEUE_STORE)) {
+        // keyPath 'localId': uuid generado en el kiosco, es la clave con la que
+        // Odoo confirma qué entradas quedaron registradas
+        db.createObjectStore(AUDIT_QUEUE_STORE, { keyPath: 'localId' })
       }
     }
   })

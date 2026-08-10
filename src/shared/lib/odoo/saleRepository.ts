@@ -25,6 +25,7 @@ interface RawOrderLine {
   product_uom_qty: number
   price_unit: number
   price_subtotal: number
+  x_return_quantity: number
 }
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
@@ -92,7 +93,7 @@ export async function fetchOrder(id: number): Promise<KioskOrder> {
   const [rawLines, [rawPartner]] = await Promise.all([
     odooEnv.callMethod<RawOrderLine[]>(
       'sale.order.line', 'read', [rawOrder!.order_line],
-      { fields: ['id', 'product_id', 'product_uom_qty', 'price_unit', 'price_subtotal'] }
+      { fields: ['id', 'product_id', 'product_uom_qty', 'price_unit', 'price_subtotal', 'x_return_quantity'] }
     ),
     odooEnv.callMethod<RawPartner[]>(
       'res.partner', 'read', [[rawOrder!.partner_id[0]]],
@@ -106,7 +107,8 @@ export async function fetchOrder(id: number): Promise<KioskOrder> {
     productUomQty: l.product_uom_qty,
     priceUnit: l.price_unit,
     priceSubtotal: l.price_subtotal,
-    taxRate: taxRateByProduct.get(l.product_id[0])
+    taxRate: taxRateByProduct.get(l.product_id[0]),
+    returnedQty: l.x_return_quantity || undefined
   }))
   return { ...mapOrderHeader(rawOrder!), lines, partner: mapPartner(rawPartner!) }
 }
@@ -144,18 +146,29 @@ export async function searchOrders(pattern: string): Promise<KioskOrder[]> {
 // El backend exige las líneas con producto/cantidad/precio: con una lista
 // vacía, action_create_invoice_return lanza UserError y, como el retorno corre
 // en un job diferido (with_delay), el fallo sería invisible para el kiosco
-export async function returnOrder(order: KioskOrder, reason: string, sessionId: number | null): Promise<void> {
-  const lines = (order.lines ?? []).map((l) => ({
-    product: l.productId[0],
-    quantity: l.productUomQty,
-    priceUnit: l.priceUnit
-  }))
-
+//
+// `lines` ahora lo arma el caller (permite devoluciones parciales, no siempre
+// todas las líneas de la orden a su cantidad completa)
+export async function returnOrder(
+  order: KioskOrder,
+  reason: string,
+  lines: Array<{ id: number; product: number; quantity: number; priceUnit: number }>,
+  sessionId: number | null
+): Promise<void> {
   if (!lines.length) {
     throw new Error('La orden no tiene líneas para devolver. Esperá a que cargue el detalle e intentá de nuevo.')
   }
 
   await odooEnv.callMethod('sale.order', 'action_return_order_total', [order.id, reason, lines, sessionId])
+
+  // action_return_order_total factura/despacha la devolución, pero no toca
+  // x_return_quantity en las líneas — sin este segundo llamado, la orden queda
+  // devuelta en Odoo pero el kiosco (y el resto del sistema) nunca se enteran
+  // de cuánto se devolvió, y la próxima devolución permitiría duplicarla
+  await odooEnv.callMethod('sale.order', 'action_set_returned_quantity_to_lines', [
+    order.id,
+    lines.map((l) => ({ id: l.id, quantity: l.quantity }))
+  ])
 }
 
 // Registra en Odoo el n° de la nota de crédito emitida por la impresora

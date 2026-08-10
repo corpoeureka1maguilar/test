@@ -13,7 +13,6 @@ export interface TerminalConfigForm {
   servicePassword: string
   printerUrl: string
   printerModel: string
-  adminPin: string
 }
 
 export function useTerminalConfig(activeTab: AdvancedTab, requestAdminAction: (action: PendingAdminAction) => void) {
@@ -29,8 +28,7 @@ export function useTerminalConfig(activeTab: AdvancedTab, requestAdminAction: (a
     serviceUser: config.serviceUser,
     servicePassword: config.servicePassword,
     printerUrl: config.printerUrl,
-    printerModel: config.printerModel,
-    adminPin: ''
+    printerModel: config.printerModel
   })
 
   // La pestaña Terminal es de solo lectura por defecto: hay que confirmar el
@@ -43,7 +41,6 @@ export function useTerminalConfig(activeTab: AdvancedTab, requestAdminAction: (a
     setPrevActiveTab(activeTab)
     if (activeTab !== 'terminal') {
       setIsTerminalUnlocked(false)
-      setForm((f) => ({ ...f, adminPin: '' }))
     }
   }
 
@@ -57,15 +54,10 @@ export function useTerminalConfig(activeTab: AdvancedTab, requestAdminAction: (a
 
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (form.adminPin.length < 4) {
-      pushToast('error', 'El PIN de administrador debe tener al menos 4 dígitos')
-      return
-    }
     setLoading(true)
     try {
       await config.saveConfig(form)
       pushToast('success', 'Configuración de la terminal guardada y sincronizada')
-      setForm((f) => ({ ...f, adminPin: '' })) // Limpiar el pin por seguridad
       setIsTerminalUnlocked(false) // Vuelve a modo solo lectura tras guardar
     } catch (err) {
       pushToast('error', `Error al guardar configuración: ${(err as Error).message}`)

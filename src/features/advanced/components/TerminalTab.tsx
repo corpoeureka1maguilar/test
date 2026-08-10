@@ -34,12 +34,13 @@ export function TerminalTab({ form, isTerminalUnlocked, onFieldChange, onSubmit,
           <label className={FIELD_LABEL}>Modelo Impresora Fiscal
             <input type="text" value={form.printerModel} onChange={onFieldChange('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." disabled={!isTerminalUnlocked} />
           </label>
-          {isTerminalUnlocked && (
-            <label className={FIELD_LABEL}>PIN de Administrador (nuevo)
-              <input type="password" value={form.adminPin} onChange={onFieldChange('adminPin')} maxLength={6} required placeholder="PIN de 4 a 6 dígitos" />
-            </label>
-          )}
         </div>
+        {isTerminalUnlocked && (
+          <p className="mt-5 text-[0.85rem] text-text-muted leading-[1.5] max-w-[600px] text-center">
+            El acceso administrativo se valida contra la contraseña de administrador
+            del cajero en Odoo. Esta terminal no guarda un PIN propio.
+          </p>
+        )}
         {isTerminalUnlocked ? (
           <button type="submit" className="btn btn-accent mt-6 w-full max-w-[380px]">
             Guardar Configuración

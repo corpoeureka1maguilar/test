@@ -2,17 +2,21 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useConfigStore } from '@/shared/stores/config'
 import { useSessionStore } from '@/shared/stores/session'
 import { checkKioskAdmin, type KioskOperationRef } from '@/shared/lib/odooRepository'
+import { verifyAdminOffline } from '@/shared/lib/adminSnapshot'
 import { AppNumericKeyboard } from '@/shared/components/AppNumericKeyboard'
 
 interface Props {
   title?: string
   /**
-   * Operación de x.pos.audit.operation a validar contra Odoo. Con conexión
-   * activa el PIN se chequea contra el admin_password del cajero admin de la
-   * sucursal (con permiso por operación y auditoría en x.pos.audit). Sin
-   * operationRef, o sin conexión, se valida contra el PIN local de la terminal.
+   * Operación de x.pos.audit.operation a validar. Obligatoria: la terminal no
+   * tiene PIN propio, así que sin operación no hay nada contra qué validar.
+   *
+   * Con conexión el PIN se chequea contra el admin_password del cajero admin de
+   * la sucursal vía `action_check_kiosk_admin` (permiso por operación +
+   * auditoría en x.pos.audit). Sin conexión se valida contra el snapshot local
+   * de esos mismos admins, que vence a los 30 min (ver adminSnapshot.ts).
    */
-  operationRef?: KioskOperationRef
+  operationRef: KioskOperationRef
   auditMessage?: string | undefined
   onConfirmed: () => void
   onCancel: () => void
@@ -21,12 +25,19 @@ interface Props {
 const MAX_ATTEMPTS = 3
 const LOCKOUT_MS = 30_000
 
+type PinError = 'wrong' | 'no_allowed' | 'snapshot_unavailable'
+
+const ERROR_MESSAGE: Record<PinError, string> = {
+  wrong: 'PIN incorrecto.',
+  no_allowed: 'No tenés permiso para esta operación.',
+  snapshot_unavailable: 'Sin conexión con Odoo y sin validación local vigente. Restablecé la conexión.'
+}
+
 export function AppPinModal({ title = 'Acceso de administrador', operationRef, auditMessage, onConfirmed, onCancel }: Props) {
-  const verifyPin = useConfigStore((s) => s.verifyPin)
   const scannerRef = useRef<HTMLInputElement>(null)
   const [pin, setPin] = useState('')
   const [attempts, setAttempts] = useState(0)
-  const [noAllowed, setNoAllowed] = useState(false)
+  const [error, setError] = useState<PinError>('wrong')
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
   const [remaining, setRemaining] = useState(0)
   const [shake, setShake] = useState(false)
@@ -58,9 +69,9 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
     scannerRef.current?.focus()
   }, [])
 
-  const verifyAdmin = useCallback(async (value: string): Promise<{ ok: boolean; noAllowed?: boolean }> => {
+  const verifyAdmin = useCallback(async (value: string): Promise<{ ok: boolean; error?: PinError }> => {
     const { isConnectionReady, branchId } = useConfigStore.getState()
-    if (operationRef && isConnectionReady && branchId) {
+    if (isConnectionReady && branchId) {
       try {
         const res = await checkKioskAdmin(
           value,
@@ -69,16 +80,19 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
           useSessionStore.getState().sessionId,
           auditMessage
         )
-        return { ok: res.ok, noAllowed: res.error === 'no_allowed' }
+        return { ok: res.ok, error: res.error === 'no_allowed' ? 'no_allowed' : 'wrong' }
       } catch (err) {
-        // Sin backend no hay validación de permisos posible: caemos al PIN
-        // local para no dejar la terminal bloqueada (p. ej. justamente para
-        // entrar a reparar la conexión con Odoo)
-        console.error('[AppPinModal] Error validando contra Odoo, fallback a PIN local:', err)
+        // Odoo no responde: se cae al snapshot local, que valida contra los
+        // MISMOS admin_password y los mismos permisos por operación. No hay PIN
+        // de terminal al que caer — si el snapshot venció, no se aprueba nada.
+        console.error('[AppPinModal] Error validando contra Odoo, fallback al snapshot local:', err)
       }
     }
-    return { ok: await verifyPin(value) }
-  }, [operationRef, auditMessage, verifyPin])
+
+    const offline = await verifyAdminOffline(value, operationRef, auditMessage)
+    if (offline.ok) return { ok: true }
+    return { ok: false, error: offline.error === 'admin_not_found' ? 'wrong' : offline.error ?? 'wrong' }
+  }, [operationRef, auditMessage])
 
   const attempt = useCallback(async (value: string) => {
     if (isLocked || value.length === 0) return
@@ -89,13 +103,21 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
       return
     }
 
-    setNoAllowed(Boolean(res.noAllowed))
-    const next = attempts + 1
-    setAttempts(next)
+    const reason = res.error ?? 'wrong'
+    setError(reason)
     setPin('')
     setShake(true)
     setTimeout(() => setShake(false), 400)
 
+    // Snapshot vencido no es un PIN equivocado: no hay nada que el supervisor
+    // pueda tipear bien, así que bloquear por reintentos solo estorba
+    if (reason === 'snapshot_unavailable') {
+      setAttempts(0)
+      return
+    }
+
+    const next = attempts + 1
+    setAttempts(next)
     if (next >= MAX_ATTEMPTS) {
       setLockedUntil(Date.now() + LOCKOUT_MS)
       setAttempts(0)
@@ -143,9 +165,11 @@ export function AppPinModal({ title = 'Acceso de administrador', operationRef, a
           <p className="m-0 text-center text-[1.1rem] text-[#666]">Bloqueado. Intentá de nuevo en {remaining}s</p>
         ) : (
           <>
-            {attempts > 0 && (
+            {error === 'snapshot_unavailable' ? (
+              <p className="m-0 text-center text-base text-danger">{ERROR_MESSAGE.snapshot_unavailable}</p>
+            ) : attempts > 0 && (
               <p className="m-0 text-center text-base text-danger">
-                {noAllowed ? 'No tenés permiso para esta operación.' : 'PIN incorrecto.'}{' '}
+                {ERROR_MESSAGE[error]}{' '}
                 {MAX_ATTEMPTS - attempts} intento(s) restante(s)
               </p>
             )}

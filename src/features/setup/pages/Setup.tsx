@@ -17,8 +17,7 @@ export function Setup() {
     servicePassword: config.servicePassword || '',
     printerUrl: config.printerUrl || 'http://127.0.0.1/ServWebImpresion/api/',
     printerModel: config.printerModel || '',
-    configToken: '',
-    adminPin: ''
+    configToken: ''
   })
 
   // Si el kiosko ya está configurado (config cargada desde disco), la conexión
@@ -63,10 +62,6 @@ export function Setup() {
     }
     if (!config.isConfigured && !form.configToken.trim()) {
       pushToast('error', 'Ingresá el token de configuración generado en Odoo')
-      return
-    }
-    if (form.adminPin.length < 4) {
-      pushToast('error', 'El PIN debe tener al menos 4 dígitos')
       return
     }
 
@@ -151,9 +146,10 @@ export function Setup() {
             <label className="flex flex-col gap-[0.4rem] text-base font-semibold">Modelo impresora fiscal
               <input type="text" value={form.printerModel} onChange={set('printerModel')} placeholder="Ej. HKA, Bixolon, Bematech..." />
             </label>
-            <label className="flex flex-col gap-[0.4rem] text-base font-semibold">PIN de administrador (mín. 4 dígitos)
-              <input type="password" value={form.adminPin} onChange={set('adminPin')} maxLength={6} required />
-            </label>
+            <p className="text-[0.9rem] text-text-muted leading-[1.5] bg-panel border border-surface-border rounded-lg px-4 py-3">
+              El acceso administrativo del kiosco se valida con la contraseña de
+              administrador del cajero en Odoo. Esta terminal no guarda un PIN propio.
+            </p>
 
             <button type="submit" className="btn btn-primary mt-6">Guardar y Finalizar</button>
           </>

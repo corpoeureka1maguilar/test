@@ -127,6 +127,8 @@ export interface KioskOrderLine {
   priceSubtotal: number
   /** Tasa de IVA del producto (0.16, 0.08...); sin ella la nota de crédito sale con la tasa general */
   taxRate?: number | undefined
+  /** Cantidad ya devuelta de esta línea (x_return_quantity); limita cuánto se puede volver a devolver */
+  returnedQty?: number | undefined
 }
 
 export interface KioskOrder {

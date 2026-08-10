@@ -120,8 +120,7 @@ const baseSaveInput = {
   serviceUser: 'kiosko@test.com',
   servicePassword: 'super-secret',
   printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
-  printerModel: 'TM-T20',
-  adminPin: '1234'
+  printerModel: 'TM-T20'
 }
 
 describe('config — saveConfig with token', () => {
@@ -248,7 +247,6 @@ describe('config — accentColor', () => {
       servicePassword: 'secret',
       printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
       printerModel: 'm',
-      adminPin: '1234',
       configToken: 'TOKEN'
     })
 

@@ -3,7 +3,7 @@ import { devtools, persist, subscribeWithSelector } from 'zustand/middleware'
 import { odooEnv, isMissingRecordError } from '@/shared/lib/odooEnv'
 import { useUIStore } from '@/shared/stores/ui'
 import { linkStation, pingStation, fetchCompanyLogo, fetchBranchState, fetchBranchFixedProducts, fetchBranchDefaultPricelist } from '@/shared/lib/odooRepository'
-import { hashPin, verifyPinHash, isLegacyPinHash, randomUUID } from '@/shared/lib/cryptoUtils'
+import { randomUUID } from '@/shared/lib/cryptoUtils'
 import { saveSecret, loadSecret, deleteSecret } from '@/shared/lib/secureStorage'
 import { DEFAULT_ACCENT, normalizeAccent } from '@/shared/lib/theme'
 import type { AdConfig } from '@/shared/types/types'
@@ -75,7 +75,6 @@ interface ConfigState {
   servicePassword: string
   printerUrl: string
   printerModel: string
-  adminPinHash: string
   stationId: number
   stationName: string
   branchId: number
@@ -100,11 +99,9 @@ interface ConfigActions {
     servicePassword: string
     printerUrl: string
     printerModel: string
-    adminPin: string
     configToken?: string
   }): Promise<void>
   clearConfig(): void
-  verifyPin(pin: string): Promise<boolean>
   reauthenticate(): Promise<void>
   markOnline(): void
   markConnectionLost(): void
@@ -121,7 +118,6 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       servicePassword: '',
       printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
       printerModel: '',
-      adminPinHash: '',
       stationId: 0,
       stationName: '',
       branchId: 0,
@@ -138,8 +134,6 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       isOffline: false,
 
       async saveConfig(data) {
-        const pinHash = hashPin(data.adminPin)
-
         await setProxyTarget(data.odooUrl)
 
         odooEnv.setupConnection({
@@ -173,7 +167,6 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           servicePassword: data.servicePassword,
           printerUrl: data.printerUrl,
           printerModel: data.printerModel,
-          adminPinHash: pinHash,
           ...stationFields,
           companyLogo,
           useGiftCard,
@@ -195,7 +188,6 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           servicePassword: '',
           printerUrl: 'http://127.0.0.1/ServWebImpresion/api/',
           printerModel: '',
-          adminPinHash: '',
           stationId: 0,
           stationName: '',
           branchId: 0,
@@ -225,16 +217,6 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       // offline. NO es el caso fatal de estación borrada (ese desvincula).
       markConnectionLost() {
         set({ isConnectionReady: false, isOffline: true })
-      },
-
-      async verifyPin(pin) {
-        const stored = get().adminPinHash
-        const ok = verifyPinHash(pin, stored)
-        // Upgrade transparente: configs viejas guardaban SHA-256 plano sin salt
-        if (ok && isLegacyPinHash(stored)) {
-          set({ adminPinHash: hashPin(pin) })
-        }
-        return ok
       },
 
       async reauthenticate() {
@@ -298,6 +280,17 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
     }),
     {
       name: 'autopay-config',
+      // v1: se eliminó adminPinHash. La terminal ya no tiene PIN propio — la
+      // fuente de verdad es admin_password del cajero en Odoo (ver
+      // adminSnapshot.ts). El hash viejo se borra explícitamente en vez de
+      // esperar al próximo write de persist: es material sensible de un
+      // mecanismo que ya no existe.
+      version: 1,
+      migrate: (persisted) => {
+        const state = { ...(persisted as Record<string, unknown>) }
+        delete state['adminPinHash']
+        return state as unknown as ConfigState & ConfigActions
+      },
       // servicePassword NO se persiste acá: va cifrada vía secureStorage
       partialize: (state) => ({
         odooUrl: state.odooUrl,
@@ -305,7 +298,6 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         serviceUser: state.serviceUser,
         printerUrl: state.printerUrl,
         printerModel: state.printerModel,
-        adminPinHash: state.adminPinHash,
         stationId: state.stationId,
         stationName: state.stationName,
         branchId: state.branchId,

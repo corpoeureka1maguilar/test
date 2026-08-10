@@ -37,3 +37,47 @@ export async function checkKioskAdmin(
     [password, operationRef, branchId, sessionId, message]
   )
 }
+
+// ─── Snapshot de admins para validación offline ───────────────────────────────
+
+// El kiosco no tiene PIN propio: la fuente de verdad es `admin_password` del
+// cajero. Sin conexión no hay a quién preguntarle, así que se cachea este
+// snapshot (ver adminSnapshot.ts). `passwordHash` viene hasheado con `salt` e
+// `iterations` — el password en claro nunca sale de Odoo.
+export interface KioskAdminEntry {
+  cashierId: number
+  name: string
+  passwordHash: string
+  operations: string[]
+}
+
+export interface KioskAdminSnapshot {
+  salt: string
+  iterations: number
+  ttlMs: number
+  usePermissionLevels: boolean
+  admins: KioskAdminEntry[]
+}
+
+export async function fetchKioskAdminSnapshot(branchId: number): Promise<KioskAdminSnapshot> {
+  return odooEnv.callMethod<KioskAdminSnapshot>(
+    'x.pos.cashier', 'action_export_kiosk_admins', [branchId]
+  )
+}
+
+// Aprobaciones que se validaron contra el snapshot local: Odoo no las vio
+// pasar, así que hay que registrarlas al reconectar o quedan sin auditoría.
+export interface KioskAuditEntry {
+  localId: string
+  operationRef: KioskOperationRef
+  approverCashierId: number
+  approvedAt: string
+  sessionId: number | null
+  message: string
+}
+
+export async function logKioskAudit(entries: KioskAuditEntry[]): Promise<{ loggedIds: string[] }> {
+  return odooEnv.callMethod<{ loggedIds: string[] }>(
+    'x.pos.cashier', 'action_log_kiosk_audit', [entries]
+  )
+}

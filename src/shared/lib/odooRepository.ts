@@ -21,8 +21,19 @@ export {
   setOrderPrinterData
 } from './odoo/saleRepository'
 
-export type { KioskOperationRef, KioskAdminCheck } from './odoo/adminRepository'
-export { KIOSK_OPERATIONS, checkKioskAdmin } from './odoo/adminRepository'
+export type {
+  KioskOperationRef,
+  KioskAdminCheck,
+  KioskAdminEntry,
+  KioskAdminSnapshot,
+  KioskAuditEntry
+} from './odoo/adminRepository'
+export {
+  KIOSK_OPERATIONS,
+  checkKioskAdmin,
+  fetchKioskAdminSnapshot,
+  logKioskAudit
+} from './odoo/adminRepository'
 
 export type { OdooState } from './odoo/branchRepository'
 export {

@@ -69,6 +69,26 @@ describe('FiscalPrinterAdapter — printFactura', () => {
     expect(result).toMatchObject({ numfactura: '00123', fecha: '2026-06-30', hora: '11:00', serial: 'B2' })
   })
 
+  // Algunos modelos devuelven la hora en formato 12h con sufijo en español;
+  // sin normalizar, Odoo rechaza x_printer_date con "unconverted data remains: p. m."
+  it('normalizes a 12h hora with Spanish AM/PM suffix to 24h', async () => {
+    mockFetchOnce({ numfactura: '00124', fecha: '2026-06-30', hora: '03:45 p. m.', serial: 'B2' })
+    const printer = new FiscalPrinterAdapter('http://printer.local')
+
+    const result = await printer.printFactura({ foo: 'bar' })
+
+    expect(result).toMatchObject({ hora: '15:45' })
+  })
+
+  it('normalizes a 12h hora with Spanish AM suffix, mapping 12 a.m. to 00h', async () => {
+    mockFetchOnce({ numfactura: '00125', fecha: '2026-06-30', hora: '12:10 a. m.', serial: 'B2' })
+    const printer = new FiscalPrinterAdapter('http://printer.local')
+
+    const result = await printer.printFactura({ foo: 'bar' })
+
+    expect(result).toMatchObject({ hora: '00:10' })
+  })
+
   it('throws when the printer returns an error field', async () => {
     mockFetchOnce({ error: 'TO' })
     const printer = new FiscalPrinterAdapter('http://printer.local')

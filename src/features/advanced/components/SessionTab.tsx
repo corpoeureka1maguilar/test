@@ -59,7 +59,7 @@ export function SessionTab({
           {sessionState === 'opened' && (
             <button
               type="button"
-              className="btn btn-danger"
+              className="btn btn-secondary"
               onClick={onRequestCloseSession}
             >
               Cerrar Caja

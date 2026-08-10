@@ -7,6 +7,7 @@ import { AppToast } from '@/shared/components/AppToast'
 import { AppLoading } from '@/shared/components/AppLoading'
 import { useConfigStore } from '@/shared/stores/config'
 import { initSyncManager } from '@/shared/lib/syncManager'
+import { startAdminSnapshotSync, stopAdminSnapshotSync } from '@/shared/lib/adminSnapshot'
 import { applyPersistedAccent } from '@/shared/lib/bootstrapTheme'
 import '@/assets/index.css'
 
@@ -92,6 +93,11 @@ export function App() {
       console.error('[App] Error inicializando el synchronizer offline:', err)
     })
 
+    // Mantiene fresco el snapshot de admins de la sucursal (única forma de
+    // validar el admin_password del cajero cuando Odoo no responde) y drena la
+    // auditoría de las aprobaciones que se resolvieron offline
+    startAdminSnapshotSync()
+
     // Suscripción declarativa a cambios en accentColor para aplicar el tema sin acoplar side-effects al store
     const unsubscribeAccent = useConfigStore.subscribe(
       (state) => state.accentColor,
@@ -113,6 +119,7 @@ export function App() {
     document.addEventListener('contextmenu', handleContextMenu)
     return () => {
       unsubscribeAccent()
+      stopAdminSnapshotSync()
       document.removeEventListener('contextmenu', handleContextMenu)
     }
   }, [])

@@ -9,6 +9,7 @@ import { buildNotaCreditoPayload } from '@/shared/lib/printPayload'
 import { trackRefund } from '@/shared/lib/metrics'
 import type { KioskOrder, KioskPaymentMethod } from '@/shared/types/types'
 import type { PendingAdminAction } from './useAdminPinAction'
+import { useReturnLineSelection, type SelectedReturnLine } from './useReturnLineSelection'
 
 // Sin IGTF: no se conserva el método de pago original de la orden, así que
 // la nota de crédito se emite sin recargo (no hay forma de recalcularlo acá)
@@ -24,10 +25,15 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
 
   const [reason, setReason] = useState('')
   const [done, setDone] = useState(false)
+  const { selection, toggleLine, setQty, selectAll, clearAll, selectedLines, isValid } = useReturnLineSelection(order)
 
   const requestReturn = () => {
     if (!order || !reason.trim()) {
       pushToast('error', 'Indicá el motivo de la devolución')
+      return
+    }
+    if (!isValid) {
+      pushToast('error', 'Seleccioná al menos una línea para devolver')
       return
     }
     requestAdminAction({
@@ -58,7 +64,7 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
     }
   }
 
-  const printNotaCredito = async (o: KioskOrder) => {
+  const printNotaCredito = async (o: KioskOrder, returnLines: SelectedReturnLine[]) => {
     const printer = new FiscalPrinterAdapter(config.printerUrl, config.printerModel)
     const status = await printer.checkConnection()
 
@@ -68,12 +74,14 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
     // debe calzar con la factura original, así que se usa la tasa de la orden
     const orderRate = o.rate || rate || 1
 
-    const lines = (o.lines ?? []).map((l) => ({
-      name: l.productId[1],
-      qty: l.productUomQty,
+    // Solo las líneas/cantidades devueltas, no toda la orden (devolución parcial)
+    const lines = returnLines.map((l) => ({
+      name: l.name,
+      qty: l.quantity,
       price: l.priceUnit * orderRate,
       taxRate: l.taxRate
     }))
+    const totalAmount = returnLines.reduce((sum, l) => sum + l.quantity * l.priceUnit, 0) * orderRate
 
     const payload = buildNotaCreditoPayload(
       o.printerNumber,
@@ -83,7 +91,7 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
       o.partner?.cedula ?? '',
       lines,
       NO_IGTF_METHOD,
-      o.amountTotal * orderRate,
+      totalAmount,
       // Igual que fex (maquina = printer.code de la impresora conectada): la
       // devolución ocurre en el mismo kiosco que emitió la factura, así que
       // el serial reportado por la impresora es válido si la orden no lo tiene
@@ -94,11 +102,13 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
   }
 
   const handleReturn = async () => {
-    if (!order || !reason.trim()) return
+    if (!order || !reason.trim() || !isValid) return
+
+    const linesToReturn = selectedLines.map(({ id, product, quantity, priceUnit }) => ({ id, product, quantity, priceUnit }))
 
     setLoading(true)
     try {
-      await returnOrder(order, reason, sessionId)
+      await returnOrder(order, reason, linesToReturn, sessionId)
       trackRefund()
       setDone(true)
       pushToast('success', 'Devolución procesada correctamente')
@@ -111,7 +121,7 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
     // La devolución ya se registró en Odoo; un fallo de impresión no debe
     // revertirla, pero sí hay que avisar para que se reimprima manualmente
     try {
-      const response = await printNotaCredito(order)
+      const response = await printNotaCredito(order, selectedLines)
       pushToast('success', 'Nota de crédito impresa correctamente')
 
       // Fire-and-forget (igual que persistPrinterData en saleMachine): la nota
@@ -129,5 +139,16 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
     }
   }
 
-  return { reason, setReason, done, requestReturn }
+  return {
+    reason,
+    setReason,
+    done,
+    requestReturn,
+    selection,
+    toggleLine,
+    setQty,
+    selectAll,
+    clearAll,
+    isValid
+  }
 }

@@ -34,7 +34,18 @@ export function AdvancedMenu() {
   const { queueEntries, requestRequeue, requestDiscard } = useOfflineQueue(activeTab, requestAdminAction)
   const terminal = useTerminalConfig(activeTab, requestAdminAction)
   const search = useOrderSearch()
-  const { reason, setReason, done, requestReturn } = useOrderReturn(search.order, requestAdminAction)
+  const {
+    reason,
+    setReason,
+    done,
+    requestReturn,
+    selection,
+    toggleLine,
+    setQty,
+    selectAll,
+    clearAll,
+    isValid: isReturnValid
+  } = useOrderReturn(search.order, requestAdminAction)
   const { requestReprint } = useOrderReprint(search.order, requestAdminAction)
   const { requestPrintReport } = useFiscalReports(requestAdminAction)
 
@@ -70,6 +81,12 @@ export function AdvancedMenu() {
           reason={reason}
           onReasonChange={setReason}
           onRequestReturn={requestReturn}
+          selection={selection}
+          onToggleLine={toggleLine}
+          onQtyChange={setQty}
+          onSelectAll={selectAll}
+          onClearAll={clearAll}
+          isValid={isReturnValid}
         />
       )}
 

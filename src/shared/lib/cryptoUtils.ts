@@ -86,11 +86,17 @@ export function sha256Hex(text: string): string {
 // ─── Hash de PIN con salt + iteraciones ───────────────────────────────────────
 
 // Un PIN corto hasheado con SHA-256 sin salt cae con una rainbow table en
-// segundos. Formato almacenado: v2:{saltHex}:{iteraciones}:{hashHex}
-const PIN_HASH_VERSION = 'v2'
-const PIN_HASH_ITERATIONS = 50_000
+// segundos: de ahí el salt y las iteraciones.
+//
+// Este hash es el contrato con Odoo. El snapshot de admins que el kiosco cachea
+// para validar sin conexión (ver adminSnapshot.ts) trae los passwords ya
+// hasheados así, calculados por `_kiosk_pin_hash` en
+// eu_autopay_bridge/models/x_pos_cashier.py. Las dos implementaciones tienen
+// que producir el MISMO hex para el mismo (pin, salt, iteraciones): si una
+// cambia sin la otra, toda validación offline empieza a rechazar PINs válidos.
+export const PIN_HASH_ITERATIONS = 50_000
 
-function iteratedHash(pin: string, saltHex: string, iterations: number): string {
+export function iteratedHash(pin: string, saltHex: string, iterations: number): string {
   const encoder = new TextEncoder()
   const salt = encoder.encode(saltHex)
   let hash = sha256Bytes(encoder.encode(`${saltHex}:${pin}`))
@@ -101,29 +107,6 @@ function iteratedHash(pin: string, saltHex: string, iterations: number): string 
     hash = sha256Bytes(buffer)
   }
   return HEX(hash)
-}
-
-export function hashPin(pin: string): string {
-  const saltHex = HEX(crypto.getRandomValues(new Uint8Array(16)))
-  return `${PIN_HASH_VERSION}:${saltHex}:${PIN_HASH_ITERATIONS}:${iteratedHash(pin, saltHex, PIN_HASH_ITERATIONS)}`
-}
-
-export function verifyPinHash(pin: string, stored: string): boolean {
-  if (!stored) return false
-
-  if (stored.startsWith(`${PIN_HASH_VERSION}:`)) {
-    const [, saltHex, iterationsStr, hashHex] = stored.split(':')
-    const iterations = Number(iterationsStr)
-    if (!saltHex || !Number.isFinite(iterations) || !hashHex) return false
-    return iteratedHash(pin, saltHex, iterations) === hashHex
-  }
-
-  // Legacy: SHA-256 plano sin salt (configs anteriores a v2)
-  return sha256Hex(pin) === stored
-}
-
-export function isLegacyPinHash(stored: string): boolean {
-  return Boolean(stored) && !stored.startsWith(`${PIN_HASH_VERSION}:`)
 }
 
 export function generateGiftCardCode(): string {
