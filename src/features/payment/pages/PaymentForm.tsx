@@ -109,7 +109,7 @@ export function PaymentForm() {
       <VposPaymentView
         title={vposTitle}
         vposStatus={vpos.vposStatus}
-        iframeUrl={vpos.iframeUrl}
+        amountBs={amounts.totalWithIgtfBs}
         onCancel={handleBack}
       />
     )

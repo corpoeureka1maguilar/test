@@ -100,7 +100,7 @@ describe('PaymentForm — remanente de tarjeta de regalo (pago parcial 2-leg, Sc
   })
 
   it('cuando context.remainingAmount está seteado (segundo leg), usa ese monto como total efectivo (36 Bs) en vez del total completo del carrito (232 Bs)', () => {
-    render(<MemoryRouter><PaymentForm /></MemoryRouter>)
+    render(<MemoryRouter><PaymentRouter /></MemoryRouter>)
 
     fireEvent.click(screen.getByText('Confirmar pago'))
 
@@ -173,7 +173,7 @@ describe('PaymentForm — wiring de LegAmountInput (generic-partial-payment 3.3/
     // vposStatus arranca en 'checking' (spinner) y pasa a 'waiting' (iframe)
     // una vez el ping resuelve — cualquiera de los dos confirma que se dejó
     // LegAmountInput y se entró a la vista del terminal VPOS.
-    expect(await screen.findByTitle('VPOS Checkout')).toBeInTheDocument()
+    expect(await screen.findByText('Cancelar y Volver')).toBeInTheDocument()
   })
 })
 

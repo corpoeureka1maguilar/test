@@ -6,6 +6,9 @@ import type { SaleContext, SaleEvent } from '@/features/payment/machines/saleMac
 const VPOS_BASE_URL = 'http://localhost:8085/vpos/'
 const VPOS_RESPONSE_TIMEOUT_MS = 60_000
 
+export const fixNumberForAPI = (amount: number, decimals: number = 2): string =>
+  amount.toFixed(decimals).replace('.', '')
+
 interface UseVposCheckoutParams {
   method: KioskPaymentMethod | null
   context: SaleContext
@@ -35,13 +38,11 @@ interface UseVposCheckoutParams {
 
 interface UseVposCheckoutResult {
   vposStatus: 'checking' | 'waiting'
-  iframeUrl: string
 }
 
-// Maneja el checkout con terminal VPOS (mock): pinguea el terminal, muestra
-// el iframe del checkout cuando responde, escucha el postMessage con el
-// resultado de la transacción y cae a /pago si el terminal no responde a
-// tiempo o está inalcanzable.
+// Maneja el cobro con terminal VPOS (Merchant): pinguea el terminal, envía la
+// petición POST a /vpos/metodo (o /vpos/metodo_cashea) para iniciar la transacción
+// en el punto de venta físico, y procesa la respuesta.
 export function useVposCheckout({
   method,
   context,
@@ -60,47 +61,49 @@ export function useVposCheckout({
   useEffect(() => {
     // generic-partial-payment (3.4): sin confirmación del monto de la
     // pierna (LegAmountInput todavía no confirmó) no se pinguea el
-    // terminal — evita cobrar/mostrar el iframe con un monto que el cajero
-    // aún puede editar hacia abajo.
+    // terminal — evita cobrar con un monto que el cajero aún puede editar.
     if (!method?.withMerchant || !confirmed) return
 
-    // Patrón estándar de data fetching en efecto: resetea el status antes de
-    // arrancar el ping al terminal VPOS (fetch real, con cleanup por abajo).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVposStatus('checking')
     let cancelled = false
+    let handled = false
     let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const abortController = new AbortController()
+
+    const processResponse = (data: any) => {
+      if (handled || cancelled) return
+      handled = true
+      clearTimeout(timeoutId)
+
+      if (data.codRespuesta === '00' || data.codRespuesta === 0 || data.codRespuesta === '0') {
+        pushToast('success', 'Pago procesado exitosamente por VPOS')
+        send({
+          type: 'LEG_PAID',
+          payment: {
+            methodId: method.id,
+            reference: String(data.numeroReferencia || data.numSeq || 'MOCK-VPOS'),
+            amount: paymentAmount,
+            igtfAmount: paymentIgtf
+          },
+          method,
+          baseBs: confirmedBaseBs
+        })
+        const remaining = context.remainingAmount ?? saleTotalBs
+        navigate(confirmedBaseBs >= remaining - 0.01 ? '/resultado' : '/pago')
+      } else {
+        pushToast('error', `VPOS Rechazado: ${data.mensajeRespuesta || 'Error en transacción'}`)
+        send({ type: 'BACK' })
+        navigate('/pago')
+      }
+    }
 
     const handleIframeMessage = (e: MessageEvent) => {
       try {
         if (typeof e.data === 'string') {
           const data = JSON.parse(e.data)
-          if (data.codRespuesta === '00') {
-            clearTimeout(timeoutId)
-            pushToast('success', 'Pago procesado exitosamente por VPOS')
-            // generic-partial-payment / payment-flow: SIEMPRE LEG_PAID,
-            // nunca SUBMIT_PAYMENT (ese evento queda reservado para el path
-            // legacy no-VPOS/full-gift-card — ver saleMachine.ts 0.1). El
-            // guard `coversRemaining` de la máquina decide processing vs.
-            // selectingMethod; acá solo navegamos según la misma condición
-            // para no desincronizar la UI de la transición real de la máquina.
-            send({
-              type: 'LEG_PAID',
-              payment: {
-                methodId: method.id,
-                reference: data.numeroReferencia || data.numSeq || 'MOCK-VPOS',
-                amount: paymentAmount,
-                igtfAmount: paymentIgtf
-              },
-              method,
-              baseBs: confirmedBaseBs
-            })
-            const remaining = context.remainingAmount ?? saleTotalBs
-            navigate(confirmedBaseBs >= remaining - 0.01 ? '/resultado' : '/pago')
-          } else {
-            clearTimeout(timeoutId)
-            pushToast('error', `VPOS Rechazado: ${data.mensajeRespuesta || 'Error en transacción'}`)
-          }
+          processResponse(data)
+        } else if (typeof e.data === 'object' && e.data !== null) {
+          processResponse(e.data)
         }
       } catch (err) {
         // Ignore non-JSON messages
@@ -109,20 +112,56 @@ export function useVposCheckout({
 
     window.addEventListener('message', handleIframeMessage)
 
-    fetch(`${VPOS_BASE_URL}ping`)
-      .then((res) => {
+    fetch(`${VPOS_BASE_URL}ping`, { signal: abortController.signal })
+      .then(async (res) => {
         if (cancelled) return
         if (!res.ok) throw new Error('Ping VPOS falló')
 
         setVposStatus('waiting')
+
         timeoutId = setTimeout(() => {
-          pushToast('error', 'El terminal VPOS no respondió a tiempo. Intente nuevamente.')
-          send({ type: 'BACK' })
-          navigate('/pago')
+          if (!handled && !cancelled) {
+            handled = true
+            pushToast('error', 'El terminal VPOS no respondió a tiempo. Intente nuevamente.')
+            send({ type: 'BACK' })
+            navigate('/pago')
+          }
         }, VPOS_RESPONSE_TIMEOUT_MS)
+
+        // Petición POST directa a /vpos/metodo (o /vpos/metodo_cashea)
+        const docNumber = context.customer?.cedula || context.pendingVat || ''
+        const isCashea = method.paymentType === 'cashea' || method.name?.toLowerCase().includes('cashea')
+        const endpoint = isCashea ? `${VPOS_BASE_URL}metodo_cashea` : `${VPOS_BASE_URL}metodo`
+
+        const body = {
+          accion: isCashea ? 'creacionCashea' : 'tarjeta',
+          cedula: docNumber,
+          montoTransaccion: fixNumberForAPI(totalWithIgtfBs)
+        }
+
+        try {
+          const postRes = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(body),
+            signal: abortController.signal
+          })
+
+          if (cancelled || handled) return
+          if (postRes.ok && typeof postRes.json === 'function') {
+            const data = await postRes.json()
+            if (data && !cancelled && !handled) {
+              processResponse(data)
+            }
+          }
+        } catch (err: any) {
+          if (err.name === 'AbortError' || cancelled || handled) return
+          console.error('[useVposCheckout] Error enviando petición a merchant:', err)
+        }
       })
-      .catch(() => {
-        if (cancelled) return
+      .catch((err) => {
+        if (cancelled || handled || err.name === 'AbortError') return
+        handled = true
         pushToast('error', 'No se pudo conectar con el terminal VPOS.')
         send({ type: 'BACK' })
         navigate('/pago')
@@ -131,12 +170,10 @@ export function useVposCheckout({
     return () => {
       cancelled = true
       clearTimeout(timeoutId)
+      abortController.abort()
       window.removeEventListener('message', handleIframeMessage)
     }
   }, [method, paymentAmount, paymentIgtf, confirmedBaseBs, confirmed, context.remainingAmount, saleTotalBs, send, navigate, pushToast])
 
-  const docNumber = context.customer?.cedula || context.pendingVat || ''
-  const iframeUrl = `${VPOS_BASE_URL}checkout?amount=${totalWithIgtfBs}&cedula=${docNumber}`
-
-  return { vposStatus, iframeUrl }
+  return { vposStatus }
 }
