@@ -100,7 +100,7 @@ describe('PaymentForm — remanente de tarjeta de regalo (pago parcial 2-leg, Sc
   })
 
   it('cuando context.remainingAmount está seteado (segundo leg), usa ese monto como total efectivo (36 Bs) en vez del total completo del carrito (232 Bs)', () => {
-    render(<MemoryRouter><PaymentRouter /></MemoryRouter>)
+    render(<MemoryRouter><PaymentForm /></MemoryRouter>)
 
     fireEvent.click(screen.getByText('Confirmar pago'))
 
