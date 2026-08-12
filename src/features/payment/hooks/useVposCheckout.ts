@@ -129,7 +129,8 @@ export function useVposCheckout({
         }, VPOS_RESPONSE_TIMEOUT_MS)
 
         // Petición POST directa a /vpos/metodo (o /vpos/metodo_cashea)
-        const docNumber = context.customer?.cedula || context.pendingVat || ''
+        const rawDoc = context.customer?.cedula || context.pendingVat || ''
+        const docNumber = rawDoc.replace(/\D/g, '')
         const isCashea = (method.paymentType as string) === 'cashea' || method.name?.toLowerCase().includes('cashea')
         const endpoint = isCashea ? `${VPOS_BASE_URL}metodo_cashea` : `${VPOS_BASE_URL}metodo`
 
