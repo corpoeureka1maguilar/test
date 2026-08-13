@@ -47,7 +47,7 @@ export async function sendCierreVpos(accion: VposCierreAccion, signal?: AbortSig
     method: 'POST',
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({ accion }),
-    signal
+    signal: signal ?? null
   })
 
   if (!response.ok) throw new Error('El servicio VPOS respondió con un error')
