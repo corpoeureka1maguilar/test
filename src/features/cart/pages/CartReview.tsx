@@ -77,20 +77,20 @@ export function CartReview() {
             </table>
           </div>
 
-          <div className="mt-6 w-full">
-            <div className="flex justify-between items-baseline py-4 text-[1.3rem] font-medium text-text-muted tabular-nums">
+          <div className="mt-4 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 py-3 px-1 border-t border-b border-surface-border">
+            <div className="flex justify-between items-center text-[1rem] font-medium text-text-muted tabular-nums">
               <span>Subtotal</span>
-              <span>{formatBs(subtotal)}{rate > 0 && <span className={amountUsdClass}>{formatUSD(subtotal / rate)}</span>}</span>
+              <span className="font-bold text-text">{formatBs(subtotal)}{rate > 0 && <span className={amountUsdClass}>{formatUSD(subtotal / rate)}</span>}</span>
             </div>
             {taxBreakdown.map((tax) => (
-              <div key={tax.rate} className="flex justify-between items-baseline py-4 text-[1.3rem] font-medium text-text-muted tabular-nums">
+              <div key={tax.rate} className="flex justify-between items-center text-[1rem] font-medium text-text-muted tabular-nums">
                 <span>{tax.label}</span>
-                <span>{formatBs(tax.amount)}{rate > 0 && <span className={amountUsdClass}>{formatUSD(tax.amount / rate)}</span>}</span>
+                <span className="font-bold text-text">{formatBs(tax.amount)}{rate > 0 && <span className={amountUsdClass}>{formatUSD(tax.amount / rate)}</span>}</span>
               </div>
             ))}
-            <div className="flex justify-between items-baseline py-4 text-[1.3rem] font-medium text-text-muted tabular-nums mt-4 border-t border-surface-border pt-8">
-              <span className="text-text text-[2rem] font-semibold">Total</span>
-              <strong className="text-[length:var(--font-total)] font-bold text-accent tracking-[-0.04em] tabular-nums">{formatBs(total)}{rate > 0 && <span className={amountUsdClass}>{formatUSD(total / rate)}</span>}</strong>
+            <div className="col-span-1 sm:col-span-2 flex justify-between items-center text-[1.2rem] font-medium text-text-muted tabular-nums pt-2.5 border-t border-dashed border-surface-border mt-1">
+              <span className="text-text text-[1.4rem] font-bold">Total</span>
+              <strong className="text-[1.8rem] sm:text-[2.2rem] font-black text-accent tracking-[-0.04em] tabular-nums">{formatBs(total)}{rate > 0 && <span className={amountUsdClass}>{formatUSD(total / rate)}</span>}</strong>
             </div>
           </div>
 

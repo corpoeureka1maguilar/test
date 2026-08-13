@@ -235,6 +235,12 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
           await saveSecret(SERVICE_PASSWORD_SECRET, servicePassword)
         }
 
+        if (!servicePassword) {
+          console.warn('[config] No hay contraseña de servicio descifrable disponible. Se requiere reconfigurar en /setup.')
+          set({ isConnectionReady: false, isOffline: true })
+          return
+        }
+
         try {
           await setProxyTarget(odooUrl)
           odooEnv.setupConnection({ url: odooUrl, db: odooDb, password: servicePassword })

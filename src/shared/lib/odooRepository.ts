@@ -58,6 +58,18 @@ export {
 
 export { syncMetrics } from './odoo/metricsRepository'
 
+export type {
+  SessionCashTotals,
+  SessionPaymentMethodTotal,
+  SessionAmountTotals
+} from './odoo/cashRepository'
+export {
+  fetchSessionCashTotals,
+  recomputeSessionAmounts,
+  fetchSessionPaymentTotals,
+  fetchSessionAmountTotals
+} from './odoo/cashRepository'
+
 export type { AssignCardFromSaleInput } from './odoo/giftCardRepository'
 export { searchGiftCard, assignCardFromSale } from './odoo/giftCardRepository'
 

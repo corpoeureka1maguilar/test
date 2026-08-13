@@ -99,7 +99,7 @@ export function Welcome() {
 
   const handleStart = () => {
     send({ type: 'START' })
-    navigate('/cedula')
+    navigate('/cedula', { viewTransition: true })
   }
 
   const handleLogoTap = () => {
@@ -240,7 +240,7 @@ export function Welcome() {
         </div>
 
         {/* Panel de contenido */}
-        <div className="relative flex flex-col items-center justify-center h-full w-full px-20 gap-10 bg-white overflow-hidden">
+        <div className="relative flex flex-col items-center justify-center h-full w-full px-6 desktop:px-8 lg:px-16 gap-6 desktop:gap-8 bg-white overflow-hidden">
           {/* Resplandor decorativo detrás del CTA: respira despacio, nunca se detiene */}
           <div className="absolute -z-10 w-[560px] h-[560px] rounded-full bg-gradient-to-br from-emerald-200/70 to-emerald-100/40 blur-3xl top-1/2 -translate-y-1/2 -right-52 pointer-events-none animate-breathe" />
           <div className="absolute -z-10 w-[320px] h-[320px] rounded-full bg-emerald-300/30 blur-3xl bottom-10 -left-24 pointer-events-none animate-breathe [animation-delay:-3s]" />

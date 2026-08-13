@@ -140,7 +140,7 @@ export function ProductCatalog() {
 
   return (
     <div
-      className={`w-full max-w-6xl mx-auto self-center flex flex-col items-center justify-start h-full p-4 sm:p-6 overflow-y-auto box-border transition-all duration-200 ${showKeyboard && isManualMode ? (isKeyboardMinimized ? 'pb-20' : 'pb-80') : ''}`}
+      className={`w-full max-w-6xl mx-auto flex flex-col items-center justify-start h-full p-2 sm:p-4 box-border overflow-hidden transition-all duration-200 ${showKeyboard && isManualMode ? (isKeyboardMinimized ? 'pb-20' : 'pb-80') : ''}`}
       onClick={handleWrapperClick}
     >
       {/* INPUT OCULTO PARA EL SCANNER FÍSICO CUANDO EL MODAL ESTÁ CERRADO */}
@@ -154,10 +154,10 @@ export function ProductCatalog() {
       )}
 
       {/* BOTÓN DE BÚSQUEDA Y CARRITO CENTRADO */}
-      <div className="w-full flex flex-col gap-4 flex-1 min-h-0">
+      <div className="w-full flex flex-col gap-2.5 sm:gap-3 flex-1 min-h-0 overflow-hidden">
         <button
           type="button"
-          className={`w-full bg-gray-100 text-gray-800 font-bold text-lg py-5 px-6 rounded-full border border-gray-200 hover:bg-gray-200 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 shadow-xs cursor-pointer select-none ${isManualMode ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' : ''}`}
+          className={`w-full shrink-0 bg-gray-100 text-gray-800 font-bold text-sm sm:text-base py-2.5 sm:py-3 px-4 rounded-full border border-gray-200 hover:bg-gray-200 active:scale-[0.96] transition-transform duration-150 flex items-center justify-center gap-2 shadow-xs cursor-pointer select-none ${isManualMode ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
             if (isManualMode) {

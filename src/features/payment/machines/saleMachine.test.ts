@@ -7,7 +7,7 @@ import type { KioskPartner, CartItem, KioskPaymentMethod, ActivePayment, Printer
 
 type SubmitInput = { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string; giftCard: GiftCard | null; legs: PaymentLeg[] }
 type EnqueueInput = { customer: KioskPartner; cart: CartItem[]; payment: ActivePayment; method: KioskPaymentMethod; attemptId: string; giftCard: GiftCard | null; legs: PaymentLeg[] }
-type PrintInput = { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string; giftCard: GiftCard | null; legs: PaymentLeg[] }
+type PrintInput = { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string; giftCard: GiftCard | null; legs: PaymentLeg[]; documentoRef: string }
 
 // Error transitorio (red/timeout/5xx): plain Error, es DEFERRABLE -> enqueuingOffline
 const submitPaymentRejecting = fromPromise<unknown, SubmitInput>(

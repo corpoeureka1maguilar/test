@@ -30,7 +30,7 @@ export function AppNumericKeyboard({ value, onChange, maxLength = 6, masked = fa
           <button
             key={key}
             type="button"
-            className={`h-[100px] w-[100px] mx-auto text-[3rem] font-app font-medium bg-surface text-text border-none rounded-full cursor-pointer transition-[transform,background-color,box-shadow,color] duration-200 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] active:bg-surface-heavy active:scale-[0.96] active:shadow-none desktop:h-[84px] desktop:w-[84px] desktop:text-[2rem] desktop:hover:bg-surface-hover ${key === '✓' ? 'text-[1.4rem] text-accent desktop:text-[1.3rem]' : ''} ${key === '←' ? 'text-[1.4rem] text-text-muted desktop:text-[1.3rem]' : ''}`}
+            className={`h-[100px] w-[100px] mx-auto text-[3rem] font-app font-medium bg-surface text-text border-none rounded-full cursor-pointer transition-[transform,background-color,box-shadow,color] duration-200 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] active:bg-surface-heavy active:scale-[0.96] active:shadow-none desktop:h-[clamp(54px,8vh,76px)] desktop:w-[clamp(54px,8vh,76px)] desktop:text-[1.65rem] desktop:hover:bg-surface-hover ${key === '✓' ? 'text-[1.4rem] text-accent desktop:text-[1.3rem]' : ''} ${key === '←' ? 'text-[1.4rem] text-text-muted desktop:text-[1.3rem]' : ''}`}
             onClick={() => handleKey(key)}
           >
             {key}

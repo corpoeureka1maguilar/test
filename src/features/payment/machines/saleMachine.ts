@@ -78,6 +78,7 @@ export interface SaleContext {
   legs: PaymentLeg[]                 // piernas VPOS ya cobradas (generic-partial-payment); la gift card NO vive acá (design Decision 1)
   saleAttemptId: string | null      // x_fex_id: estable durante todo el intento de venta (dedup en Odoo)
   odooOrderId: number | null        // id de la orden creada en Odoo, para registrar el n° fiscal
+  odooOrderName: string | null      // n° de SO ("S00123") para el campo `documento` del ticket fiscal
   queuedOffline: boolean            // true si la venta se encoló localmente (Odoo inalcanzable)
   printerResult: PrinterInvoiceData | null
   errorMessage: string | null
@@ -248,9 +249,9 @@ function buildLegsInput(context: SaleContext, totalBsForRemainder: number): Paym
 
 const printFiscalInvoice = fromPromise<
   PrinterInvoiceData,
-  { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string; giftCard: GiftCard | null; legs: PaymentLeg[] }
+  { customer: KioskPartner; cart: CartItem[]; method: KioskPaymentMethod; payment: ActivePayment; printerUrl: string; printerModel: string; giftCard: GiftCard | null; legs: PaymentLeg[]; documentoRef: string }
 >(async ({ input, signal }) => {
-  const { customer, cart, printerUrl, printerModel, giftCard, legs } = input
+  const { customer, cart, printerUrl, printerModel, giftCard, legs, documentoRef } = input
   const printer = new FiscalPrinterAdapter(printerUrl, printerModel)
 
   const isGiftCardPurchase = cart.some(item => item.isGiftCard)
@@ -289,8 +290,8 @@ const printFiscalInvoice = fromPromise<
     amountBs: l.amountBs,
     igtfBs: l.montoIgtf
   }))
+  const globalRate = useExchangeRateStore.getState().rate || 1
   if (giftCard && !hasFullGiftCardLeg) {
-    const globalRate = useExchangeRateStore.getState().rate || 1
     tenders.push({
       code: GIFT_CARD_TENDER_CODE,
       amountBs: round2(giftCard.amount * globalRate),
@@ -298,12 +299,21 @@ const printFiscalInvoice = fromPromise<
     })
   }
 
+  // REF del ticket fiscal en USD: los tenders viajan en Bs (columna "pagoXX"),
+  // pero la referencia siempre reporta el monto en dólares — se deshace la
+  // conversión con la misma tasa global usada arriba para la gift card.
+  const totalAmountBs = tenders.reduce((sum, t) => sum + t.amountBs, 0)
+  const usdAmount = round2(totalAmountBs / globalRate)
+
   const payload = buildFacturaPayload(
     customer.name,
     customer.cedula,
     cart.map(i => ({ name: i.name, qty: i.qty, price: i.price, taxRate: i.taxRate })),
     tenders,
-    'Autopago'
+    documentoRef,
+    usdAmount,
+    'Autopago',
+    customer.street || ''
   )
   const response = await printer.printFactura(payload as Record<string, unknown>, signal)
   return {
@@ -421,13 +431,19 @@ export const saleMachine = setup({
       odooOrderId: ({ event }) => {
         const output = (event as { type: string; output?: { id?: number } }).output
         return typeof output?.id === 'number' ? output.id : null
+      },
+      odooOrderName: ({ event }) => {
+        const output = (event as { type: string; output?: { name?: string } }).output
+        return typeof output?.name === 'string' ? output.name : null
       }
     }),
-    // La venta se encoló localmente: no hay odooOrderId todavía (lo resuelve
-    // el synchronizer al drenar) — printing.onDone igual imprime la factura
+    // La venta se encoló localmente: no hay odooOrderId/odooOrderName todavía
+    // (lo resuelve el synchronizer al drenar) — printing.onDone igual imprime
+    // la factura, usando saleAttemptId como `documento` (ver printing.invoke.input)
     setQueuedOffline: assign({
       queuedOffline: true,
-      odooOrderId: null
+      odooOrderId: null,
+      odooOrderName: null
     }),
     // Fire-and-forget: la factura ya imprimió; si el patch falla solo se
     // pierde el dato fiscal para el reintento post-sync (no bloquea la venta)
@@ -484,6 +500,7 @@ export const saleMachine = setup({
         legs: [],
         saleAttemptId: null,
         odooOrderId: null,
+        odooOrderName: null,
         queuedOffline: false,
         printerResult: null,
         errorMessage: null,
@@ -508,6 +525,7 @@ export const saleMachine = setup({
     legs: [],
     saleAttemptId: null,
     odooOrderId: null,
+    odooOrderName: null,
     queuedOffline: false,
     printerResult: null,
     errorMessage: null,
@@ -704,6 +722,10 @@ export const saleMachine = setup({
           // de la de `processing`/`enqueuingOffline` (con IVA): preserva el
           // comportamiento pre-Fase-2, no lo unifica (fuera de este alcance).
           const totalBs = context.cart.reduce((sum, item) => sum + item.subtotal, 0)
+          // `documento` del ticket fiscal: n° de SO si ya se creó en Odoo
+          // (camino online), o el saleAttemptId (x_fex_id) cuando la venta se
+          // imprime encolada offline y todavía no hay orden creada.
+          const documentoRef = context.odooOrderName || context.saleAttemptId || ''
           return {
             customer: context.customer,
             cart: context.cart,
@@ -712,7 +734,8 @@ export const saleMachine = setup({
             printerUrl: useConfigStore.getState().printerUrl,
             printerModel: useConfigStore.getState().printerModel,
             giftCard: context.giftCardLeg ?? context.giftCard,
-            legs: buildLegsInput(context, totalBs)
+            legs: buildLegsInput(context, totalBs),
+            documentoRef
           }
         },
         onDone: { target: 'success', actions: ['setPrinterResult', 'persistPrinterData', 'patchQueueFiscal'] },

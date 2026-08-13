@@ -28,11 +28,15 @@ describe('buildFacturaPayload — single tender (regression, pre-generalization 
       'María Pérez',
       'V-12345678',
       [{ name: 'Producto A', qty: 2, price: 50, taxRate: 0.16 }],
-      [{ code: '01', amountBs: 100, igtfBs: 0 }]
+      [{ code: '01', amountBs: 100, igtfBs: 0 }],
+      'S00001',
+      100
     )
 
     expect(payload.nombre).toBe('Maria Perez')
     expect(payload.rif).toBe('V-12345678')
+    expect(payload.documento).toBe('S00001')
+    expect(payload.referencia).toBe('REF 100.00')
     expect(payload.Items).toEqual([{
       codigo: '', descripcion: 'Producto A', impuesto: '1', tasa: '1', cantidad: '2000', precio: '5000', descuentop: '0'
     }])
@@ -45,7 +49,9 @@ describe('buildFacturaPayload — single tender (regression, pre-generalization 
       'Juan',
       'V-1',
       [{ name: 'A', qty: 1, price: 10 }, { name: 'B', qty: 0, price: 5 }],
-      [{ code: '01', amountBs: 10, igtfBs: 0 }]
+      [{ code: '01', amountBs: 10, igtfBs: 0 }],
+      'S00002',
+      10
     )
     expect(payload.Items).toHaveLength(1)
     expect(payload.Items[0]!.descripcion).toBe('A')
@@ -60,7 +66,9 @@ describe('buildFacturaPayload — single tender (regression, pre-generalization 
         { name: 'C', qty: 1, price: 10, taxRate: 0.5 },
         { name: 'D', qty: 1, price: 10 }
       ],
-      [{ code: '01', amountBs: 40, igtfBs: 0 }]
+      [{ code: '01', amountBs: 40, igtfBs: 0 }],
+      'S00003',
+      40
     )
     expect(payload.Items.map(i => i.tasa)).toEqual(['2', '3', '1', '1'])
   })
@@ -74,7 +82,9 @@ describe('buildFacturaPayload — single tender (regression, pre-generalization 
     const payload = buildFacturaPayload(
       'Juan', 'V-1',
       [{ name: 'A', qty: 1, price: 100 }],
-      [{ code: '01', amountBs: 100, igtfBs }]
+      [{ code: '01', amountBs: 100, igtfBs }],
+      'S00004',
+      100
     )
     expect(payload.montoigtf).toBe('300')
   })
@@ -88,7 +98,9 @@ describe('buildFacturaPayload — tenders[] generalization (generic-partial-paym
       [
         { code: '05', amountBs: 50, igtfBs: 0 },
         { code: '07', amountBs: 30, igtfBs: 0 }
-      ]
+      ],
+      'S00005',
+      80
     )
     expect(payload['pago05']).toBe('5000')
     expect(payload['pago07']).toBe('3000')
@@ -103,7 +115,9 @@ describe('buildFacturaPayload — tenders[] generalization (generic-partial-paym
       [
         { code: '05', amountBs: 20, igtfBs: 0 },
         { code: '05', amountBs: 60, igtfBs: 0 }
-      ]
+      ],
+      'S00006',
+      80
     )
     expect(payload['pago05']).toBe('8000')
   })
@@ -112,7 +126,9 @@ describe('buildFacturaPayload — tenders[] generalization (generic-partial-paym
     expect(() => buildFacturaPayload(
       'Juan', 'V-1',
       [{ name: 'A', qty: 1, price: 50 }],
-      [{ code: '', amountBs: 50, igtfBs: 0 }]
+      [{ code: '', amountBs: 50, igtfBs: 0 }],
+      'S00007',
+      50
     )).toThrow()
   })
 
@@ -123,7 +139,9 @@ describe('buildFacturaPayload — tenders[] generalization (generic-partial-paym
       [
         { code: GIFT_CARD_TENDER_CODE, amountBs: 80, igtfBs: 0 },
         { code: '05', amountBs: 36, igtfBs: 0 }
-      ]
+      ],
+      'S00008',
+      116
     )
     expect(payload['pago15']).toBe('8000')
     expect(payload['pago05']).toBe('3600')
@@ -140,7 +158,9 @@ describe('buildFacturaPayload — tenders[] generalization (generic-partial-paym
       [
         { code: '05', amountBs: 50, igtfBs: 1.5 },
         { code: '07', amountBs: 50, igtfBs: 0.75 }
-      ]
+      ],
+      'S00009',
+      100
     )
     expect(payload.montoigtf).toBe('225') // (1.5 + 0.75) * 100
   })
@@ -149,7 +169,9 @@ describe('buildFacturaPayload — tenders[] generalization (generic-partial-paym
     const payload = buildFacturaPayload(
       'Juan', 'V-1',
       [{ name: 'A', qty: 1, price: 100 }],
-      [{ code: '01', amountBs: 100, igtfBs: 0 }]
+      [{ code: '01', amountBs: 100, igtfBs: 0 }],
+      'S00010',
+      100
     )
     expect(payload.montoigtf).toBe('0')
     expect(payload['pago01']).toBe('10000')
@@ -173,6 +195,8 @@ describe('buildNotaCreditoPayload', () => {
       [{ name: 'Producto A', qty: 2, price: 50, taxRate: 0.16 }],
       method,
       100,
+      'S00099',
+      100,
       maquina
     )
 
@@ -183,6 +207,12 @@ describe('buildNotaCreditoPayload', () => {
     expect(payload.fecha).toBe('01072026')
     expect(payload.hora).toBe('1430')
     expect(payload.maquina).toBe('Z1B1234567')
+  })
+
+  it('uses the SO name and USD amount for documento/referencia (not the partner VAT / Bs total)', () => {
+    const payload = build('1234')
+    expect(payload.documento).toBe('S00099')
+    expect(payload.referencia).toBe('REF 100.00')
   })
 
   it('normalizes numeric invoice numbers with leading zeros like the reprint flow', () => {
@@ -220,6 +250,8 @@ describe('buildNotaCreditoPayload', () => {
       '1234', '01072026', '1430', 'Juan', 'V-1',
       [{ name: 'A', qty: 1, price: 50 }],
       giftCardMethod,
+      100,
+      'S00100',
       100
     )
     expect(payload['pago15']).toBe('10000')

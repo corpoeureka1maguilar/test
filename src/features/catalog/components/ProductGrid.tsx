@@ -28,7 +28,7 @@ export function ProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 overflow-y-auto pb-6 flex-1 min-h-0 pr-1">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 overflow-y-auto pb-4 flex-1 min-h-0 pr-1">
       {filtered.map(product => {
         const qty = getQty(product.id)
         return (

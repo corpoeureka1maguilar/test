@@ -59,14 +59,14 @@ export function AppStepper() {
   const formattedRate = rate > 0 ? rate.toFixed(2) : null
 
   return (
-    <div className="flex items-center justify-between pt-4 px-6 gap-4 animate-[appleFadeIn_1s_cubic-bezier(0.2,0.8,0.2,1)] bg-bg">
+    <div className="flex items-center justify-between pt-2.5 pb-1 px-4 desktop:px-6 gap-3 animate-[appleFadeIn_1s_cubic-bezier(0.2,0.8,0.2,1)] bg-bg">
       {/* Logo - left side */}
-      <div className="flex-none min-w-[140px] flex items-center gap-3">
+      <div className="flex-none min-w-[120px] flex items-center gap-3">
         {companyLogo && (
           <img
             src={`data:image/png;base64,${companyLogo}`}
             alt="Logo empresa"
-            className="h-[120px] w-auto max-w-[190px] object-contain opacity-95"
+            className="h-[clamp(44px,6vh,80px)] w-auto max-w-[170px] object-contain opacity-95"
           />
         )}
       </div>

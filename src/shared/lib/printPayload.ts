@@ -114,7 +114,10 @@ export function buildNotaCreditoPayload(
   lines: PrintLine[],
   method: KioskPaymentMethod,
   totalAmount: number,
-  maquina = ''
+  documentoRef: string,
+  usdAmount: number,
+  maquina = '',
+  partnerStreet = ''
 ): NotaCreditoPayload {
   let factura = invoiceNumber || ''
   if (/^\d+$/.test(factura)) factura = String(Number(factura))
@@ -131,7 +134,7 @@ export function buildNotaCreditoPayload(
   // La nota de crédito no reporta la caja de origen: igual que fex, la clave
   // se elimina del payload en vez de mandarse vacía
   const { Items, caja: _caja, ...rest } = buildFacturaPayload(
-    partnerName, partnerVat, lines, [{ code, amountBs: totalAmount, igtfBs: 0 }], ''
+    partnerName, partnerVat, lines, [{ code, amountBs: totalAmount, igtfBs: 0 }], documentoRef, usdAmount, '', partnerStreet
   )
 
   return {
@@ -154,14 +157,22 @@ export function buildNotaCreditoPayload(
  * final formatea con `fixNumberForAPI`. Si algún tender llega con `code`
  * vacío/falsy, explota — nunca inventa/asume un código.
  */
+// `documentoRef` identifica el pedido en el ticket fiscal: el n° de SO de
+// Odoo cuando ya existe, o el saleAttemptId (x_fex_id) cuando la venta se
+// imprime encolada offline y todavía no hay orden creada. `usdAmount` es el
+// monto EN DÓLARES del total cobrado (los tenders llegan en Bs para el resto
+// del payload, pero el ticket referencia el monto en USD) — lo calcula el
+// caller (saleMachine.ts/useOrderReturn.ts) con la tasa que corresponda.
 export function buildFacturaPayload(
   partnerName: string,
   partnerVat: string,
   lines: PrintLine[],
   tenders: Tender[],
-  stationLabel = 'Autopago'
+  documentoRef: string,
+  usdAmount: number,
+  stationLabel = 'Autopago',
+  partnerStreet = ''
 ): FacturaPayload {
-  const totalAmount = tenders.reduce((sum, t) => sum + t.amountBs, 0)
   const totalIgtf = round2(tenders.reduce((sum, t) => sum + t.igtfBs, 0))
 
   const accByCode = new Map<string, number>()
@@ -190,10 +201,10 @@ export function buildFacturaPayload(
     condicion: 'Pago inmediato',
     codigobarra: '',
     montoigtf: totalIgtf ? fixNumberForAPI(totalIgtf) : '0',
-    direccion: sanitize(partnerName),
-    documento: sanitize(partnerVat),
+    direccion: sanitize(partnerStreet),
+    documento: sanitize(documentoRef),
     nombre: sanitize(partnerName),
-    referencia: sanitize('REF: ' + totalAmount.toFixed(2)),
+    referencia: sanitize('REF: ' + usdAmount.toFixed(2)),
     rif: sanitize(partnerVat),
     caja: sanitize(stationLabel),
     Items: items

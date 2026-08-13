@@ -30,7 +30,7 @@
   (aspect-ratio ~0.56). Se expone como variant para que los componentes usen
   `desktop:` en vez de repetir la media query a mano.
 */
-@custom-variant desktop (@media (min-aspect-ratio: 1.35) and (min-width: 1024px));
+@custom-variant desktop (@media (min-aspect-ratio: 1.25) and (min-width: 768px));
 
 @theme {
   /* Brand Colors */
@@ -426,17 +426,103 @@ select:focus {
   }
 }
 
-/* Desktop (PC landscape): pantallas anchas con puntero fino.
-   Nunca matchea el kiosco 9:16 (aspect-ratio ~0.56). Único tier de escala. */
-@media (min-aspect-ratio: 1.35) and (min-width: 1024px) {
+/*
+  View Transitions (navigate(..., { viewTransition: true })): slide tipo
+  PowerPoint. La vista vieja se empuja hacia afuera por la izquierda mientras
+  la nueva entra desde la derecha, sincronizadas (mismo borde en todo
+  momento -> sin gap ni overlap). Se anulan opacity y mix-blend-mode del
+  cross-fade default de Chrome porque acá no hay fundido, es un push.
+  Fuera de capa porque son pseudo-elementos generados por el motor, no HTML.
+*/
+::view-transition-group(root) {
+  overflow: hidden;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  mix-blend-mode: normal;
+  opacity: 1;
+}
+
+::view-transition-old(root) {
+  animation: slidePushOut 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+::view-transition-new(root) {
+  animation: slidePushIn 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes slidePushOut {
+  from { transform: translateX(0%); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes slidePushIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* PC / Kiosco horizontal landscape (soporta 800x600 px en relación 4:3 = 1.333) */
+@media (min-aspect-ratio: 1.25) and (min-width: 768px) {
+  :root {
+    --kiosk-btn-height: 52px;
+    --kiosk-btn-font-size: 1.1rem;
+    --kiosk-input-height: 48px;
+    --kiosk-input-font-size: 1.1rem;
+    --kiosk-card-padding: 1.5rem;
+    --radius-app: 18px;
+    --kiosk-max-width: 960px;
+
+    --font-h1: 2rem;
+    --font-h2: 1.6rem;
+    --font-h3: 1.25rem;
+    --font-display: 3.25rem;
+    --font-total: 2.75rem;
+    --font-lead: 1.1rem;
+  }
+
+  @layer base {
+    .kiosk-container {
+      min-height: calc(100vh - 30px);
+      padding: 1rem 1.5rem calc(var(--keyboard-height, 0px) + 1rem);
+      gap: 0.75rem;
+    }
+
+    .kiosk-container > h2 {
+      padding: 0.25rem 0;
+    }
+
+    .glass-card {
+      padding: 1.25rem;
+    }
+
+    .btn {
+      padding: 0 1.75rem;
+      max-width: 420px;
+    }
+
+    .card {
+      max-width: 760px;
+    }
+  }
+}
+
+/* Pantallas grandes de alta resolución (1280px+ de ancho y 750px+ de alto) */
+@media (min-width: 1280px) and (min-height: 750px) {
   :root {
     --kiosk-btn-height: 60px;
     --kiosk-btn-font-size: 1.15rem;
     --kiosk-input-height: 54px;
     --kiosk-input-font-size: 1.15rem;
     --kiosk-card-padding: 2.5rem;
-    /* Se redefine el token de @theme para que rounded-app y var(--app-radius)
-       (que lo aliasea) queden en el mismo valor en desktop */
     --radius-app: 20px;
     --kiosk-max-width: 1100px;
 
@@ -461,11 +547,6 @@ select:focus {
 
     .glass-card {
       padding: 2rem;
-    }
-
-    .btn {
-      padding: 0 2.5rem;
-      max-width: 420px;
     }
 
     .card {

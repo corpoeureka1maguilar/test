@@ -81,7 +81,10 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
       price: l.priceUnit * orderRate,
       taxRate: l.taxRate
     }))
-    const totalAmount = returnLines.reduce((sum, l) => sum + l.quantity * l.priceUnit, 0) * orderRate
+    // Suma en USD (antes de aplicar orderRate) — la nota de crédito referencia
+    // el monto en dólares, igual que la factura original (ver printPayload.ts)
+    const usdAmount = returnLines.reduce((sum, l) => sum + l.quantity * l.priceUnit, 0)
+    const totalAmount = usdAmount * orderRate
 
     const payload = buildNotaCreditoPayload(
       o.printerNumber,
@@ -92,10 +95,13 @@ export function useOrderReturn(order: KioskOrder | null, requestAdminAction: (ac
       lines,
       NO_IGTF_METHOD,
       totalAmount,
+      o.name,
+      usdAmount,
       // Igual que fex (maquina = printer.code de la impresora conectada): la
       // devolución ocurre en el mismo kiosco que emitió la factura, así que
       // el serial reportado por la impresora es válido si la orden no lo tiene
-      o.printerSerial || status.serial || ''
+      o.printerSerial || status.serial || '',
+      o.partner?.street || ''
     )
 
     return printer.printNotaCredito(payload as Record<string, unknown>)

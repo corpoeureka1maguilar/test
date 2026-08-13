@@ -47,7 +47,7 @@ export function AdvancedMenu() {
     isValid: isReturnValid
   } = useOrderReturn(search.order, requestAdminAction)
   const { requestReprint } = useOrderReprint(search.order, requestAdminAction)
-  const { requestPrintReport } = useFiscalReports(requestAdminAction)
+  const { requestPrintReport, requestCierreTurno } = useFiscalReports(requestAdminAction)
 
   if (done) {
     return (
@@ -115,6 +115,7 @@ export function AdvancedMenu() {
           onRequestOpenSession={session.requestOpenSession}
           onRequestCloseSession={session.requestCloseSession}
           onRequestPrintReport={requestPrintReport}
+          onRequestCierreTurno={requestCierreTurno}
         />
       )}
 

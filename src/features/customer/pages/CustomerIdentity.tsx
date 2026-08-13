@@ -111,15 +111,15 @@ export function CustomerIdentity() {
       />
       <h2 className="text-center">¿Cuál es tu cédula o RIF?</h2>
 
-      <div className="flex gap-3 justify-center mx-auto mb-6 w-full max-w-[400px] bg-surface p-[0.4rem] rounded-[50px]">
+      <div className="flex gap-3 justify-center mx-auto mb-3 desktop:mb-4 w-full max-w-[400px] bg-surface p-[0.4rem] rounded-[50px]">
         {PREFIXES.map(p => (
           <button
             key={p}
             type="button"
             className={
               prefix === p
-                ? 'flex-1 h-14 text-xl font-semibold font-app bg-text border-0 text-white rounded-[50px] cursor-pointer transition flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.15)]'
-                : 'flex-1 h-14 text-xl font-semibold font-app bg-transparent border-0 text-text-muted rounded-[50px] cursor-pointer transition flex items-center justify-center active:scale-[0.96] active:opacity-70'
+                ? 'flex-1 h-12 desktop:h-13 text-xl font-semibold font-app bg-text border-0 text-white rounded-[50px] cursor-pointer transition flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.15)]'
+                : 'flex-1 h-12 desktop:h-13 text-xl font-semibold font-app bg-transparent border-0 text-text-muted rounded-[50px] cursor-pointer transition flex items-center justify-center active:scale-[0.96] active:opacity-70'
             }
             onClick={() => setPrefix(p)}
           >
@@ -128,13 +128,13 @@ export function CustomerIdentity() {
         ))}
       </div>
 
-      <div className="text-[length:var(--font-display)] font-light tracking-[-0.02em] text-center mx-auto mb-6 min-h-[80px] w-full max-w-[800px] text-text flex items-center justify-center gap-2 tabular-nums">
+      <div className="text-[length:var(--font-display)] font-light tracking-[-0.02em] text-center mx-auto mb-3 desktop:mb-4 min-h-[56px] desktop:min-h-[64px] w-full max-w-[800px] text-text flex items-center justify-center gap-2 tabular-nums">
         {prefix}-{formatDigits(digits) || <span className="text-surface-heavy tracking-[0.1em]">__________</span>}
       </div>
 
       <AppNumericKeyboard value={digits} onChange={setDigits} maxLength={10} onConfirm={handleConfirm} />
 
-      <div className="flex flex-col gap-4 mt-6 w-full max-w-[480px] items-center">
+      <div className="flex flex-col gap-3 mt-3 desktop:mt-4 w-full max-w-[480px] items-center">
         <button
           type="button"
           className="btn btn-primary"

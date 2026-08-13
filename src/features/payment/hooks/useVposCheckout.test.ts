@@ -39,6 +39,7 @@ function baseContext(overrides: Partial<SaleContext> = {}): SaleContext {
     legs: [],
     saleAttemptId: 'attempt-1',
     odooOrderId: null,
+    odooOrderName: null,
     queuedOffline: false,
     printerResult: null,
     errorMessage: null,

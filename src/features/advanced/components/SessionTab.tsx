@@ -7,6 +7,7 @@ interface Props {
   onRequestOpenSession: () => void
   onRequestCloseSession: () => void
   onRequestPrintReport: (tipo: 'X' | 'Z', reportName: string) => void
+  onRequestCierreTurno: () => void
 }
 
 const BADGE_BASE = 'text-[0.9rem] font-extrabold px-[0.85rem] py-[0.35rem] rounded-full'
@@ -23,7 +24,8 @@ export function SessionTab({
   stationName,
   onRequestOpenSession,
   onRequestCloseSession,
-  onRequestPrintReport
+  onRequestPrintReport,
+  onRequestCierreTurno
 }: Props) {
   return (
     <div className="flex flex-col w-full">
@@ -73,11 +75,11 @@ export function SessionTab({
           <button
             type="button"
             className={CIERRE_CARD}
-            onClick={() => onRequestPrintReport('X', 'Cierre de Turno')}
+            onClick={onRequestCierreTurno}
           >
             <div className="text-[2.2rem] flex items-center justify-center w-[60px] h-[60px] rounded-full bg-surface transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:bg-accent-subtle group-hover:scale-110">⏱</div>
             <div className="text-[1.2rem] font-extrabold text-text">Cierre de Turno</div>
-            <div className="text-[0.85rem] text-text-muted leading-[1.5] text-center">Imprime Reporte X sin cerrar memoria fiscal del día</div>
+            <div className="text-[0.85rem] text-text-muted leading-[1.5] text-center">Imprime ticket de totales y cierra la sesión de caja</div>
           </button>
 
           <button

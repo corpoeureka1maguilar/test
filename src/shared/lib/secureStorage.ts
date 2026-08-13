@@ -97,6 +97,7 @@ export async function loadSecret(name: string): Promise<string> {
     return new TextDecoder().decode(plain)
   } catch (err) {
     console.error(`[secureStorage] No se pudo descifrar el secreto "${name}":`, err)
+    deleteSecret(name)
     return ''
   }
 }
