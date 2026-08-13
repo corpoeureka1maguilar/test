@@ -4,6 +4,7 @@ import { useConfigStore } from '@/shared/stores/config'
 import { useSessionStore } from '@/shared/stores/session'
 import { useExchangeRateStore } from '@/shared/stores/exchangeRate'
 import { FiscalPrinterAdapter, noFiscalItem, type NoFiscalItem } from '@/shared/lib/fiscalPrinter'
+import { sendCierreVpos, wasVposCierreSuccessful, type VposCierreAccion } from '@/shared/lib/vpos'
 import { formatUSD, formatBs } from '@/shared/lib/money'
 import {
   fetchSessionCashTotals,
@@ -151,5 +152,72 @@ export function useFiscalReports(requestAdminAction: (action: PendingAdminAction
     }
   }
 
-  return { requestPrintReport, requestCierreTurno }
+  // "Pre cierre Merchant" / "Cierre Merchant": cierre de lote del VPOS
+  // Megasoft, espeja sendCierreVpos + setMerchantStatus de
+  // eu_fex_ppal/pages/Cierre.vue. Mismo permiso admin que ppal para ambos
+  // (SessionClose) — no hay un permiso dedicado a "merchant" en Odoo.
+  const handleCierreVpos = async (accion: VposCierreAccion, reportName: string) => {
+    const printerUrl = config.printerUrl
+    if (!printerUrl) {
+      pushToast('error', 'La URL de la impresora fiscal no está configurada')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await sendCierreVpos(accion)
+      if (!response) {
+        pushToast('error', 'El terminal VPOS no está disponible. Verifique la conexión.')
+        return
+      }
+      if (!wasVposCierreSuccessful(response.codRespuesta)) {
+        pushToast('error', `El VPOS rechazó la operación: ${response.mensajeRespuesta || response.codRespuesta}`)
+        return
+      }
+
+      pushToast('success', response.mensajeRespuesta || `${reportName} exitoso`)
+
+      const printer = new FiscalPrinterAdapter(printerUrl, config.printerModel)
+      await printer.checkConnection()
+      await printer.printTicketPunto(response.nombreVoucher)
+
+      if (accion === 'precierre') useSessionStore.getState().setPreMerchantPrinted()
+      else useSessionStore.getState().setCierreMerchantPrinted()
+    } catch (err) {
+      pushToast('error', `Error al imprimir ${reportName}: ${(err as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const requestPreCierreMerchant = () => {
+    requestAdminAction({
+      title: 'Confirma para imprimir: Pre cierre Merchant',
+      operationRef: KIOSK_OPERATIONS.sessionClose,
+      auditMessage: 'Pre cierre de lote VPOS (Merchant)',
+      run: () => {
+        void handleCierreVpos('precierre', 'Pre cierre Merchant')
+      }
+    })
+  }
+
+  // Igual que en ppal: el botón de Cierre Merchant depende de que el pre
+  // cierre ya se haya impreso con éxito — no es sólo orden visual, es un
+  // gate real (el VPOS no puede cerrar el lote sin el corte previo).
+  const requestCierreMerchant = () => {
+    if (!useSessionStore.getState().preMerchantPrinted) {
+      pushToast('error', 'Debe imprimir el Pre cierre Merchant antes del Cierre Merchant')
+      return
+    }
+    requestAdminAction({
+      title: 'Confirma para imprimir: Cierre Merchant',
+      operationRef: KIOSK_OPERATIONS.sessionClose,
+      auditMessage: 'Cierre de lote VPOS (Merchant)',
+      run: () => {
+        void handleCierreVpos('cierre', 'Cierre Merchant')
+      }
+    })
+  }
+
+  return { requestPrintReport, requestCierreTurno, requestPreCierreMerchant, requestCierreMerchant }
 }

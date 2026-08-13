@@ -8,6 +8,9 @@ interface Props {
   onRequestCloseSession: () => void
   onRequestPrintReport: (tipo: 'X' | 'Z', reportName: string) => void
   onRequestCierreTurno: () => void
+  onRequestPreCierreMerchant: () => void
+  onRequestCierreMerchant: () => void
+  preMerchantPrinted: boolean
 }
 
 const BADGE_BASE = 'text-[0.9rem] font-extrabold px-[0.85rem] py-[0.35rem] rounded-full'
@@ -25,7 +28,10 @@ export function SessionTab({
   onRequestOpenSession,
   onRequestCloseSession,
   onRequestPrintReport,
-  onRequestCierreTurno
+  onRequestCierreTurno,
+  onRequestPreCierreMerchant,
+  onRequestCierreMerchant,
+  preMerchantPrinted
 }: Props) {
   return (
     <div className="flex flex-col w-full">
@@ -72,6 +78,27 @@ export function SessionTab({
 
       {sessionState === 'opened' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-6">
+          <button
+            type="button"
+            className={CIERRE_CARD}
+            onClick={onRequestPreCierreMerchant}
+          >
+            <div className="text-[2.2rem] flex items-center justify-center w-[60px] h-[60px] rounded-full bg-surface transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:bg-accent-subtle group-hover:scale-110">🧾</div>
+            <div className="text-[1.2rem] font-extrabold text-text">Pre cierre Merchant</div>
+            <div className="text-[0.85rem] text-text-muted leading-[1.5] text-center">Corte previo del lote del terminal de pago</div>
+          </button>
+
+          <button
+            type="button"
+            className={`${CIERRE_CARD} ${!preMerchantPrinted ? 'opacity-50 cursor-not-allowed hover:translate-y-0 hover:shadow-app hover:border-surface-border' : ''}`}
+            disabled={!preMerchantPrinted}
+            onClick={onRequestCierreMerchant}
+          >
+            <div className="text-[2.2rem] flex items-center justify-center w-[60px] h-[60px] rounded-full bg-surface transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:bg-accent-subtle group-hover:scale-110">🧾</div>
+            <div className="text-[1.2rem] font-extrabold text-text">Cierre Merchant</div>
+            <div className="text-[0.85rem] text-text-muted leading-[1.5] text-center">Cierre de lote del terminal de pago (requiere pre cierre)</div>
+          </button>
+
           <button
             type="button"
             className={CIERRE_CARD}

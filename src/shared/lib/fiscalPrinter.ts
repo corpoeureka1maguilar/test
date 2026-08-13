@@ -201,6 +201,13 @@ export class FiscalPrinterAdapter {
     return this.sendRequest('PrintDocumentoNoFiscal', { Items: items }, signal)
   }
 
+  // Imprime el voucher que el propio VPOS ya generó como archivo (nombreVoucher
+  // de la respuesta de precierre/cierre) — igual que ppal, va contra la
+  // impresora fiscal/ticketera, no contra el VPOS.
+  async printTicketPunto(ruta: string, signal?: AbortSignal): Promise<PrinterApiResponse> {
+    return this.sendRequest('PrintTicketPunto', { ruta }, signal)
+  }
+
   private normalizeResponse(response: Record<string, unknown>): PrinterApiResponse {
     const findValue = (keys: string[]): unknown => {
       for (const key of keys) {

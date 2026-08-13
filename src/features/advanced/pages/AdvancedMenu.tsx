@@ -18,6 +18,7 @@ import { useOrderSearch } from '../hooks/useOrderSearch'
 import { useOrderReturn } from '../hooks/useOrderReturn'
 import { useOrderReprint } from '../hooks/useOrderReprint'
 import { useFiscalReports } from '../hooks/useFiscalReports'
+import { useSessionStore } from '@/shared/stores/session'
 
 export function AdvancedMenu() {
   const navigate = useNavigate()
@@ -47,7 +48,8 @@ export function AdvancedMenu() {
     isValid: isReturnValid
   } = useOrderReturn(search.order, requestAdminAction)
   const { requestReprint } = useOrderReprint(search.order, requestAdminAction)
-  const { requestPrintReport, requestCierreTurno } = useFiscalReports(requestAdminAction)
+  const { requestPrintReport, requestCierreTurno, requestPreCierreMerchant, requestCierreMerchant } = useFiscalReports(requestAdminAction)
+  const preMerchantPrinted = useSessionStore((s) => s.preMerchantPrinted)
 
   if (done) {
     return (
@@ -116,6 +118,9 @@ export function AdvancedMenu() {
           onRequestCloseSession={session.requestCloseSession}
           onRequestPrintReport={requestPrintReport}
           onRequestCierreTurno={requestCierreTurno}
+          onRequestPreCierreMerchant={requestPreCierreMerchant}
+          onRequestCierreMerchant={requestCierreMerchant}
+          preMerchantPrinted={preMerchantPrinted}
         />
       )}
 

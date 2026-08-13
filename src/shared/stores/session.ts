@@ -10,6 +10,12 @@ interface SessionState {
   sessionState: 'checking' | 'opened' | 'closed' | 'error'
   openingDate: string | null
   errorMsg: string | null
+  // Espejo de preMerchantPrinted/cierreMerchantPrinted en eu_fex_ppal/store/auth.ts:
+  // ahí sólo se resetean en logout(); acá no hay logout de cajero separado del
+  // cierre de sesión de caja, así que el equivalente natural es resetearlos
+  // junto con closeSession/reset (fin del turno del cajero).
+  preMerchantPrinted: boolean
+  cierreMerchantPrinted: boolean
 }
 
 interface SessionActions {
@@ -17,6 +23,8 @@ interface SessionActions {
   openSession(stationId: number): Promise<number>
   closeSession(): Promise<void>
   reset(): void
+  setPreMerchantPrinted(): void
+  setCierreMerchantPrinted(): void
 }
 
 export const useSessionStore = create<SessionState & SessionActions>()(devtools((set, get) => ({
@@ -26,6 +34,8 @@ export const useSessionStore = create<SessionState & SessionActions>()(devtools(
   sessionState: 'checking',
   openingDate: null,
   errorMsg: null,
+  preMerchantPrinted: false,
+  cierreMerchantPrinted: false,
 
   async checkSession(stationId) {
     if (!stationId) {
@@ -52,7 +62,9 @@ export const useSessionStore = create<SessionState & SessionActions>()(devtools(
           sessionState: 'closed',
           openingDate: null,
           cashierId: null,
-          cashierName: ''
+          cashierName: '',
+          preMerchantPrinted: false,
+          cierreMerchantPrinted: false
         })
       }
     } catch (err) {
@@ -82,7 +94,9 @@ export const useSessionStore = create<SessionState & SessionActions>()(devtools(
         cashierId: cashier.id,
         cashierName: cashier.name,
         sessionState: 'opened',
-        openingDate: new Date().toISOString()
+        openingDate: new Date().toISOString(),
+        preMerchantPrinted: false,
+        cierreMerchantPrinted: false
       })
       return sessionId
     } catch (err) {
@@ -105,7 +119,9 @@ export const useSessionStore = create<SessionState & SessionActions>()(devtools(
         cashierId: null,
         cashierName: '',
         sessionState: 'closed',
-        openingDate: null
+        openingDate: null,
+        preMerchantPrinted: false,
+        cierreMerchantPrinted: false
       })
     } catch (err) {
       console.error('[SessionStore] Error closing session:', err)
@@ -122,7 +138,17 @@ export const useSessionStore = create<SessionState & SessionActions>()(devtools(
       cashierName: '',
       sessionState: 'closed',
       openingDate: null,
-      errorMsg: null
+      errorMsg: null,
+      preMerchantPrinted: false,
+      cierreMerchantPrinted: false
     })
+  },
+
+  setPreMerchantPrinted() {
+    set({ preMerchantPrinted: true })
+  },
+
+  setCierreMerchantPrinted() {
+    set({ cierreMerchantPrinted: true })
   }
 }), { name: 'session' }))
